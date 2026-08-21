@@ -104,7 +104,6 @@
       color: var(--text-color);
     }
 
-    /* Tab Bar Styling */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -189,7 +188,7 @@
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
 
-        // Данные Кэмпов
+    // Данные Кэмпов
     const camps = [
       {
         id: "camp_sep_1_2026",
@@ -259,29 +258,7 @@
       }
     ];
 
-  
-      // Рендер Кэмпов
-    function renderCamps() {
-      const container = document.getElementById('camps-list');
-      container.innerHTML = camps.map(camp => `
-        <div class="card" id="${camp.id}">
-          <img src="${camp.image}" alt="${camp.title}">
-          <div class="card-body">
-            <span class="badge">${camp.dates}</span>
-            <h3 class="card-title">${camp.title}</h3>
-            <div class="meta-line">📍 ${camp.location}</div>
-            ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
-            <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
-            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
-            <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    ];
-
-    // Данные Social Rides (Субботники)
+    // Данные Social Rides
     const rides = [
       {
         title: "Субботний кофе-райд: Гагра — Пицунда",
@@ -299,15 +276,15 @@
     function renderCamps() {
       const container = document.getElementById('camps-list');
       container.innerHTML = camps.map(camp => `
-        <div class="card">
+        <div class="card" id="${camp.id}">
           <img src="${camp.image}" alt="${camp.title}">
           <div class="card-body">
             <span class="badge">${camp.dates}</span>
             <h3 class="card-title">${camp.title}</h3>
-            <div class="meta-line">${camp.location}</div>
-            <div class="meta-line">${camp.stats}</div>
+            <div class="meta-line">📍 ${camp.location}</div>
+            ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
             <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
-            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.desc}</p>
+            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
             <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
           </div>
         </div>
