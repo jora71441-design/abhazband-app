@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AbhazBand Camps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AbhazBand Platform</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -11,109 +11,185 @@
       --card-bg: var(--tg-theme-secondary-bg-color, #1e1e1e);
       --text-color: var(--tg-theme-text-color, #ffffff);
       --hint-color: var(--tg-theme-hint-color, #aaaaaa);
-      --button-color: var(--tg-theme-button-color, #3390ec);
+      --button-color: var(--tg-theme-button-color, #0088cc);
       --button-text: var(--tg-theme-button-text-color, #ffffff);
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
-      padding: 12px;
-      box-sizing: border-box;
+      padding: 12px 12px 80px 12px;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .header {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 16px;
-      text-align: center;
+    .tab-content {
+      display: none;
     }
 
-    .card-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .tab-content.active {
+      display: block;
     }
 
     .card {
       background-color: var(--card-bg);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-      display: flex;
-      flex-direction: column;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .card img {
       width: 100%;
-      height: 160px;
+      height: 180px;
       object-fit: cover;
     }
 
-    .card-content {
+    .card-body {
       padding: 14px;
     }
 
-    .card-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-
-    .card-badge {
+    .badge {
       display: inline-block;
       background: var(--button-color);
       color: var(--button-text);
       font-size: 11px;
       font-weight: bold;
-      padding: 3px 8px;
+      padding: 4px 8px;
       border-radius: 6px;
       margin-bottom: 8px;
+      text-transform: uppercase;
     }
 
-    .card-info {
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+    }
+
+    .meta-line {
       font-size: 13px;
       color: var(--hint-color);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .card-price {
-      font-size: 14px;
-      font-weight: bold;
-      color: #4cd964;
-      margin: 8px 0;
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
     }
 
-    .card-desc {
-      font-size: 12px;
-      line-height: 1.4;
-      margin-bottom: 12px;
-    }
-
-    .btn-book {
+    .btn {
+      flex: 1;
+      display: block;
       width: 100%;
       background-color: var(--button-color);
       color: var(--button-text);
-      border: none;
-      padding: 10px;
+      text-align: center;
+      padding: 10px 0;
       border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
       font-size: 14px;
-      font-weight: bold;
+      border: none;
       cursor: pointer;
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+
+    /* Tab Bar Styling */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--card-bg);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 12px 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      color: var(--hint-color);
+      font-size: 10px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .tab-item.active {
+      color: var(--button-color);
+      font-weight: bold;
+    }
+
+    .tab-icon {
+      font-size: 18px;
+      display: block;
+      margin-bottom: 2px;
     }
   </style>
 </head>
 <body>
 
-  <div class="header">Календарь Кэмпов AbhazBand</div>
-  <div id="camps-list" class="card-list"></div>
+  <!-- Вкладка 1: Кэмпы -->
+  <div id="camps-tab" class="tab-content active">
+    <div id="camps-list"></div>
+  </div>
+
+  <!-- Вкладка 2: Social Rides -->
+  <div id="rides-tab" class="tab-content">
+    <div id="rides-list"></div>
+  </div>
+
+  <!-- Вкладка 3: Магазин Abhaz Band -->
+  <div id="shop-tab" class="tab-content">
+    <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+      👕 Раздел "Магазин Abhaz Band" находится в разработке
+    </div>
+  </div>
+
+  <!-- Вкладка 4: Велосипеды & Комплектующие -->
+  <div id="bikes-tab" class="tab-content">
+    <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+      🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('camps-tab', this)">
+      <span class="tab-icon">⛺</span>
+      Кэмпы
+    </div>
+    <div class="tab-item" onclick="switchTab('rides-tab', this)">
+      <span class="tab-icon">🚴</span>
+      Social Rides
+    </div>
+    <div class="tab-item" onclick="switchTab('shop-tab', this)">
+      <span class="tab-icon">👕</span>
+      Магазин
+    </div>
+    <div class="tab-item" onclick="switchTab('bikes-tab', this)">
+      <span class="tab-icon">🚲</span>
+      Велосипеды
+    </div>
+  </nav>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
 
+        // Данные Кэмпов
     const camps = [
       {
         id: "camp_sep_1_2026",
@@ -183,29 +259,94 @@
       }
     ];
 
-    const container = document.getElementById('camps-list');
-
-    camps.forEach(camp => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <img src="${camp.image}" alt="${camp.title}">
-        <div class="card-content">
-          <span class="card-badge">${camp.dates}</span>
-          <div class="card-title">${camp.title}</div>
-          <div class="card-info">📍 ${camp.location}</div>
-          ${camp.specs ? `<div class="card-info">🚴 ${camp.specs}</div>` : ''}
-          <div class="card-price">${camp.price}</div>
-          <div class="card-desc">${camp.description}</div>
-          <button class="btn-book" onclick="openLink('${camp.link}')">Подробнее и запись</button>
+  
+      // Рендер Кэмпов
+    function renderCamps() {
+      const container = document.getElementById('camps-list');
+      container.innerHTML = camps.map(camp => `
+        <div class="card" id="${camp.id}">
+          <img src="${camp.image}" alt="${camp.title}">
+          <div class="card-body">
+            <span class="badge">${camp.dates}</span>
+            <h3 class="card-title">${camp.title}</h3>
+            <div class="meta-line">📍 ${camp.location}</div>
+            ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
+            <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
+            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
+            <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+          </div>
         </div>
-      `;
-      container.appendChild(card);
-    });
-
-    function openLink(url) {
-      tg.openTelegramLink(url);
+      `).join('');
     }
+
+    ];
+
+    // Данные Social Rides (Субботники)
+    const rides = [
+      {
+        title: "Субботний кофе-райд: Гагра — Пицунда",
+        date: "Каждая суббота | Сбор: 09:00",
+        startPoint: "📍 Гагра, Кофейня на набережной",
+        stats: "🚴 55 км | ↗️ 320 м | ⏱️ 23-25 км/ч",
+        type: "Шоссе / Гравел",
+        desc: "Традиционный расслабленный заезд с остановкой на кофе в Пицунде. Подходит для любого уровня подготовки.",
+        gpxUrl: "https://t.me/Piti4",
+        chatUrl: "https://t.me/Piti4"
+      }
+    ];
+
+    // Рендер Кэмпов
+    function renderCamps() {
+      const container = document.getElementById('camps-list');
+      container.innerHTML = camps.map(camp => `
+        <div class="card">
+          <img src="${camp.image}" alt="${camp.title}">
+          <div class="card-body">
+            <span class="badge">${camp.dates}</span>
+            <h3 class="card-title">${camp.title}</h3>
+            <div class="meta-line">${camp.location}</div>
+            <div class="meta-line">${camp.stats}</div>
+            <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
+            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.desc}</p>
+            <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Рендер Social Rides
+    function renderRides() {
+      const container = document.getElementById('rides-list');
+      container.innerHTML = rides.map(ride => `
+        <div class="card">
+          <div class="card-body">
+            <span class="badge" style="background:#ff9500;">${ride.type}</span>
+            <h3 class="card-title">${ride.title}</h3>
+            <div class="meta-line" style="color:var(--button-color); font-weight:bold;">📅 ${ride.date}</div>
+            <div class="meta-line">${ride.startPoint}</div>
+            <div class="meta-line">${ride.stats}</div>
+            <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
+            <div class="btn-group">
+              <a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
+              <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Переключение вкладок
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      element.classList.add('active');
+    }
+
+    // Инициализация
+    renderCamps();
+    renderRides();
   </script>
 </body>
 </html>
