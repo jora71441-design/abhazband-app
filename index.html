@@ -163,42 +163,71 @@
       🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
     </div>
   </div>
-    <!-- Вкладка 5: Фитчи -->
-    <div id="tools-tab" class="tab-content">
-        <h2 style="font-size: 20px; margin-bottom: 16px;">⚡ Полезности и Сервисы</h2>
 
-        <!-- Fititi -->
-        <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
-            <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
-            <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
-            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
-                Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
-            </p>
-            <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                Настроить посадку 🚀
-            </button>
-        </div>
+  <!-- Вкладка 5: Фитчи -->
+  <div id="tools-tab" class="tab-content">
+    <h2 style="font-size: 20px; margin-bottom: 16px;">⚡ Полезности и Сервисы</h2>
 
-        <!-- Калькулятор давления -->
-        <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
-            <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
-            
-            <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера: <b id="weight-val" style="color: #fff;">75 кг</b></label>
-            <input type="range" id="weight-range" min="50" max="110" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
-
-            <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип покрышки:</label>
-            <select id="tyre-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
-                <option value="road">Шоссе (28 мм)</option>
-                <option value="gravel" selected>Гравий (40 мм)</option>
-                <option value="mtb">МТБ (2.25")</option>
-            </select>
-
-            <div style="background: #0f172a; padding: 12px; border-radius: 8px; text-align: center;">
-                <span style="font-size: 12px; color: #94a3b8; display: block;">Рекомендуемое давление:</span>
-                <span id="pressure-res" style="font-size: 20px; font-weight: bold; color: #10b981;">3.0 Bar (44 PSI)</span>
-            </div>
-        </div>
+    <!-- Fititi -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
+      <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
+      <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
+      <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+        Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
+      </p>
+      <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        Настроить посадку 🚀
+      </button>
     </div>
+
+    <!-- Калькулятор давления -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
+      
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
+      <input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
+
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
+      <select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
+        <option value="tube">Клинчер (с камерой)</option>
+        <option value="tubeless">Бескамерка (Tubeless)</option>
+      </select>
+
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
+      <select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
+        <optgroup label="Шоссе">
+          <option value="road_25">Шоссе 25 мм</option>
+          <option value="road_28" selected>Шоссе 28 мм</option>
+          <option value="road_30">Шоссе 30 мм</option>
+          <option value="road_32">Шоссе 32 мм</option>
+        </optgroup>
+        <optgroup label="Гравел 700c">
+          <option value="g700_35">Гравел 700c — 35 мм</option>
+          <option value="g700_40">Гравел 700c — 40 мм</option>
+          <option value="g700_45">Гравел 700c — 45 мм</option>
+          <option value="g700_48">Гравел 700c — 48 мм</option>
+          <option value="g700_50">Гравел 700c — 50 мм</option>
+        </optgroup>
+        <optgroup label="Гравел 650b / MTB">
+          <option value="g650_19">Гравел 650b — 1.9"</option>
+          <option value="g650_21">Гравел 650b — 2.1"</option>
+          <option value="g650_23">Гравел 650b — 2.3"</option>
+        </optgroup>
+      </select>
+
+      <!-- Блок результатов -->
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
+          <span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
+        </div>
+        <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
+          <span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Bottom Navigation Bar -->
   <nav class="tab-bar">
@@ -219,10 +248,9 @@
       Велосипеды
     </div>
     <div class="tab-item" onclick="switchTab('tools-tab', this)">
-    <span class="tab-icon">⚡</span>
-    Фитчи
-</div>
-
+      <span class="tab-icon">⚡</span>
+      Фитчи
+    </div>
   </nav>
 
   <script>
@@ -362,33 +390,66 @@
       element.classList.add('active');
     }
 
+    // Открытие сайта Fititi
+    function openFititi() {
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.openLink('https://fititi.ru/');
+      } else {
+        window.open('https://fititi.ru/', '_blank');
+      }
+    }
+
+    // Расчет давления в шинах
+    function calcPressure() {
+      const weightRange = document.getElementById('weight-range');
+      const systemType = document.getElementById('system-type');
+      const tyreProfile = document.getElementById('tyre-profile');
+
+      if (!weightRange || !systemType || !tyreProfile) return;
+
+      const weight = parseInt(weightRange.value);
+      const system = systemType.value;
+      const profile = tyreProfile.value;
+      
+      document.getElementById('weight-val').innerText = weight + ' кг';
+
+      let baseBar = 3.0;
+
+      switch(profile) {
+        case 'road_25': baseBar = 6.2; break;
+        case 'road_28': baseBar = 5.5; break;
+        case 'road_30': baseBar = 4.8; break;
+        case 'road_32': baseBar = 4.5; break;
+        case 'g700_35': baseBar = 3.2; break;
+        case 'g700_40': baseBar = 2.8; break;
+        case 'g700_45': baseBar = 2.4; break;
+        case 'g700_48': baseBar = 2.3; break;
+        case 'g700_50': baseBar = 2.2; break;
+        case 'g650_19': baseBar = 2.4; break;
+        case 'g650_21': baseBar = 2.1; break;
+        case 'g650_23': baseBar = 1.9; break;
+      }
+
+      let weightFactor = weight / 75;
+      let tubelessBonus = (system === 'tubeless') ? -0.35 : 0.0;
+
+      let frontBar = Math.max(1.2, (baseBar * weightFactor * 0.86) + tubelessBonus);
+      let rearBar  = Math.max(1.4, (baseBar * weightFactor * 1.14) + tubelessBonus);
+
+      frontBar = frontBar.toFixed(1);
+      rearBar = rearBar.toFixed(1);
+
+      let frontPsi = Math.round(frontBar * 14.5038);
+      let rearPsi = Math.round(rearBar * 14.5038);
+
+      document.getElementById('front-res').innerText = `${frontBar} Bar (${frontPsi} PSI)`;
+      document.getElementById('rear-res').innerText = `${rearBar} Bar (${rearPsi} PSI)`;
+    }
+
     // Инициализация
     renderCamps();
     renderRides();
-    // Открытие сайта Fititi
-function openFititi() {
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.openLink('https://fititi.ru/');
-    } else {
-        window.open('https://fititi.ru/', '_blank');
-    }
-}
-
-// Расчет давления в шинах
-function calcPressure() {
-    const weight = parseInt(document.getElementById('weight-range').value);
-    const tyre = document.getElementById('tyre-type').value;
-    document.getElementById('weight-val').innerText = weight + ' кг';
-
-    let bar = 3.0;
-    if (tyre === 'road') bar = (weight * 0.08).toFixed(1);
-    if (tyre === 'gravel') bar = (weight * 0.04).toFixed(1);
-    if (tyre === 'mtb') bar = (weight * 0.025).toFixed(1);
-
-    const psi = Math.round(bar * 14.5038);
-    document.getElementById('pressure-res').innerText = `${bar} Bar (${psi} PSI)`;
-}
-
+    calcPressure();
   </script>
 </body>
 </html>
