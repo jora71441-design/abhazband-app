@@ -164,9 +164,35 @@
     </div>
   </div>
 
-  <!-- Вкладка 5: Фитчи -->
+  <!-- Вкладка 5: Фотоканалы -->
   <div id="tools-tab" class="tab-content">
-    <h2 style="font-size: 20px; margin-bottom: 16px;">⚡ Полезности и Сервисы</h2>
+    <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы и Сервисы</h2>
+
+    <!-- Секция: Фотоканалы -->
+    <div style="margin-bottom: 24px;">
+      <h3 style="font-size: 14px; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+        📸 Галереи и Авторы
+      </h3>
+
+      <!-- Динамический список фотоканалов -->
+      <div id="media-list"></div>
+
+      <!-- B2B-карточка призыва для фотографов -->
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+        <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
+        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+          Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
+        </p>
+        <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+          🤝 Давайте дружить / Добавить канал
+        </a>
+      </div>
+    </div>
+
+    <!-- Секция: Полезные Сервисы -->
+    <h3 style="font-size: 14px; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+      ⚡ Сервисы & Инструменты
+    </h3>
 
     <!-- Fititi -->
     <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
@@ -248,8 +274,8 @@
       Велосипеды
     </div>
     <div class="tab-item" onclick="switchTab('tools-tab', this)">
-      <span class="tab-icon">⚡</span>
-      Фитчи
+      <span class="tab-icon">📸</span>
+      Фотоканалы
     </div>
   </nav>
 
@@ -341,6 +367,17 @@
       }
     ];
 
+    // Данные Фотоканалов
+    const mediaChannels = [
+      {
+        name: "AbhazBand Photo",
+        tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
+        desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
+        image: "./Okt_shos_gravel-compressed.jpeg",
+        link: "https://t.me/Piti4"
+      }
+    ];
+
     // Рендер Кэмпов
     function renderCamps() {
       const container = document.getElementById('camps-list');
@@ -376,6 +413,25 @@
               <a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
               <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
             </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Рендер Фотоканалов
+    function renderMedia() {
+      const container = document.getElementById('media-list');
+      if (!container) return;
+      container.innerHTML = mediaChannels.map(item => `
+        <div class="card" style="margin-bottom: 14px;">
+          <img src="${item.image}" alt="${item.name}">
+          <div class="card-body">
+            <span class="badge" style="background: #38bdf8; color: #0f172a;">${item.tag}</span>
+            <h3 class="card-title">${item.name}</h3>
+            <p style="font-size: 13px; color: var(--hint-color); margin: 6px 0 12px 0;">${item.desc}</p>
+            <a href="${item.link}" target="_blank" class="btn">
+              За красотой 🚀
+            </a>
           </div>
         </div>
       `).join('');
@@ -449,6 +505,7 @@
     // Инициализация
     renderCamps();
     renderRides();
+    renderMedia();
     calcPressure();
   </script>
 </body>
