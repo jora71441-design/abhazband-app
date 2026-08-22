@@ -104,6 +104,7 @@
       color: var(--text-color);
     }
 
+    /* Нижняя панель с горизонтальным скроллом для 6+ вкладок */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -111,14 +112,21 @@
       right: 0;
       background-color: var(--card-bg);
       display: flex;
-      justify-content: space-around;
-      padding: 8px 0 12px 0;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 8px 6px 12px 6px;
       border-top: 1px solid rgba(255,255,255,0.08);
       backdrop-filter: blur(10px);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-bar::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-item {
-      flex: 1;
+      flex: 0 0 16.66%;
+      min-width: 68px;
       text-align: center;
       color: var(--hint-color);
       font-size: 10px;
@@ -165,34 +173,27 @@
   </div>
 
   <!-- Вкладка 5: Фотоканалы -->
-  <div id="tools-tab" class="tab-content">
-    <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы и Сервисы</h2>
+  <div id="media-tab" class="tab-content">
+    <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
+    
+    <!-- Динамический список фотоканалов -->
+    <div id="media-list"></div>
 
-    <!-- Секция: Фотоканалы -->
-    <div style="margin-bottom: 24px;">
-      <h3 style="font-size: 14px; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-        📸 Галереи и Авторы
-      </h3>
-
-      <!-- Динамический список фотоканалов -->
-      <div id="media-list"></div>
-
-      <!-- B2B-карточка призыва для фотографов -->
-      <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
-        <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
-        <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
-          Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
-        </p>
-        <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
-          🤝 Давайте дружить / Добавить канал
-        </a>
-      </div>
+    <!-- B2B-карточка призыва для фотографов -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+      <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
+      <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+        Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
+      </p>
+      <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+        🤝 Давайте дружить / Добавить канал
+      </a>
     </div>
+  </div>
 
-    <!-- Секция: Полезные Сервисы -->
-    <h3 style="font-size: 14px; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-      ⚡ Сервисы & Инструменты
-    </h3>
+  <!-- Вкладка 6: Фитчи -->
+  <div id="tools-tab" class="tab-content">
+    <h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
 
     <!-- Fititi -->
     <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
@@ -255,7 +256,7 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar -->
+  <!-- Bottom Navigation Bar (6 вкладок) -->
   <nav class="tab-bar">
     <div class="tab-item active" onclick="switchTab('camps-tab', this)">
       <span class="tab-icon">⛺</span>
@@ -273,9 +274,13 @@
       <span class="tab-icon">🚲</span>
       Велосипеды
     </div>
-    <div class="tab-item" onclick="switchTab('tools-tab', this)">
+    <div class="tab-item" onclick="switchTab('media-tab', this)">
       <span class="tab-icon">📸</span>
       Фотоканалы
+    </div>
+    <div class="tab-item" onclick="switchTab('tools-tab', this)">
+      <span class="tab-icon">🛠️</span>
+      Фитчи
     </div>
   </nav>
 
