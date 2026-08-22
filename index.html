@@ -104,7 +104,7 @@
       color: var(--text-color);
     }
 
-    /* Нижняя панель с горизонтальным скроллом для 6+ вкладок */
+    /* Нижняя панель с горизонтальным скроллом */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -118,6 +118,7 @@
       border-top: 1px solid rgba(255,255,255,0.08);
       backdrop-filter: blur(10px);
       -webkit-overflow-scrolling: touch;
+      z-index: 100;
     }
 
     .tab-bar::-webkit-scrollbar {
@@ -143,6 +144,63 @@
       font-size: 18px;
       display: block;
       margin-bottom: 2px;
+    }
+
+    /* Стили Модального Окна */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--hint-color);
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--button-color);
     }
   </style>
 </head>
@@ -185,9 +243,9 @@
       <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
         Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
       </p>
-      <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+      <button onclick="openMediaModal()" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;">
         🤝 Давайте дружить / Добавить канал
-      </a>
+      </button>
     </div>
   </div>
 
@@ -252,6 +310,43 @@
           <span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
           <span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно подачи заявки фотографа -->
+  <div id="media-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="margin: 0 0 12px 0; font-size: 18px; text-align: center;">📸 Заявка на добавление</h3>
+      
+      <div class="form-group">
+        <label>Название канала / Имя автора</label>
+        <input type="text" id="author-name" class="form-input" placeholder="например, Alex Action Photo">
+      </div>
+
+      <div class="form-group">
+        <label>Ссылка на канал / Альбом</label>
+        <input type="text" id="author-link" class="form-input" placeholder="https://t.me/...">
+      </div>
+
+      <div class="form-group">
+        <label>Специализация (Тег)</label>
+        <select id="author-tag" class="form-input">
+          <option value="Экшн / Гонки">Экшн / Гонки</option>
+          <option value="Атмосфера / Пейзажи">Атмосфера / Пейзажи</option>
+          <option value="Шоссе & Серпантины">Шоссе & Серпантины</option>
+          <option value="Гравел & Эндуро">Гравел & Эндуро</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Короткое описание</label>
+        <textarea id="author-desc" class="form-input" rows="2" placeholder="Опиши стиль съёмки..."></textarea>
+      </div>
+
+      <div class="btn-group" style="margin-top: 16px;">
+        <button onclick="submitMediaForm()" class="btn">Отправить заявку 🚀</button>
+        <button onclick="closeMediaModal()" class="btn btn-secondary">Отмена</button>
       </div>
     </div>
   </div>
@@ -379,7 +474,7 @@
         tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
         desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
         image: "./Okt_shos_gravel-compressed.jpeg",
-        link: "https://t.me/Piti4"
+        link: "https://disk.yandex.ru/d/OIfy3OpN-5yYMg"
       }
     ];
 
@@ -440,6 +535,37 @@
           </div>
         </div>
       `).join('');
+    }
+
+    // Управление Модальным Окном Заявки
+    function openMediaModal() {
+      document.getElementById('media-modal').classList.add('active');
+    }
+
+    function closeMediaModal() {
+      document.getElementById('media-modal').classList.remove('active');
+    }
+
+    function submitMediaForm() {
+      const name = document.getElementById('author-name').value.trim();
+      const link = document.getElementById('author-link').value.trim();
+      const tag = document.getElementById('author-tag').value;
+      const desc = document.getElementById('author-desc').value.trim();
+
+      if (!name || !link) {
+        alert('Пожалуйста, укажите имя/название и ссылку на канал.');
+        return;
+      }
+
+      const textMessage = `📸 *Заявка на добавление Фотоканала*%0A%0A` +
+        `👤 *Автор:* ${encodeURIComponent(name)}%0A` +
+        `🔗 *Ссылка:* ${encodeURIComponent(link)}%0A` +
+        `🏷️ *Тег:* ${encodeURIComponent(tag)}%0A` +
+        `📝 *Описание:* ${encodeURIComponent(desc || 'Не указано')}`;
+
+      // Закрываем модальное окно и редиректим в личные сообщения владельцу
+      closeMediaModal();
+      window.open(`https://t.me/Piti4?text=${textMessage}`, '_blank');
     }
 
     // Переключение вкладок
