@@ -163,6 +163,42 @@
       🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
     </div>
   </div>
+    <!-- Вкладка 5: Фитчи -->
+    <div id="tools-tab" class="tab-content" style="display: none;">
+        <h2 style="font-size: 20px; margin-bottom: 16px;">⚡ Полезности и Сервисы</h2>
+
+        <!-- Fititi -->
+        <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
+            <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
+            <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+                Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
+            </p>
+            <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                Настроить посадку 🚀
+            </button>
+        </div>
+
+        <!-- Калькулятор давления -->
+        <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+            <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
+            
+            <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера: <b id="weight-val" style="color: #fff;">75 кг</b></label>
+            <input type="range" id="weight-range" min="50" max="110" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
+
+            <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип покрышки:</label>
+            <select id="tyre-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
+                <option value="road">Шоссе (28 мм)</option>
+                <option value="gravel" selected>Гравий (40 мм)</option>
+                <option value="mtb">МТБ (2.25")</option>
+            </select>
+
+            <div style="background: #0f172a; padding: 12px; border-radius: 8px; text-align: center;">
+                <span style="font-size: 12px; color: #94a3b8; display: block;">Рекомендуемое давление:</span>
+                <span id="pressure-res" style="font-size: 20px; font-weight: bold; color: #10b981;">3.0 Bar (44 PSI)</span>
+            </div>
+        </div>
+    </div>
 
   <!-- Bottom Navigation Bar -->
   <nav class="tab-bar">
@@ -182,6 +218,11 @@
       <span class="tab-icon">🚲</span>
       Велосипеды
     </div>
+    <div class="tab-item" onclick="switchTab('tools')">
+    <span class="tab-icon">⚡</span>
+    Фитчи
+</div>
+
   </nav>
 
   <script>
@@ -324,6 +365,30 @@
     // Инициализация
     renderCamps();
     renderRides();
+    // Открытие сайта Fititi
+function openFititi() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.openLink('https://fititi.ru/');
+    } else {
+        window.open('https://fititi.ru/', '_blank');
+    }
+}
+
+// Расчет давления в шинах
+function calcPressure() {
+    const weight = parseInt(document.getElementById('weight-range').value);
+    const tyre = document.getElementById('tyre-type').value;
+    document.getElementById('weight-val').innerText = weight + ' кг';
+
+    let bar = 3.0;
+    if (tyre === 'road') bar = (weight * 0.08).toFixed(1);
+    if (tyre === 'gravel') bar = (weight * 0.04).toFixed(1);
+    if (tyre === 'mtb') bar = (weight * 0.025).toFixed(1);
+
+    const psi = Math.round(bar * 14.5038);
+    document.getElementById('pressure-res').innerText = `${bar} Bar (${psi} PSI)`;
+}
+
   </script>
 </body>
 </html>
