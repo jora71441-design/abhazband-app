@@ -104,7 +104,6 @@ background-color: rgba(255, 255, 255, 0.1);
 color: var(--text-color);
 }
 
-/* Нижняя панель с горизонтальным скроллом для 6+ вкладок */
 .tab-bar {
 position: fixed;
 bottom: 0;
@@ -148,38 +147,29 @@ margin-bottom: 2px;
 </head>
 <body>
 
-<!-- Вкладка 1: Кэмпы -->
 <div id="camps-tab" class="tab-content active">
 <div id="camps-list"></div>
 </div>
 
-<!-- Вкладка 2: Social Rides -->
 <div id="rides-tab" class="tab-content">
 <div id="rides-list"></div>
 </div>
 
-<!-- Вкладка 3: Магазин Abhaz Band -->
 <div id="shop-tab" class="tab-content">
 <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
 👕 Раздел "Магазин Abhaz Band" находится в разработке
 </div>
 </div>
 
-<!-- Вкладка 4: Велосипеды & Комплектующие -->
 <div id="bikes-tab" class="tab-content">
 <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
 🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
 </div>
 </div>
 
-<!-- Вкладка 5: Фотоканалы -->
 <div id="media-tab" class="tab-content">
 <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
-
-<!-- Динамический список фотоканалов -->
 <div id="media-list"></div>
-
-<!-- B2B-карточка призыва для фотографов -->
 <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
 <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
 <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
@@ -191,11 +181,9 @@ margin-bottom: 2px;
 </div>
 </div>
 
-<!-- Вкладка 6: Фитчи -->
 <div id="tools-tab" class="tab-content">
 <h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
 
-<!-- Fititi -->
 <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
 <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
 <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
@@ -207,10 +195,8 @@ margin-bottom: 2px;
 </button>
 </div>
 
-<!-- Калькулятор давления -->
 <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
 <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
-
 <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
 <input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
 
@@ -242,7 +228,6 @@ margin-bottom: 2px;
 </optgroup>
 </select>
 
-<!-- Блок результатов -->
 <div style="display: flex; gap: 8px;">
 <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
 <span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
@@ -256,39 +241,33 @@ margin-bottom: 2px;
 </div>
 </div>
 
-<!-- Bottom Navigation Bar (6 вкладок) -->
 <nav class="tab-bar">
 <div class="tab-item active" onclick="switchTab('camps-tab', this)">
-<span class="tab-icon">⛺</span>
-Кэмпы
+<span class="tab-icon">⛺</span>Кэмпы
 </div>
 <div class="tab-item" onclick="switchTab('rides-tab', this)">
-<span class="tab-icon">🚴</span>
-Social Rides
+<span class="tab-icon">🚴</span>Social Rides
 </div>
 <div class="tab-item" onclick="switchTab('shop-tab', this)">
-<span class="tab-icon">👕</span>
-Магазин
+<span class="tab-icon">👕</span>Магазин
 </div>
 <div class="tab-item" onclick="switchTab('bikes-tab', this)">
-<span class="tab-icon">🚲</span>
-Велосипеды
+<span class="tab-icon">🚲</span>Велосипеды
 </div>
 <div class="tab-item" onclick="switchTab('media-tab', this)">
-<span class="tab-icon">📸</span>
-Фотоканалы
+<span class="tab-icon">📸</span>Фотоканалы
 </div>
 <div class="tab-item" onclick="switchTab('tools-tab', this)">
-<span class="tab-icon">🛠️</span>
-Фитчи
+<span class="tab-icon">🛠️</span>Фитчи
 </div>
 </nav>
 
 <script>
-Telegram.WebApp.ready();
-Telegram.WebApp.expand();
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
 
-// Данные Кэмпов
 const camps = [
 {
 id: "camp_sep_1_2026",
@@ -356,9 +335,8 @@ description: "Самостоятельные шоссейные приезды �
 image: "./Noviy_god-compressed.jpeg",
 link: "https://t.me/Piti4"
 }
- ];
+];
 
-// Данные Social Rides
 const rides = [
 {
 title: "Субботний кофе-райд: Гагра — Пицунда",
@@ -370,9 +348,8 @@ desc: "Традиционный расслабленный заезд с ост�
 gpxUrl: "https://t.me/Piti4",
 chatUrl: "https://t.me/Piti4"
 }
- ];
+];
 
-// Данные Фотоканалов
 const mediaChannels = [
 {
 name: "AbhazBand Photo",
@@ -381,63 +358,77 @@ desc: "Самые сочные кадры с горных серпантинов
 image: "./Okt_shos_gravel-compressed.jpeg",
 link: "https://t.me/Piti4"
 }
- ];
+];
 
-// Рендер Кэмпов
 function renderCamps() {
 const container = document.getElementById('camps-list');
-container.innerHTML = camps.map(camp => &lt;div class="card" id="${camp.id}">
+container.innerHTML = camps.map(camp => `
+<div class="card" id="${camp.id}">
 <img src="${camp.image}" alt="${camp.title}">
 <div class="card-body">
-<span class="badge">${camp.dates}&lt;/span&gt; &lt;h3 class="card-title"&gt;${camp.title}</h3>
-<div class="meta-line">📍 ${camp.location}&lt;/div&gt; ${camp.specs ? <div class="meta-line"&gt;🚴${camp.specs}</div>: ''} &lt;div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;"&gt;💰 ${camp.price}</div>
-<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}&lt;/p&gt; &lt;a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+<span class="badge">${camp.dates}</span>
+<h3 class="card-title">${camp.title}</h3>
+<div class="meta-line">📍 ${camp.location}</div>
+${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
+<div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
+<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
+<a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
 </div>
 </div>
 `).join('');
 }
 
-// Рендер Social Rides
 function renderRides() {
 const container = document.getElementById('rides-list');
-container.innerHTML = rides.map(ride => &lt;div class="card"&gt; &lt;div class="card-body"&gt; &lt;span class="badge" style="background:#ff9500;"&gt;${ride.type}</span>
-<h3 class="card-title"> {ride.date}</div>
-<div class="meta-line"> {ride.stats}</div>
-<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;"> {ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
-<a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank"&gt;Скачать .GPX&lt;/a&gt; &lt;/div&gt; &lt;/div&gt; &lt;/div&gt;).join('');
+container.innerHTML = rides.map(ride => `
+<div class="card">
+<div class="card-body">
+<span class="badge" style="background:#ff9500;">${ride.type}</span>
+<h3 class="card-title">${ride.title}</h3>
+<div class="meta-line">📅 ${ride.date}</div>
+<div class="meta-line">${ride.startPoint}</div>
+<div class="meta-line">${ride.stats}</div>
+<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
+<div class="btn-group">
+<a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
+<a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
+</div>
+</div>
+</div>
+`).join('');
 }
 
-// Рендер Фотоканалов
 function renderMedia() {
 const container = document.getElementById('media-list');
 if (!container) return;
-container.innerHTML = mediaChannels.map(item => &lt;div class="card" style="margin-bottom: 14px;"&gt; &lt;img src="${item.image}" alt="latex
-{item.name}"&gt; &lt;div class="card-body"&gt; &lt;span class="badge" style="background: #38bdf8; color: #0f172a;"&gt;
-
-{item.tag}</span>
-<h3 class="card-title"> {item.desc}</p>
-<a href="${item.link}" target="_blank" class="btn"&gt; За красотой 🚀 &lt;/a&gt; &lt;/div&gt; &lt;/div&gt;).join('');
+container.innerHTML = mediaChannels.map(item => `
+<div class="card" style="margin-bottom: 14px;">
+<img src="${item.image}" alt="${item.name}">
+<div class="card-body">
+<span class="badge" style="background: #38bdf8; color: #0f172a;">${item.tag}</span>
+<h3 class="card-title">${item.name}</h3>
+<p style="font-size: 13px; color: var(--hint-color); margin: 0 0 12px 0;">${item.desc}</p>
+<a href="${item.link}" target="_blank" class="btn">За красотой 🚀</a>
+</div>
+</div>
+`).join('');
 }
 
-// Переключение вкладок
 function switchTab(tabId, element) {
 document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
 document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-
 document.getElementById(tabId).classList.add('active');
 element.classList.add('active');
 }
 
-// Открытие сайта Fititi
 function openFititi() {
-if (window.Telegram && window.Telegram.WebApp) {
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
 window.Telegram.WebApp.openLink('https://fititi.ru/');
 } else {
 window.open('https://fititi.ru/', '_blank');
 }
 }
 
-// Расчет давления в шинах
 function calcPressure() {
 const weightRange = document.getElementById('weight-range');
 const systemType = document.getElementById('system-type');
@@ -480,10 +471,10 @@ rearBar = rearBar.toFixed(1);
 let frontPsi = Math.round(frontBar * 14.5038);
 let rearPsi = Math.round(rearBar * 14.5038);
 
-document.getElementById('front-res').innerText = ${frontBar} Bar ($`{frontPsi} PSI)`; document.getElementById('rear-res').innerText =${rearBar} Bar (${rearPsi} PSI)`;
+document.getElementById('front-res').innerText = `${frontBar} Bar (${frontPsi} PSI)`;
+document.getElementById('rear-res').innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
-// Инициализация
 renderCamps();
 renderRides();
 renderMedia();
