@@ -59,7 +59,7 @@
     .pills-container {
       display: flex;
       gap: 8px;
-      padding: 12px 16px;
+      padding: 12px 0;
       overflow-x: auto;
       scrollbar-width: none;
     }
@@ -93,6 +93,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      margin-top: 10px;
     }
 
     .card {
@@ -243,7 +244,7 @@
       color: var(--hint-color);
       margin-bottom: 4px;
     }
-    .form-group input, .form-group textarea {
+    .form-group input {
       width: 100%;
       padding: 10px;
       border-radius: 8px;
@@ -268,12 +269,12 @@
       <button class="pill" onclick="filterEvents('club', this)">🤝 Заезды клубов</button>
     </div>
 
-    <div id="events-list" class="cards-container">
-      <!-- Ивенты загружаются из Supabase -->
+    <div style="margin: 10px 0;">
+      <button class="btn btn-secondary" onclick="openModal()" style="width: 100%;">➕ Предложить свой заезд</button>
     </div>
 
-    <div style="margin: 20px 0 10px; text-align: center;">
-      <button class="btn btn-secondary" onclick="openModal()" style="width: 100%;">➕ Предложить свой заезд</button>
+    <div id="events-list" class="cards-container">
+      <!-- Ивенты подгружаются из Supabase -->
     </div>
   </main>
 
@@ -293,23 +294,17 @@
 
   <!-- ВКЛАДКА: МАГАЗИН -->
   <main id="screen-shop" class="screen">
-    <div id="shop-list" class="cards-container">
-      <!-- Товары подгружаются из Supabase -->
-    </div>
+    <div id="shop-list" class="cards-container"></div>
   </main>
 
   <!-- ВКЛАДКА: ВЕЛОСИПЕДЫ -->
   <main id="screen-bikes" class="screen">
-    <div id="bikes-list" class="cards-container">
-      <!-- Велосипеды подгружаются из Supabase -->
-    </div>
+    <div id="bikes-list" class="cards-container"></div>
   </main>
 
   <!-- ВКЛАДКА: ФОТОКАНАЛЫ -->
   <main id="screen-media" class="screen">
-    <div id="media-list" class="cards-container">
-      <!-- Каналы подгружаются из Supabase -->
-    </div>
+    <div id="media-list" class="cards-container"></div>
   </main>
 
   <!-- НИЖНЯЯ НАВИГАЦИЯ -->
@@ -370,7 +365,9 @@
 
     const SUPABASE_URL = 'https://eotbacbevzxckhyodgak.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_uem7wKcynw7kmAofhHgkkQ_ZrTnAbhG';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Переменная клиента базы названа `db` во избежание конфликта
+    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
     // Переключение главных вкладок
     function switchTab(tabId, element) {
@@ -386,7 +383,7 @@
       if (tabId === 'media') loadMedia();
     }
 
-    // Загрузка ивентов по категориям (Weekend, Race, Club)
+    // Загрузка ивентов по категориям
     async function filterEvents(type, element) {
       if (element) {
         document.querySelectorAll('.pills-container .pill').forEach(btn => btn.classList.remove('active'));
@@ -396,7 +393,12 @@
       const container = document.getElementById('events-list');
       container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Загрузка заездов...</p>';
 
-      const { data: events, error } = await supabase
+      if (!db) {
+        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Ошибка подключения к БД</p>';
+        return;
+      }
+
+      const { data: events, error } = await db
         .from('events')
         .select('*')
         .eq('event_type', type)
@@ -436,7 +438,9 @@
       const container = document.getElementById(containerId);
       container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Загрузка каталога...</p>';
 
-      const { data: products } = await supabase.from('products').select('*').eq('category', category);
+      if (!db) return;
+
+      const { data: products } = await db.from('products').select('*').eq('category', category);
 
       if (!products || !products.length) {
         container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Раздел пополняется</p>';
@@ -460,7 +464,9 @@
     // Загрузка фотоканалов
     async function loadMedia() {
       const container = document.getElementById('media-list');
-      const { data: channels } = await supabase.from('media_channels').select('*');
+      if (!db) return;
+
+      const { data: channels } = await db.from('media_channels').select('*');
 
       if (!channels || !channels.length) {
         container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Каналы пока не добавлены</p>';
@@ -478,11 +484,11 @@
       `).join('');
     }
 
-    // Модальное окно
+    // Управление модальным окном
     function openModal() { document.getElementById('club-modal').classList.add('active'); }
     function closeModal() { document.getElementById('club-modal').classList.remove('active'); }
 
-    // Отправка заявки стороннего клуба (уходит в Supabase со статусом is_approved = false)
+    // Отправка заявки стороннего клуба
     async function submitClubRide() {
       const name = document.getElementById('club-name').value;
       const title = document.getElementById('club-title').value;
@@ -494,15 +500,17 @@
         return;
       }
 
-      const { error } = await supabase.from('events').insert([{
+      if (!db) return;
+
+      const { error } = await db.from('events').insert([{
         title: title,
         organizer: name || 'Сторонний клуб',
         date_text: date,
         location: 'Абхазия',
         chat_url: url,
         event_type: 'club',
-        image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8', // дефолтная картинка
-        is_approved: false // отправляем на модерацию Кирилу
+        image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8',
+        is_approved: false
       }]);
 
       if (!error) {
@@ -513,8 +521,10 @@
       }
     }
 
-    // Старт при загрузке
-    filterEvents('weekend');
+    // Первичная загрузка
+    document.addEventListener('DOMContentLoaded', () => {
+      filterEvents('weekend');
+    });
   </script>
 </body>
 </html>
