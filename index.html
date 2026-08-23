@@ -1,530 +1,493 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Abhaz Band Hub</title>
-  
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AbhazBand Platform</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+--bg-color: var(--tg-theme-bg-color, #121212);
+--card-bg: var(--tg-theme-secondary-bg-color, #1e1e1e);
+--text-color: var(--tg-theme-text-color, #ffffff);
+--hint-color: var(--tg-theme-hint-color, #aaaaaa);
+--button-color: var(--tg-theme-button-color, #0088cc);
+--button-text: var(--tg-theme-button-text-color, #ffffff);
+}
 
-  <style>
-    :root {
-      --bg-color: #17212b;
-      --card-bg: #242f3d;
-      --text-color: #ffffff;
-      --hint-color: #7f91a4;
-      --accent-color: #248bfa;
-      --accent-hover: #1d77d4;
-      --secondary-btn: #2b3644;
-      --badge-bg: #ff9800;
-      --badge-text: #000000;
-      --border-radius: 14px;
-    }
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+background-color: var(--bg-color);
+color: var(--text-color);
+margin: 0;
+padding: 12px 12px 80px 12px;
+-webkit-tap-highlight-color: transparent;
+}
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
+.tab-content {
+display: none;
+}
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding-bottom: 75px;
-      min-height: 100vh;
-    }
+.tab-content.active {
+display: block;
+}
 
-    /* Шапка */
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background-color: var(--bg-color);
-      padding: 14px 16px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
+.card {
+background-color: var(--card-bg);
+border-radius: 12px;
+overflow: hidden;
+margin-bottom: 16px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
-    header h1 {
-      font-size: 18px;
-      font-weight: 700;
-    }
+.card img {
+width: 100%;
+height: 180px;
+object-fit: cover;
+}
 
-    /* Фильтры-категории (Pills) */
-    .pills-container {
-      display: flex;
-      gap: 8px;
-      padding: 12px 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .pills-container::-webkit-scrollbar { display: none; }
+.card-body {
+padding: 14px;
+}
 
-    .pill {
-      background: var(--card-bg);
-      color: var(--text-color);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+.badge {
+display: inline-block;
+background: var(--button-color);
+color: var(--button-text);
+font-size: 11px;
+font-weight: bold;
+padding: 4px 8px;
+border-radius: 6px;
+margin-bottom: 8px;
+text-transform: uppercase;
+}
 
-    .pill.active {
-      background: var(--accent-color);
-      border-color: var(--accent-color);
-      color: #fff;
-    }
+.card-title {
+font-size: 17px;
+font-weight: 700;
+margin: 0 0 8px 0;
+}
 
-    /* Экраны */
-    .screen { display: none; padding: 12px 16px; }
-    .screen.active { display: block; }
+.meta-line {
+font-size: 13px;
+color: var(--hint-color);
+margin-bottom: 6px;
+display: flex;
+align-items: center;
+gap: 6px;
+}
 
-    /* Карточки */
-    .cards-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-top: 10px;
-    }
+.btn-group {
+display: flex;
+gap: 8px;
+margin-top: 12px;
+}
 
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
+.btn {
+flex: 1;
+display: block;
+width: 100%;
+background-color: var(--button-color);
+color: var(--button-text);
+text-align: center;
+padding: 10px 0;
+border-radius: 8px;
+text-decoration: none;
+font-weight: 600;
+font-size: 14px;
+border: none;
+cursor: pointer;
+}
 
-    .card-img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      display: block;
-    }
+.btn-secondary {
+background-color: rgba(255, 255, 255, 0.1);
+color: var(--text-color);
+}
 
-    .card-body {
-      padding: 14px;
-    }
+/* Нижняя панель с горизонтальным скроллом для 6+ вкладок */
+.tab-bar {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+background-color: var(--card-bg);
+display: flex;
+overflow-x: auto;
+white-space: nowrap;
+padding: 8px 6px 12px 6px;
+border-top: 1px solid rgba(255,255,255,0.08);
+backdrop-filter: blur(10px);
+-webkit-overflow-scrolling: touch;
+}
 
-    .badge {
-      display: inline-block;
-      background: var(--badge-bg);
-      color: var(--badge-text);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
+.tab-bar::-webkit-scrollbar {
+display: none;
+}
 
-    .card-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      line-height: 1.3;
-    }
+.tab-item {
+flex: 0 0 16.66%;
+min-width: 68px;
+text-align: center;
+color: var(--hint-color);
+font-size: 10px;
+text-decoration: none;
+cursor: pointer;
+}
 
-    .meta-line {
-      font-size: 13px;
-      color: var(--hint-color);
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+.tab-item.active {
+color: var(--button-color);
+font-weight: bold;
+}
 
-    .card-desc {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.8);
-      margin: 10px 0;
-      line-height: 1.4;
-    }
-
-    /* Кнопки */
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .btn {
-      flex: 1;
-      background: var(--accent-color);
-      color: #fff;
-      border: none;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: center;
-      text-decoration: none;
-      cursor: pointer;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .btn-secondary {
-      background: var(--secondary-btn);
-      color: var(--text-color);
-    }
-
-    /* Нижнее навигационное меню */
-    nav.bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: #17212b;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      color: var(--hint-color);
-      font-size: 10px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      width: 100%;
-    }
-
-    .nav-item.active {
-      color: var(--accent-color);
-    }
-
-    .nav-icon {
-      font-size: 20px;
-    }
-
-    /* Модальное окно */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal.active { display: flex; }
-
-    .modal-content {
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      padding: 20px;
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-    .form-group label {
-      display: block;
-      font-size: 12px;
-      color: var(--hint-color);
-      margin-bottom: 4px;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: #17212b;
-      color: #fff;
-      font-size: 14px;
-    }
-  </style>
+.tab-icon {
+font-size: 18px;
+display: block;
+margin-bottom: 2px;
+}
+</style>
 </head>
 <body>
 
-  <header>
-    <h1>Abhaz Band Hub</h1>
-  </header>
+<!-- Вкладка 1: Кэмпы -->
+<div id="camps-tab" class="tab-content active">
+<div id="camps-list"></div>
+</div>
 
-  <!-- ВКЛАДКА: МЕРОПРИЯТИЯ -->
-  <main id="screen-events" class="screen active">
-    <div class="pills-container">
-      <button class="pill active" onclick="filterEvents('weekend', this)">☕ Abhaz Band Weekend</button>
-      <button class="pill" onclick="filterEvents('race', this)">🏆 Гонки</button>
-      <button class="pill" onclick="filterEvents('club', this)">🤝 Заезды клубов</button>
-    </div>
+<!-- Вкладка 2: Social Rides -->
+<div id="rides-tab" class="tab-content">
+<div id="rides-list"></div>
+</div>
 
-    <div style="margin: 10px 0;">
-      <button class="btn btn-secondary" onclick="openModal()" style="width: 100%;">➕ Предложить свой заезд</button>
-    </div>
+<!-- Вкладка 3: Магазин Abhaz Band -->
+<div id="shop-tab" class="tab-content">
+<div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+👕 Раздел "Магазин Abhaz Band" находится в разработке
+</div>
+</div>
 
-    <div id="events-list" class="cards-container">
-      <!-- Ивенты подгружаются из Supabase -->
-    </div>
-  </main>
+<!-- Вкладка 4: Велосипеды & Комплектующие -->
+<div id="bikes-tab" class="tab-content">
+<div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
+</div>
+</div>
 
-  <!-- ВКЛАДКА: КЭМПЫ -->
-  <main id="screen-camps" class="screen">
-    <div class="cards-container">
-      <div class="card">
-        <div class="card-body">
-          <span class="badge">ОСЕНЬ 2026</span>
-          <h3 class="card-title">Велокэмп в Абхазии</h3>
-          <p class="card-desc">7 дней катания по лучшим серпантинам и локациям. Группы до 10 человек.</p>
-          <button class="btn" onclick="alert('Открываем запись на кэмп')">Забронировать место</button>
-        </div>
-      </div>
-    </div>
-  </main>
+<!-- Вкладка 5: Фотоканалы -->
+<div id="media-tab" class="tab-content">
+<h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
 
-  <!-- ВКЛАДКА: МАГАЗИН -->
-  <main id="screen-shop" class="screen">
-    <div id="shop-list" class="cards-container"></div>
-  </main>
+<!-- Динамический список фотоканалов -->
+<div id="media-list"></div>
 
-  <!-- ВКЛАДКА: ВЕЛОСИПЕДЫ -->
-  <main id="screen-bikes" class="screen">
-    <div id="bikes-list" class="cards-container"></div>
-  </main>
+<!-- B2B-карточка призыва для фотографов -->
+<div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+<h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
+<p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
+</p>
+<a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+🤝 Давайте дружить / Добавить канал
+</a>
+</div>
+</div>
 
-  <!-- ВКЛАДКА: ФОТОКАНАЛЫ -->
-  <main id="screen-media" class="screen">
-    <div id="media-list" class="cards-container"></div>
-  </main>
+<!-- Вкладка 6: Фитчи -->
+<div id="tools-tab" class="tab-content">
+<h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
 
-  <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-  <nav class="bottom-nav">
-    <button class="nav-item" onclick="switchTab('camps', this)">
-      <span class="nav-icon">🏕️</span>
-      <span>Кэмпы</span>
-    </button>
-    <button class="nav-item active" onclick="switchTab('events', this)">
-      <span class="nav-icon">🚴</span>
-      <span>Мероприятия</span>
-    </button>
-    <button class="nav-item" onclick="switchTab('shop', this)">
-      <span class="nav-icon">👕</span>
-      <span>Магазин</span>
-    </button>
-    <button class="nav-item" onclick="switchTab('bikes', this)">
-      <span class="nav-icon">🚲</span>
-      <span>Велосипеды</span>
-    </button>
-    <button class="nav-item" onclick="switchTab('media', this)">
-      <span class="nav-icon">📸</span>
-      <span>Фотоканалы</span>
-    </button>
-  </nav>
+<!-- Fititi -->
+<div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
+<span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
+<h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
+<p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
+</p>
+<button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+Настроить посадку 🚀
+</button>
+</div>
 
-  <!-- МОДАЛЬНОЕ ОКНО ПРЕДЛОЖЕНИЯ ЗАЕЗДА -->
-  <div id="club-modal" class="modal">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 12px;">Предложить заезд клуба</h3>
-      <div class="form-group">
-        <label>Название клуба / Орг</label>
-        <input type="text" id="club-name" placeholder="например, Sochi Cycling Club">
-      </div>
-      <div class="form-group">
-        <label>Название заезда</label>
-        <input type="text" id="club-title" placeholder="например, Утренний гравий">
-      </div>
-      <div class="form-group">
-        <label>Дата и Время</label>
-        <input type="text" id="club-date" placeholder="Суббота | Сбор: 09:00">
-      </div>
-      <div class="form-group">
-        <label>Ссылка на ваш чат/канал</label>
-        <input type="text" id="club-url" placeholder="https://t.me/...">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-        <button class="btn" onclick="submitClubRide()">Отправить</button>
-      </div>
-    </div>
-  </div>
+<!-- Калькулятор давления -->
+<div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+<h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
 
-  <script>
-    // Инициализация Telegram WebApp & Supabase
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
-    if (tg) tg.expand();
+<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
+<input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
 
-    const SUPABASE_URL = 'https://eotbacbevzxckhyodgak.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_uem7wKcynw7kmAofhHgkkQ_ZrTnAbhG';
-    
-    // Переменная клиента базы названа `db` во избежание конфликта
-    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
+<select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
+<option value="tube">Клинчер (с камерой)</option>
+<option value="tubeless">Бескамерка (Tubeless)</option>
+</select>
 
-    // Переключение главных вкладок
-    function switchTab(tabId, element) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      
-      document.getElementById('screen-' + tabId).classList.add('active');
-      if (element) element.classList.add('active');
+<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
+<select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
+<optgroup label="Шоссе">
+<option value="road_25">Шоссе 25 мм</option>
+<option value="road_28" selected>Шоссе 28 мм</option>
+<option value="road_30">Шоссе 30 мм</option>
+<option value="road_32">Шоссе 32 мм</option>
+</optgroup>
+<optgroup label="Гравел 700c">
+<option value="g700_35">Гравел 700c — 35 мм</option>
+<option value="g700_40">Гравел 700c — 40 мм</option>
+<option value="g700_45">Гравел 700c — 45 мм</option>
+<option value="g700_48">Гравел 700c — 48 мм</option>
+<option value="g700_50">Гравел 700c — 50 мм</option>
+</optgroup>
+<optgroup label="Гравел 650b / MTB">
+<option value="g650_19">Гравел 650b — 1.9"</option>
+<option value="g650_21">Гравел 650b — 2.1"</option>
+<option value="g650_23">Гравел 650b — 2.3"</option>
+</optgroup>
+</select>
 
-      if (tabId === 'events') filterEvents('weekend');
-      if (tabId === 'shop') loadProducts('merch');
-      if (tabId === 'bikes') loadProducts('bike');
-      if (tabId === 'media') loadMedia();
-    }
+<!-- Блок результатов -->
+<div style="display: flex; gap: 8px;">
+<div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+<span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
+<span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
+</div>
+<div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+<span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
+<span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
+</div>
+</div>
+</div>
+</div>
 
-    // Загрузка ивентов по категориям
-    async function filterEvents(type, element) {
-      if (element) {
-        document.querySelectorAll('.pills-container .pill').forEach(btn => btn.classList.remove('active'));
-        element.classList.add('active');
-      }
+<!-- Bottom Navigation Bar (6 вкладок) -->
+<nav class="tab-bar">
+<div class="tab-item active" onclick="switchTab('camps-tab', this)">
+<span class="tab-icon">⛺</span>
+Кэмпы
+</div>
+<div class="tab-item" onclick="switchTab('rides-tab', this)">
+<span class="tab-icon">🚴</span>
+Social Rides
+</div>
+<div class="tab-item" onclick="switchTab('shop-tab', this)">
+<span class="tab-icon">👕</span>
+Магазин
+</div>
+<div class="tab-item" onclick="switchTab('bikes-tab', this)">
+<span class="tab-icon">🚲</span>
+Велосипеды
+</div>
+<div class="tab-item" onclick="switchTab('media-tab', this)">
+<span class="tab-icon">📸</span>
+Фотоканалы
+</div>
+<div class="tab-item" onclick="switchTab('tools-tab', this)">
+<span class="tab-icon">🛠️</span>
+Фитчи
+</div>
+</nav>
 
-      const container = document.getElementById('events-list');
-      container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Загрузка заездов...</p>';
+<script>
+Telegram.WebApp.ready();
+Telegram.WebApp.expand();
 
-      if (!db) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Ошибка подключения к БД</p>';
-        return;
-      }
+// Данные Кэмпов
+const camps = [
+{
+id: "camp_sep_1_2026",
+title: "Гравийный / МТБ кэмп по Западной Абхазии",
+dates: "05 - 14 сентября (10 дней)",
+location: "Гагра / Балаганы / Охотничьи домики / Палатки",
+price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+specs: "Пробег: ~350 км | Набор: ~7 000 м",
+description: "Западная Абхазия, вершины гор, альпийские луга и горные озёра. Рекомендуется райдерам с подготовкой не ниже среднего уровня.",
+image: "./Sent_gravel_mtb-compressed.jpeg",
+link: "https://t.me/Piti4"
+},
+{
+id: "camp_sep_2_2026",
+title: "Комбинированный Шоссе vs Гравел",
+dates: "19 - 28 сентября (10 дней)",
+location: "База AbhazBand (Гагра / Сухум)",
+price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+specs: "Пробег: ~750 км | Набор: ~5 800 м",
+description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
+image: "./Sent_shos_gravel-compressed.jpeg",
+link: "https://t.me/Piti4"
+},
+{
+id: "camp_oct_1_2026",
+title: "Комбинированный Шоссе vs Гравел",
+dates: "04 - 14 октября (11 дней)",
+location: "База AbhazBand (Гагра / Гал / Сухум)",
+price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+specs: "Пробег: ~800 км | Набор: ~7 000 м",
+description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
+image: "./Okt_shos_gravel-compressed.jpeg",
+link: "https://t.me/Piti4"
+},
+{
+id: "camp_oct_2_2026",
+title: "Классический Шоссейный кэмп",
+dates: "24 октября - 03 ноября (11 дней)",
+location: "База AbhazBand (Гагра / Гал / Сухум)",
+price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+specs: "Пробег: ~800 км | Набор: ~7 000 м",
+description: "Классический шоссейный кэмп по западным и восточным маршрутам.",
+image: "./Okt_shosse-compressed.jpeg",
+link: "https://t.me/Piti4"
+},
+{
+id: "camp_nov_2026",
+title: "Клубные кэмпы",
+dates: "05 - 30 ноября",
+location: "Абхазия",
+price: "Уточняйте",
+specs: "",
+description: "Сезонные клубные заезды и тренировочные сборы.",
+image: "./Klubnie-compressed.jpeg",
+link: "https://t.me/Piti4"
+},
+{
+id: "camp_dec_2026",
+title: "Подготовка к Abhaz Band New Year",
+dates: "1 - 31 декабря",
+location: "Абхазия",
+price: "Уточняйте",
+specs: "",
+description: "Самостоятельные шоссейные приезды и локальные СошлРайды",
+image: "./Noviy_god-compressed.jpeg",
+link: "https://t.me/Piti4"
+}
+ ];
 
-      const { data: events, error } = await db
-        .from('events')
-        .select('*')
-        .eq('event_type', type)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false });
+// Данные Social Rides
+const rides = [
+{
+title: "Субботний кофе-райд: Гагра — Пицунда",
+date: "Каждая суббота | Сбор: 09:00",
+startPoint: "📍 Гагра, Кофейня на набережной",
+stats: "🚴 55 км | ↗️ 320 м | ⏱️ 23-25 км/ч",
+type: "Шоссе / Гравел",
+desc: "Традиционный расслабленный заезд с остановкой на кофе в Пицунде. Подходит для любого уровня подготовки.",
+gpxUrl: "https://t.me/Piti4",
+chatUrl: "https://t.me/Piti4"
+}
+ ];
 
-      if (error || !events || !events.length) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">В этой категории пока нет анонсов</p>';
-        return;
-      }
+// Данные Фотоканалов
+const mediaChannels = [
+{
+name: "AbhazBand Photo",
+tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
+desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
+image: "./Okt_shos_gravel-compressed.jpeg",
+link: "https://t.me/Piti4"
+}
+ ];
 
-      container.innerHTML = events.map(item => `
-        <div class="card">
-          ${item.image_url ? `<img src="${item.image_url}" class="card-img" alt="${item.title}">` : ''}
-          <div class="card-body">
-            <span class="badge">${item.organizer || 'AbhazBand'}</span>
-            <h3 class="card-title">${item.title}</h3>
-            
-            <div class="meta-line">📅 ${item.date_text}</div>
-            <div class="meta-line">📍 ${item.location}</div>
-            ${item.distance_info ? `<div class="meta-line">🚴 ${item.distance_info}</div>` : ''}
-            
-            ${item.description ? `<p class="card-desc">${item.description}</p>` : ''}
-            
-            <div class="btn-group">
-              ${item.chat_url ? `<a href="${item.chat_url}" target="_blank" class="btn">Я поеду / ЧАТ</a>` : ''}
-              ${item.gpx_url ? `<a href="${item.gpx_url}" target="_blank" class="btn btn-secondary">Скачать .GPX</a>` : ''}
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
+// Рендер Кэмпов
+function renderCamps() {
+const container = document.getElementById('camps-list');
+container.innerHTML = camps.map(camp => &lt;div class="card" id="${camp.id}">
+<img src="${camp.image}" alt="${camp.title}">
+<div class="card-body">
+<span class="badge">${camp.dates}&lt;/span&gt; &lt;h3 class="card-title"&gt;${camp.title}</h3>
+<div class="meta-line">📍 ${camp.location}&lt;/div&gt; ${camp.specs ? <div class="meta-line"&gt;🚴${camp.specs}</div>: ''} &lt;div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;"&gt;💰 ${camp.price}</div>
+<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}&lt;/p&gt; &lt;a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+</div>
+</div>
+`).join('');
+}
 
-    // Загрузка товаров из базы
-    async function loadProducts(category) {
-      const containerId = category === 'merch' ? 'shop-list' : 'bikes-list';
-      const container = document.getElementById(containerId);
-      container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Загрузка каталога...</p>';
+// Рендер Social Rides
+function renderRides() {
+const container = document.getElementById('rides-list');
+container.innerHTML = rides.map(ride => &lt;div class="card"&gt; &lt;div class="card-body"&gt; &lt;span class="badge" style="background:#ff9500;"&gt;${ride.type}</span>
+<h3 class="card-title"> {ride.date}</div>
+<div class="meta-line"> {ride.stats}</div>
+<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;"> {ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
+<a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank"&gt;Скачать .GPX&lt;/a&gt; &lt;/div&gt; &lt;/div&gt; &lt;/div&gt;).join('');
+}
 
-      if (!db) return;
+// Рендер Фотоканалов
+function renderMedia() {
+const container = document.getElementById('media-list');
+if (!container) return;
+container.innerHTML = mediaChannels.map(item => &lt;div class="card" style="margin-bottom: 14px;"&gt; &lt;img src="${item.image}" alt="latex
+{item.name}"&gt; &lt;div class="card-body"&gt; &lt;span class="badge" style="background: #38bdf8; color: #0f172a;"&gt;
 
-      const { data: products } = await db.from('products').select('*').eq('category', category);
+{item.tag}</span>
+<h3 class="card-title"> {item.desc}</p>
+<a href="${item.link}" target="_blank" class="btn"&gt; За красотой 🚀 &lt;/a&gt; &lt;/div&gt; &lt;/div&gt;).join('');
+}
 
-      if (!products || !products.length) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Раздел пополняется</p>';
-        return;
-      }
+// Переключение вкладок
+function switchTab(tabId, element) {
+document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
 
-      container.innerHTML = products.map(item => `
-        <div class="card">
-          <img src="${item.image_url}" class="card-img" alt="${item.title}">
-          <div class="card-body">
-            ${item.badge ? `<span class="badge">${item.badge}</span>` : ''}
-            <h3 class="card-title">${item.title}</h3>
-            <div style="color:#4cd964; font-weight:bold; margin-bottom:8px;">💰 ${item.price}</div>
-            <p class="card-desc">${item.description || ''}</p>
-            <button class="btn" onclick="alert('Для заказа напишите администратору')">Заказать 🚀</button>
-          </div>
-        </div>
-      `).join('');
-    }
+document.getElementById(tabId).classList.add('active');
+element.classList.add('active');
+}
 
-    // Загрузка фотоканалов
-    async function loadMedia() {
-      const container = document.getElementById('media-list');
-      if (!db) return;
+// Открытие сайта Fititi
+function openFititi() {
+if (window.Telegram && window.Telegram.WebApp) {
+window.Telegram.WebApp.openLink('https://fititi.ru/');
+} else {
+window.open('https://fititi.ru/', '_blank');
+}
+}
 
-      const { data: channels } = await db.from('media_channels').select('*');
+// Расчет давления в шинах
+function calcPressure() {
+const weightRange = document.getElementById('weight-range');
+const systemType = document.getElementById('system-type');
+const tyreProfile = document.getElementById('tyre-profile');
 
-      if (!channels || !channels.length) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--hint-color);">Каналы пока не добавлены</p>';
-        return;
-      }
+if (!weightRange || !systemType || !tyreProfile) return;
 
-      container.innerHTML = channels.map(item => `
-        <div class="card">
-          <div class="card-body">
-            <h3 class="card-title">${item.title}</h3>
-            <p class="card-desc">${item.description || ''}</p>
-            <a href="${item.url}" target="_blank" class="btn">Перейти в канал 📸</a>
-          </div>
-        </div>
-      `).join('');
-    }
+const weight = parseInt(weightRange.value);
+const system = systemType.value;
+const profile = tyreProfile.value;
 
-    // Управление модальным окном
-    function openModal() { document.getElementById('club-modal').classList.add('active'); }
-    function closeModal() { document.getElementById('club-modal').classList.remove('active'); }
+document.getElementById('weight-val').innerText = weight + ' кг';
 
-    // Отправка заявки стороннего клуба
-    async function submitClubRide() {
-      const name = document.getElementById('club-name').value;
-      const title = document.getElementById('club-title').value;
-      const date = document.getElementById('club-date').value;
-      const url = document.getElementById('club-url').value;
+let baseBar = 3.0;
 
-      if (!title || !date) {
-        alert('Заполните название и дату!');
-        return;
-      }
+switch(profile) {
+case 'road_25': baseBar = 6.2; break;
+case 'road_28': baseBar = 5.5; break;
+case 'road_30': baseBar = 4.8; break;
+case 'road_32': baseBar = 4.5; break;
+case 'g700_35': baseBar = 3.2; break;
+case 'g700_40': baseBar = 2.8; break;
+case 'g700_45': baseBar = 2.4; break;
+case 'g700_48': baseBar = 2.3; break;
+case 'g700_50': baseBar = 2.2; break;
+case 'g650_19': baseBar = 2.4; break;
+case 'g650_21': baseBar = 2.1; break;
+case 'g650_23': baseBar = 1.9; break;
+}
 
-      if (!db) return;
+let weightFactor = weight / 75;
+let tubelessBonus = (system === 'tubeless') ? -0.35 : 0.0;
 
-      const { error } = await db.from('events').insert([{
-        title: title,
-        organizer: name || 'Сторонний клуб',
-        date_text: date,
-        location: 'Абхазия',
-        chat_url: url,
-        event_type: 'club',
-        image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8',
-        is_approved: false
-      }]);
+let frontBar = Math.max(1.2, (baseBar * weightFactor * 0.86) + tubelessBonus);
+let rearBar = Math.max(1.4, (baseBar * weightFactor * 1.14) + tubelessBonus);
 
-      if (!error) {
-        alert('Заявка отправлена на модерацию!');
-        closeModal();
-      } else {
-        alert('Ошибка при отправке заявки.');
-      }
-    }
+frontBar = frontBar.toFixed(1);
+rearBar = rearBar.toFixed(1);
 
-    // Первичная загрузка
-    document.addEventListener('DOMContentLoaded', () => {
-      filterEvents('weekend');
-    });
-  </script>
+let frontPsi = Math.round(frontBar * 14.5038);
+let rearPsi = Math.round(rearBar * 14.5038);
+
+document.getElementById('front-res').innerText = ${frontBar} Bar ($`{frontPsi} PSI)`; document.getElementById('rear-res').innerText =${rearBar} Bar (${rearPsi} PSI)`;
+}
+
+// Инициализация
+renderCamps();
+renderRides();
+renderMedia();
+calcPressure();
+</script>
 </body>
 </html>
