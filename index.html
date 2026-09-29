@@ -541,14 +541,19 @@ function renderMedia() {
 }
 
 function switchTab(tabId, element) {
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-  document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
-  element.classList.add('active');
+  try {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.add('active');
+    if (element) element.classList.add('active');
+  } catch (e) {
+    console.error("Ошибка переключения вкладки:", e);
+  }
 }
 
 function openFititi() {
-  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+  if (window.Telegram?.WebApp?.openLink) {
     window.Telegram.WebApp.openLink('https://fititi.ru/');
   } else {
     window.open('https://fititi.ru/', '_blank');
@@ -566,7 +571,8 @@ function calcPressure() {
   const system = systemType.value;
   const profile = tyreProfile.value;
 
-  document.getElementById('weight-val').innerText = weight + ' кг';
+  const weightVal = document.getElementById('weight-val');
+  if (weightVal) weightVal.innerText = weight + ' кг';
 
   let baseBar = 3.0;
 
@@ -597,18 +603,26 @@ function calcPressure() {
   let frontPsi = Math.round(frontBar * 14.5038);
   let rearPsi = Math.round(rearBar * 14.5038);
 
-  document.getElementById('front-res').innerText = `${frontBar} Bar (${frontPsi} PSI)`;
-  document.getElementById('rear-res').innerText = `${rearBar} Bar (${rearPsi} PSI)`;
+  const frontRes = document.getElementById('front-res');
+  const rearRes = document.getElementById('rear-res');
+  if (frontRes) frontRes.innerText = `${frontBar} Bar (${frontPsi} PSI)`;
+  if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
-// Запуск при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-  renderCamps();
-  renderRides();
-  renderMedia();
-  calcPressure();
-  initSubscriptionToggle();
-});
+// Прямой запуск инициализации с защитой от состязания событий
+function initApp() {
+  try { renderCamps(); } catch (e) { console.error('camps:', e); }
+  try { renderRides(); } catch (e) { console.error('rides:', e); }
+  try { renderMedia(); } catch (e) { console.error('media:', e); }
+  try { calcPressure(); } catch (e) { console.error('pressure:', e); }
+  try { initSubscriptionToggle(); } catch (e) { console.error('sub:', e); }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 </script>
 </body>
 </html>
