@@ -4,459 +4,555 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AbhazBand Platform</title>
+<!-- Telegram WebApp SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
---bg-color: var(--tg-theme-bg-color, #121212);
---card-bg: var(--tg-theme-secondary-bg-color, #1e1e1e);
---text-color: var(--tg-theme-text-color, #ffffff);
---hint-color: var(--tg-theme-hint-color, #aaaaaa);
---button-color: var(--tg-theme-button-color, #0088cc);
---button-text: var(--tg-theme-button-text-color, #ffffff);
+  --bg-color: var(--tg-theme-bg-color, #121212);
+  --card-bg: var(--tg-theme-secondary-bg-color, #1e1e1e);
+  --text-color: var(--tg-theme-text-color, #ffffff);
+  --hint-color: var(--tg-theme-hint-color, #aaaaaa);
+  --button-color: var(--tg-theme-button-color, #0088cc);
+  --button-text: var(--tg-theme-button-text-color, #ffffff);
 }
 
 body {
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-background-color: var(--bg-color);
-color: var(--text-color);
-margin: 0;
-padding: 12px 12px 80px 12px;
--webkit-tap-highlight-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 12px 12px 80px 12px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-content {
-display: none;
+  display: none;
 }
 
 .tab-content.active {
-display: block;
+  display: block;
 }
 
 .card {
-background-color: var(--card-bg);
-border-radius: 12px;
-overflow: hidden;
-margin-bottom: 16px;
-box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .card img {
-width: 100%;
-height: 180px;
-object-fit: cover;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
 }
 
 .card-body {
-padding: 14px;
+  padding: 14px;
 }
 
 .badge {
-display: inline-block;
-background: var(--button-color);
-color: var(--button-text);
-font-size: 11px;
-font-weight: bold;
-padding: 4px 8px;
-border-radius: 6px;
-margin-bottom: 8px;
-text-transform: uppercase;
+  display: inline-block;
+  background: var(--button-color);
+  color: var(--button-text);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .card-title {
-font-size: 17px;
-font-weight: 700;
-margin: 0 0 8px 0;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
 }
 
 .meta-line {
-font-size: 13px;
-color: var(--hint-color);
-margin-bottom: 6px;
-display: flex;
-align-items: center;
-gap: 6px;
+  font-size: 13px;
+  color: var(--hint-color);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-group {
-display: flex;
-gap: 8px;
-margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .btn {
-flex: 1;
-display: block;
-width: 100%;
-background-color: var(--button-color);
-color: var(--button-text);
-text-align: center;
-padding: 10px 0;
-border-radius: 8px;
-text-decoration: none;
-font-weight: 600;
-font-size: 14px;
-border: none;
-cursor: pointer;
+  flex: 1;
+  display: block;
+  width: 100%;
+  background-color: var(--button-color);
+  color: var(--button-text);
+  text-align: center;
+  padding: 10px 0;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-secondary {
-background-color: rgba(255, 255, 255, 0.1);
-color: var(--text-color);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
 }
 
 .tab-bar {
-position: fixed;
-bottom: 0;
-left: 0;
-right: 0;
-background-color: var(--card-bg);
-display: flex;
-overflow-x: auto;
-white-space: nowrap;
-padding: 8px 6px 12px 6px;
-border-top: 1px solid rgba(255,255,255,0.08);
-backdrop-filter: blur(10px);
--webkit-overflow-scrolling: touch;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--card-bg);
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 8px 6px 12px 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-bar::-webkit-scrollbar {
-display: none;
+  display: none;
 }
 
 .tab-item {
-flex: 0 0 16.66%;
-min-width: 68px;
-text-align: center;
-color: var(--hint-color);
-font-size: 10px;
-text-decoration: none;
-cursor: pointer;
+  flex: 0 0 16.66%;
+  min-width: 68px;
+  text-align: center;
+  color: var(--hint-color);
+  font-size: 10px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .tab-item.active {
-color: var(--button-color);
-font-weight: bold;
+  color: var(--button-color);
+  font-weight: bold;
 }
 
 .tab-icon {
-font-size: 18px;
-display: block;
-margin-bottom: 2px;
+  font-size: 18px;
+  display: block;
+  margin-bottom: 2px;
 }
 </style>
 </head>
 <body>
 
 <div id="camps-tab" class="tab-content active">
-<div id="camps-list"></div>
+  <!-- Блок подписки на уведомления при старте -->
+  <div id="sub-banner" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <div style="padding-right: 12px;">
+      <div style="font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+        <span>🔔</span> Уведомления AbhazBand
+      </div>
+      <div style="font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.3;">
+        Анонсы кэмпов, заездов и важные новости
+      </div>
+    </div>
+    
+    <label style="position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0;">
+      <input type="checkbox" id="sub-toggle" onchange="toggleSubscription(this.checked)" style="opacity: 0; width: 0; height: 0;">
+      <span id="toggle-bg" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px;"></span>
+    </label>
+  </div>
+
+  <div id="camps-list"></div>
 </div>
 
 <div id="rides-tab" class="tab-content">
-<div id="rides-list"></div>
+  <div id="rides-list"></div>
 </div>
 
 <div id="shop-tab" class="tab-content">
-<div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
-👕 Раздел "Магазин Abhaz Band" находится в разработке
-</div>
+  <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+    👕 Раздел "Магазин Abhaz Band" находится в разработке
+  </div>
 </div>
 
 <div id="bikes-tab" class="tab-content">
-<div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
-🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
-</div>
+  <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
+    🚲 Раздел "Велосипеды & Комплектующие" находится в разработке
+  </div>
 </div>
 
 <div id="media-tab" class="tab-content">
-<h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
-<div id="media-list"></div>
-<div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
-<h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
-<p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
-Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
-</p>
-<a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
-🤝 Давайте дружить / Добавить канал
-</a>
-</div>
+  <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
+  <div id="media-list"></div>
+  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+    <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
+    <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+      Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
+    </p>
+    <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+      🤝 Давайте дружить / Добавить канал
+    </a>
+  </div>
 </div>
 
 <div id="tools-tab" class="tab-content">
-<h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
+  <h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
 
-<div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
-<span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
-<h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
-<p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
-Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
-</p>
-<button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-Настроить посадку 🚀
-</button>
-</div>
+  <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
+    <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
+    <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
+    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+      Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
+    </p>
+    <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+      Настроить посадку 🚀
+    </button>
+  </div>
 
-<div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
-<h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
-<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
-<input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
+  <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+    <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
+    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
+    <input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
 
-<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
-<select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
-<option value="tube">Клинчер (с камерой)</option>
-<option value="tubeless">Бескамерка (Tubeless)</option>
-</select>
+    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
+    <select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
+      <option value="tube">Клинчер (с камерой)</option>
+      <option value="tubeless">Бескамерка (Tubeless)</option>
+    </select>
 
-<label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
-<select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
-<optgroup label="Шоссе">
-<option value="road_25">Шоссе 25 мм</option>
-<option value="road_28" selected>Шоссе 28 мм</option>
-<option value="road_30">Шоссе 30 мм</option>
-<option value="road_32">Шоссе 32 мм</option>
-</optgroup>
-<optgroup label="Гравел 700c">
-<option value="g700_35">Гравел 700c — 35 мм</option>
-<option value="g700_40">Гравел 700c — 40 мм</option>
-<option value="g700_45">Гравел 700c — 45 мм</option>
-<option value="g700_48">Гравел 700c — 48 мм</option>
-<option value="g700_50">Гравел 700c — 50 мм</option>
-</optgroup>
-<optgroup label="Гравел 650b / MTB">
-<option value="g650_19">Гравел 650b — 1.9"</option>
-<option value="g650_21">Гравел 650b — 2.1"</option>
-<option value="g650_23">Гравел 650b — 2.3"</option>
-</optgroup>
-</select>
+    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
+    <select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
+      <optgroup label="Шоссе">
+        <option value="road_25">Шоссе 25 мм</option>
+        <option value="road_28" selected>Шоссе 28 мм</option>
+        <option value="road_30">Шоссе 30 мм</option>
+        <option value="road_32">Шоссе 32 мм</option>
+      </optgroup>
+      <optgroup label="Гравел 700c">
+        <option value="g700_35">Гравел 700c — 35 мм</option>
+        <option value="g700_40">Гравел 700c — 40 мм</option>
+        <option value="g700_45">Гравел 700c — 45 мм</option>
+        <option value="g700_48">Гравел 700c — 48 мм</option>
+        <option value="g700_50">Гравел 700c — 50 мм</option>
+      </optgroup>
+      <optgroup label="Гравел 650b / MTB">
+        <option value="g650_19">Гравел 650b — 1.9"</option>
+        <option value="g650_21">Гравел 650b — 2.1"</option>
+        <option value="g650_23">Гравел 650b — 2.3"</option>
+      </optgroup>
+    </select>
 
-<div style="display: flex; gap: 8px;">
-<div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
-<span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
-<span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
-</div>
-<div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
-<span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
-<span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
-</div>
-</div>
-</div>
+    <div style="display: flex; gap: 8px;">
+      <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+        <span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
+        <span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
+      </div>
+      <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+        <span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
+        <span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <nav class="tab-bar">
-<div class="tab-item active" onclick="switchTab('camps-tab', this)">
-<span class="tab-icon">⛺</span>Кэмпы
-</div>
-<div class="tab-item" onclick="switchTab('rides-tab', this)">
-<span class="tab-icon">🚴</span>Social Rides
-</div>
-<div class="tab-item" onclick="switchTab('shop-tab', this)">
-<span class="tab-icon">👕</span>Магазин
-</div>
-<div class="tab-item" onclick="switchTab('bikes-tab', this)">
-<span class="tab-icon">🚲</span>Велосипеды
-</div>
-<div class="tab-item" onclick="switchTab('media-tab', this)">
-<span class="tab-icon">📸</span>Фотоканалы
-</div>
-<div class="tab-item" onclick="switchTab('tools-tab', this)">
-<span class="tab-icon">🛠️</span>Фитчи
-</div>
+  <div class="tab-item active" onclick="switchTab('camps-tab', this)">
+    <span class="tab-icon">⛺</span>Кэмпы
+  </div>
+  <div class="tab-item" onclick="switchTab('rides-tab', this)">
+    <span class="tab-icon">🚴</span>Social Rides
+  </div>
+  <div class="tab-item" onclick="switchTab('shop-tab', this)">
+    <span class="tab-icon">👕</span>Магазин
+  </div>
+  <div class="tab-item" onclick="switchTab('bikes-tab', this)">
+    <span class="tab-icon">🚲</span>Велосипеды
+  </div>
+  <div class="tab-item" onclick="switchTab('media-tab', this)">
+    <span class="tab-icon">📸</span>Фотоканалы
+  </div>
+  <div class="tab-item" onclick="switchTab('tools-tab', this)">
+    <span class="tab-icon">🛠️</span>Фитчи
+  </div>
 </nav>
 
 <script>
-if (window.Telegram && window.Telegram.WebApp) {
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
+// --- ИНИЦИАЛИЗАЦИЯ SUPABASE С ВАШИМИ КЛЮЧАМИ ---
+const SUPABASE_URL = "https://eotbacbevzxckhyodgak.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvdGJhY2Jldnp4Y2toeW9kZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0MDc2OTAsImV4cCI6MjEwMjk4MzY5MH0.v0lKQkwB7YXOD52TFH-V9a5BKm67M52QBImzdsG_cec"; 
+
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Инициализация Telegram WebApp
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+const tgUser = tg?.initDataUnsafe?.user;
+
+// --- ЛОГИКА ПОДПИСКИ И УВЕДОМЛЕНИЙ ---
+async function initSubscriptionToggle() {
+  if (!tgUser?.id || !supabase) return;
+
+  try {
+    const { data } = await supabase
+      .from('subscribers')
+      .select('is_subscribed')
+      .eq('user_id', tgUser.id)
+      .maybeSingle();
+
+    const toggle = document.getElementById('sub-toggle');
+    const isSubbed = data ? data.is_subscribed : true;
+
+    if (toggle) {
+      toggle.checked = isSubbed;
+      updateToggleUI(isSubbed);
+    }
+  } catch (err) {
+    console.error('Ошибка проверки подписки:', err);
+  }
 }
 
-const camps = [
-{
-id: "camp_oct_1_2026",
-title: "Комбинированный Шоссе vs Гравел",
-dates: "04 - 14 октября (11 дней)",
-location: "База AbhazBand (Гагра / Гал / Сухум)",
-price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-specs: "Пробег: ~800 км | Набор: ~7 000 м",
-description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
-image: "./Okt_shos_gravel-compressed.jpeg",
-link: "https://t.me/Piti4"
-},
-{
-id: "camp_oct_2_2026",
-title: "Классический Шоссейный кэмп",
-dates: "24 октября - 03 ноября (11 дней)",
-location: "База AbhazBand (Гагра / Гал / Сухум)",
-price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-specs: "Пробег: ~800 км | Набор: ~7 000 м",
-description: "Классический шоссейный кэмп по западным и восточным маршрутам.",
-image: "./Okt_shosse-compressed.jpeg",
-link: "https://t.me/Piti4"
-},
-{
-id: "camp_nov_2026",
-title: "Клубные кэмпы",
-dates: "05 - 30 ноября",
-location: "Абхазия",
-price: "Уточняйте",
-specs: "",
-description: "Сезонные клубные заезды и тренировочные сборы.",
-image: "./Klubnie-compressed.jpeg",
-link: "https://t.me/Piti4"
-},
-{
-id: "camp_dec_2026",
-title: "Подготовка к Abhaz Band New Year",
-dates: "1 - 31 декабря",
-location: "Абхазия",
-price: "Уточняйте",
-specs: "",
-description: "Самостоятельные шоссейные приезды и локальные СошлРайды",
-image: "./Noviy_god-compressed.jpeg",
-link: "https://t.me/Piti4"
+async function toggleSubscription(isSubscribed) {
+  updateToggleUI(isSubscribed);
+
+  if (!tgUser?.id) {
+    if (tg?.showAlert) {
+      tg.showAlert("Для управления подпиской откройте приложение через Telegram.");
+    }
+    return;
+  }
+
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('subscribers')
+    .upsert({
+      user_id: tgUser.id,
+      username: tgUser.username || '',
+      first_name: tgUser.first_name || '',
+      is_subscribed: isSubscribed,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('Ошибка сохранения подписки:', error);
+  } else {
+    tg?.HapticFeedback?.impactOccurred('light');
+  }
 }
+
+function updateToggleUI(isSubbed) {
+  const toggleBg = document.getElementById('toggle-bg');
+  if (toggleBg) {
+    toggleBg.style.backgroundColor = isSubbed ? '#38bdf8' : '#334155';
+  }
+}
+
+// --- ДАННЫЕ ПРИЛОЖЕНИЯ ---
+const camps = [
+  {
+    id: "camp_oct_1_2026",
+    title: "Комбинированный Шоссе vs Гравел",
+    dates: "04 - 14 октября (11 дней)",
+    location: "База AbhazBand (Гагра / Гал / Сухум)",
+    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+    specs: "Пробег: ~800 км | Набор: ~7 000 м",
+    description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
+    image: "./Okt_shos_gravel-compressed.jpeg",
+    link: "https://t.me/Piti4"
+  },
+  {
+    id: "camp_oct_2_2026",
+    title: "Классический Шоссейный кэмп",
+    dates: "24 октября - 03 ноября (11 дней)",
+    location: "База AbhazBand (Гагра / Гал / Сухум)",
+    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
+    specs: "Пробег: ~800 км | Набор: ~7 000 м",
+    description: "Классический шоссейный кэмп по западным и восточным маршрутам.",
+    image: "./Okt_shosse-compressed.jpeg",
+    link: "https://t.me/Piti4"
+  },
+  {
+    id: "camp_nov_2026",
+    title: "Клубные кэмпы",
+    dates: "05 - 30 ноября",
+    location: "Абхазия",
+    price: "Уточняйте",
+    specs: "",
+    description: "Сезонные клубные заезды и тренировочные сборы.",
+    image: "./Klubnie-compressed.jpeg",
+    link: "https://t.me/Piti4"
+  },
+  {
+    id: "camp_dec_2026",
+    title: "Подготовка к Abhaz Band New Year",
+    dates: "1 - 31 декабря",
+    location: "Абхазия",
+    price: "Уточняйте",
+    specs: "",
+    description: "Самостоятельные шоссейные приезды и локальные СошлРайды",
+    image: "./Noviy_god-compressed.jpeg",
+    link: "https://t.me/Piti4"
+  }
 ];
 
 const rides = [
-{
-title: "Субботний кофе-райд: Гагра — Пицунда",
-date: "Каждая суббота | Сбор: 09:00",
-startPoint: "📍 Гагра, Кофейня на набережной",
-stats: "🚴 55 км | ↗️ 320 м | ⏱️ 23-25 км/ч",
-type: "Шоссе / Гравел",
-desc: "Традиционный расслабленный заезд с остановкой на кофе в Пицунде. Подходит для любого уровня подготовки.",
-gpxUrl: "https://t.me/Piti4",
-chatUrl: "https://t.me/Piti4"
-}
+  {
+    title: "Субботний кофе-райд: Гагра — Пицунда",
+    date: "Каждая суббота | Сбор: 09:00",
+    startPoint: "📍 Гагра, Кофейня на набережной",
+    stats: "🚴 55 км | ↗️ 320 м | ⏱️ 23-25 км/ч",
+    type: "Шоссе / Гравел",
+    desc: "Традиционный расслабленный заезд с остановкой на кофе в Пицунде. Подходит для любого уровня подготовки.",
+    gpxUrl: "https://t.me/Piti4",
+    chatUrl: "https://t.me/Piti4"
+  }
 ];
 
 const mediaChannels = [
-{
-name: "AbhazBand Photo",
-tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
-desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
-image: "./Okt_shos_gravel-compressed.jpeg",
-link: "https://t.me/Piti4"
-}
+  {
+    name: "AbhazBand Photo",
+    tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
+    desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
+    image: "./Okt_shos_gravel-compressed.jpeg",
+    link: "https://t.me/Piti4"
+  }
 ];
 
 function renderCamps() {
-const container = document.getElementById('camps-list');
-container.innerHTML = camps.map(camp => `
-<div class="card" id="${camp.id}">
-<img src="${camp.image}" alt="${camp.title}">
-<div class="card-body">
-<span class="badge">${camp.dates}</span>
-<h3 class="card-title">${camp.title}</h3>
-<div class="meta-line">📍 ${camp.location}</div>
-${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
-<div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
-<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
-<a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
-</div>
-</div>
-`).join('');
+  const container = document.getElementById('camps-list');
+  if (!container) return;
+  container.innerHTML = camps.map(camp => `
+    <div class="card" id="${camp.id}">
+      <img src="${camp.image}" alt="${camp.title}">
+      <div class="card-body">
+        <span class="badge">${camp.dates}</span>
+        <h3 class="card-title">${camp.title}</h3>
+        <div class="meta-line">📍 ${camp.location}</div>
+        ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
+        <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
+        <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
+        <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderRides() {
-const container = document.getElementById('rides-list');
-container.innerHTML = rides.map(ride => `
-<div class="card">
-<div class="card-body">
-<span class="badge" style="background:#ff9500;">${ride.type}</span>
-<h3 class="card-title">${ride.title}</h3>
-<div class="meta-line">📅 ${ride.date}</div>
-<div class="meta-line">${ride.startPoint}</div>
-<div class="meta-line">${ride.stats}</div>
-<p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
-<div class="btn-group">
-<a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
-<a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
-</div>
-</div>
-</div>
-`).join('');
+  const container = document.getElementById('rides-list');
+  if (!container) return;
+  container.innerHTML = rides.map(ride => `
+    <div class="card">
+      <div class="card-body">
+        <span class="badge" style="background:#ff9500;">${ride.type}</span>
+        <h3 class="card-title">${ride.title}</h3>
+        <div class="meta-line">📅 ${ride.date}</div>
+        <div class="meta-line">${ride.startPoint}</div>
+        <div class="meta-line">${ride.stats}</div>
+        <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
+        <div class="btn-group">
+          <a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
+          <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderMedia() {
-const container = document.getElementById('media-list');
-if (!container) return;
-container.innerHTML = mediaChannels.map(item => `
-<div class="card" style="margin-bottom: 14px;">
-<img src="${item.image}" alt="${item.name}">
-<div class="card-body">
-<span class="badge" style="background: #38bdf8; color: #0f172a;">${item.tag}</span>
-<h3 class="card-title">${item.name}</h3>
-<p style="font-size: 13px; color: var(--hint-color); margin: 0 0 12px 0;">${item.desc}</p>
-<a href="${item.link}" target="_blank" class="btn">За красотой 🚀</a>
-</div>
-</div>
-`).join('');
+  const container = document.getElementById('media-list');
+  if (!container) return;
+  container.innerHTML = mediaChannels.map(item => `
+    <div class="card" style="margin-bottom: 14px;">
+      <img src="${item.image}" alt="${item.name}">
+      <div class="card-body">
+        <span class="badge" style="background: #38bdf8; color: #0f172a;">${item.tag}</span>
+        <h3 class="card-title">${item.name}</h3>
+        <p style="font-size: 13px; color: var(--hint-color); margin: 0 0 12px 0;">${item.desc}</p>
+        <a href="${item.link}" target="_blank" class="btn">За красотой 🚀</a>
+      </div>
+    </div>
+  `).join('');
 }
 
 function switchTab(tabId, element) {
-document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-document.getElementById(tabId).classList.add('active');
-element.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  element.classList.add('active');
 }
 
 function openFititi() {
-if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-window.Telegram.WebApp.openLink('https://fititi.ru/');
-} else {
-window.open('https://fititi.ru/', '_blank');
-}
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+    window.Telegram.WebApp.openLink('https://fititi.ru/');
+  } else {
+    window.open('https://fititi.ru/', '_blank');
+  }
 }
 
 function calcPressure() {
-const weightRange = document.getElementById('weight-range');
-const systemType = document.getElementById('system-type');
-const tyreProfile = document.getElementById('tyre-profile');
+  const weightRange = document.getElementById('weight-range');
+  const systemType = document.getElementById('system-type');
+  const tyreProfile = document.getElementById('tyre-profile');
 
-if (!weightRange || !systemType || !tyreProfile) return;
+  if (!weightRange || !systemType || !tyreProfile) return;
 
-const weight = parseInt(weightRange.value);
-const system = systemType.value;
-const profile = tyreProfile.value;
+  const weight = parseInt(weightRange.value);
+  const system = systemType.value;
+  const profile = tyreProfile.value;
 
-document.getElementById('weight-val').innerText = weight + ' кг';
+  document.getElementById('weight-val').innerText = weight + ' кг';
 
-let baseBar = 3.0;
+  let baseBar = 3.0;
 
-switch(profile) {
-case 'road_25': baseBar = 6.2; break;
-case 'road_28': baseBar = 5.5; break;
-case 'road_30': baseBar = 4.8; break;
-case 'road_32': baseBar = 4.5; break;
-case 'g700_35': baseBar = 3.2; break;
-case 'g700_40': baseBar = 2.8; break;
-case 'g700_45': baseBar = 2.4; break;
-case 'g700_48': baseBar = 2.3; break;
-case 'g700_50': baseBar = 2.2; break;
-case 'g650_19': baseBar = 2.4; break;
-case 'g650_21': baseBar = 2.1; break;
-case 'g650_23': baseBar = 1.9; break;
+  switch(profile) {
+    case 'road_25': baseBar = 6.2; break;
+    case 'road_28': baseBar = 5.5; break;
+    case 'road_30': baseBar = 4.8; break;
+    case 'road_32': baseBar = 4.5; break;
+    case 'g700_35': baseBar = 3.2; break;
+    case 'g700_40': baseBar = 2.8; break;
+    case 'g700_45': baseBar = 2.4; break;
+    case 'g700_48': baseBar = 2.3; break;
+    case 'g700_50': baseBar = 2.2; break;
+    case 'g650_19': baseBar = 2.4; break;
+    case 'g650_21': baseBar = 2.1; break;
+    case 'g650_23': baseBar = 1.9; break;
+  }
+
+  let weightFactor = weight / 75;
+  let tubelessBonus = (system === 'tubeless') ? -0.35 : 0.0;
+
+  let frontBar = Math.max(1.2, (baseBar * weightFactor * 0.86) + tubelessBonus);
+  let rearBar = Math.max(1.4, (baseBar * weightFactor * 1.14) + tubelessBonus);
+
+  frontBar = frontBar.toFixed(1);
+  rearBar = rearBar.toFixed(1);
+
+  let frontPsi = Math.round(frontBar * 14.5038);
+  let rearPsi = Math.round(rearBar * 14.5038);
+
+  document.getElementById('front-res').innerText = `${frontBar} Bar (${frontPsi} PSI)`;
+  document.getElementById('rear-res').innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
-let weightFactor = weight / 75;
-let tubelessBonus = (system === 'tubeless') ? -0.35 : 0.0;
-
-let frontBar = Math.max(1.2, (baseBar * weightFactor * 0.86) + tubelessBonus);
-let rearBar = Math.max(1.4, (baseBar * weightFactor * 1.14) + tubelessBonus);
-
-frontBar = frontBar.toFixed(1);
-rearBar = rearBar.toFixed(1);
-
-let frontPsi = Math.round(frontBar * 14.5038);
-let rearPsi = Math.round(rearBar * 14.5038);
-
-document.getElementById('front-res').innerText = `${frontBar} Bar (${frontPsi} PSI)`;
-document.getElementById('rear-res').innerText = `${rearBar} Bar (${rearPsi} PSI)`;
-}
-
-renderCamps();
-renderRides();
-renderMedia();
-calcPressure();
+// Запуск при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+  renderCamps();
+  renderRides();
+  renderMedia();
+  calcPressure();
+  initSubscriptionToggle();
+});
 </script>
 </body>
 </html>
