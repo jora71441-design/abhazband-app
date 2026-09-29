@@ -121,6 +121,7 @@ body {
   border-top: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(10px);
   -webkit-overflow-scrolling: touch;
+  z-index: 9999;
 }
 
 .tab-bar::-webkit-scrollbar {
@@ -148,7 +149,7 @@ body {
   margin-bottom: 2px;
 }
 
-/* Стили для переключателя (тумблера) */
+/* Стили для тумблера */
 .switch {
   position: relative;
   display: inline-block;
@@ -197,7 +198,6 @@ input:checked + .slider::before {
 <body>
 
 <div id="camps-tab" class="tab-content active">
-  <!-- Блок подписки на уведомления при старте -->
   <div id="sub-banner" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
     <div style="padding-right: 12px;">
       <div style="font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
@@ -333,10 +333,10 @@ input:checked + .slider::before {
 const SUPABASE_URL = "https://eotbacbevzxckhyodgak.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvdGJhY2Jldnp4Y2toeW9kZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0MDc2OTAsImV4cCI6MjEwMjk4MzY5MH0.v0lKQkwB7YXOD52TFH-V9a5BKm67M52QBImzdsG_cec"; 
 
-let supabase = null;
+let supabaseClient = null;
 try {
   if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 } catch (e) {
   console.warn("Supabase init bypassed:", e);
@@ -359,13 +359,13 @@ async function initSubscriptionToggle() {
   const toggle = document.getElementById('sub-toggle');
   if (!toggle) return;
 
-  if (!tgUser?.id || !supabase) {
+  if (!tgUser?.id || !supabaseClient) {
     toggle.checked = true;
     return;
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('subscribers')
       .select('is_subscribed')
       .eq('user_id', tgUser.id)
@@ -390,10 +390,10 @@ async function toggleSubscription(isSubscribed) {
     return;
   }
 
-  if (!supabase) return;
+  if (!supabaseClient) return;
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('subscribers')
       .upsert({
         user_id: tgUser.id,
@@ -609,7 +609,6 @@ function calcPressure() {
   if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
-// Прямой запуск инициализации с защитой от состязания событий
 function initApp() {
   try { renderCamps(); } catch (e) { console.error('camps:', e); }
   try { renderRides(); } catch (e) { console.error('rides:', e); }
