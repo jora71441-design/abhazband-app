@@ -147,6 +147,51 @@ body {
   display: block;
   margin-bottom: 2px;
 }
+
+/* Стили для переключателя (тумблера) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #334155;
+  transition: .3s;
+  border-radius: 26px;
+}
+
+.slider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: #38bdf8;
+}
+
+input:checked + .slider::before {
+  transform: translateX(22px);
+}
 </style>
 </head>
 <body>
@@ -163,9 +208,9 @@ body {
       </div>
     </div>
     
-    <label style="position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0;">
-      <input type="checkbox" id="sub-toggle" onchange="toggleSubscription(this.checked)" style="opacity: 0; width: 0; height: 0;">
-      <span id="toggle-bg" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px;"></span>
+    <label class="switch">
+      <input type="checkbox" id="sub-toggle" onchange="toggleSubscription(this.checked)">
+      <span class="slider"></span>
     </label>
   </div>
 
@@ -284,46 +329,60 @@ body {
 </nav>
 
 <script>
-// --- ИНИЦИАЛИЗАЦИЯ SUPABASE С ВАШИМИ КЛЮЧАМИ ---
+// --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
 const SUPABASE_URL = "https://eotbacbevzxckhyodgak.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvdGJhY2Jldnp4Y2toeW9kZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0MDc2OTAsImV4cCI6MjEwMjk4MzY5MH0.v0lKQkwB7YXOD52TFH-V9a5BKm67M52QBImzdsG_cec"; 
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let supabase = null;
+try {
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.warn("Supabase init bypassed:", e);
+}
 
 // Инициализация Telegram WebApp
 const tg = window.Telegram?.WebApp;
 if (tg) {
-  tg.ready();
-  tg.expand();
+  try {
+    tg.ready();
+    tg.expand();
+  } catch (e) {
+    console.warn("Telegram WebApp init error:", e);
+  }
 }
 const tgUser = tg?.initDataUnsafe?.user;
 
 // --- ЛОГИКА ПОДПИСКИ И УВЕДОМЛЕНИЙ ---
 async function initSubscriptionToggle() {
-  if (!tgUser?.id || !supabase) return;
+  const toggle = document.getElementById('sub-toggle');
+  if (!toggle) return;
+
+  if (!tgUser?.id || !supabase) {
+    toggle.checked = true;
+    return;
+  }
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('subscribers')
       .select('is_subscribed')
       .eq('user_id', tgUser.id)
       .maybeSingle();
 
-    const toggle = document.getElementById('sub-toggle');
-    const isSubbed = data ? data.is_subscribed : true;
-
-    if (toggle) {
-      toggle.checked = isSubbed;
-      updateToggleUI(isSubbed);
+    if (!error && data !== null && data.is_subscribed !== undefined) {
+      toggle.checked = data.is_subscribed;
+    } else {
+      toggle.checked = true;
     }
   } catch (err) {
     console.error('Ошибка проверки подписки:', err);
+    toggle.checked = true;
   }
 }
 
 async function toggleSubscription(isSubscribed) {
-  updateToggleUI(isSubscribed);
-
   if (!tgUser?.id) {
     if (tg?.showAlert) {
       tg.showAlert("Для управления подпиской откройте приложение через Telegram.");
@@ -333,27 +392,24 @@ async function toggleSubscription(isSubscribed) {
 
   if (!supabase) return;
 
-  const { error } = await supabase
-    .from('subscribers')
-    .upsert({
-      user_id: tgUser.id,
-      username: tgUser.username || '',
-      first_name: tgUser.first_name || '',
-      is_subscribed: isSubscribed,
-      updated_at: new Date().toISOString()
-    });
+  try {
+    const { error } = await supabase
+      .from('subscribers')
+      .upsert({
+        user_id: tgUser.id,
+        username: tgUser.username || '',
+        first_name: tgUser.first_name || '',
+        is_subscribed: isSubscribed,
+        updated_at: new Date().toISOString()
+      });
 
-  if (error) {
-    console.error('Ошибка сохранения подписки:', error);
-  } else {
-    tg?.HapticFeedback?.impactOccurred('light');
-  }
-}
-
-function updateToggleUI(isSubbed) {
-  const toggleBg = document.getElementById('toggle-bg');
-  if (toggleBg) {
-    toggleBg.style.backgroundColor = isSubbed ? '#38bdf8' : '#334155';
+    if (error) {
+      console.error('Ошибка сохранения подписки:', error);
+    } else {
+      tg?.HapticFeedback?.impactOccurred('light');
+    }
+  } catch (err) {
+    console.error('Ошибка отправки подписки в Supabase:', err);
   }
 }
 
