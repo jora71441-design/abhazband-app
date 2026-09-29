@@ -559,6 +559,80 @@ input:checked + .slider::before {
     <div id="sub-tracks" class="sub-tab-content">
       <div class="section-title">Заезды по дням & GPX</div>
       <div id="gpx-tracks-list" class="tracks-grid">
+<!-- ==================== ВКЛАДКА: МОЙ КЭМП ==================== -->
+<div id="my-camp-tab" class="tab-content">
+  
+  <!-- 1. ЭКРАН БЛОКИРОВКИ (Виден тем, кто еще не разблокировал) -->
+  <div id="my-camp-locked" class="my-camp-lock-card">
+    <div class="lock-header">
+      <div class="lock-badge">🔒 Закрытый раздел</div>
+      <h2 class="lock-title">Личный кабинет участника</h2>
+      <p class="lock-subtitle">Доступ только для райдеров активных и предстоящих кэмпов AbhazBand</p>
+    </div>
+
+    <!-- Завлекалка (Что внутри) -->
+    <div class="lock-features">
+      <div class="feature-item">
+        <span class="feature-icon">🗺️</span>
+        <div>
+          <strong>GPX-маршруты и профили</strong>
+          <p>Полная выгрузка заездов по дням, высотные профили и точки отдыха</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🎒</span>
+        <div>
+          <strong>Интерактивный чек-лист</strong>
+          <p>Удобный список экипировки с галочками для комфортных сборов</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📋</span>
+        <div>
+          <strong>Памятка & Инфо-гид</strong>
+          <p>Трансфер, тайминг, контакты гидов, точки встречи и правила кэмпа</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Форма разблокировки -->
+    <div class="lock-action-box">
+      <label for="camp-pin-input" class="pin-label">Уже участвуешь? Введи PIN-код из чата:</label>
+      <div class="pin-input-group">
+        <input type="password" id="camp-pin-input" maxlength="6" placeholder="• • • • • •" inputmode="numeric">
+        <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
+      </div>
+      <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
+    </div>
+
+    <!-- Кнопка бронирования для новых гостей -->
+    <div class="lock-cta">
+      <p>Ещё не забронировал место?</p>
+      <a href="https://t.me/abhazband_bot" target="_blank" class="btn-primary-camp">🚴 Забронировать участие</a>
+    </div>
+  </div>
+
+
+  <!-- 2. КАБИНЕТ УЧАСТНИКА (Скрыт до ввода PIN) -->
+  <div id="my-camp-unlocked" class="my-camp-dashboard" style="display: none;">
+    
+    <div class="camp-welcome-card">
+      <div class="status-pill">🔥 Активный кэмп</div>
+      <h2 id="camp-title-display">AbhazBand Autumn Camp 2026</h2>
+      <p id="camp-dates-display">📅 10 – 18 Октября | Гагра, Абхазия</p>
+    </div>
+
+    <!-- Под-навигация внутри кабинета -->
+    <div class="sub-tab-bar">
+      <button class="sub-tab-btn active" onclick="switchSubTab('sub-tracks', this)">🗺️ Маршруты</button>
+      <button class="sub-tab-btn" onclick="switchSubTab('sub-checklist', this)">🎒 Чек-лист</button>
+      <button class="sub-tab-btn" onclick="switchSubTab('sub-info', this)">📋 Памятка</button>
+    </div>
+
+    <!-- Под-вкладка 1: Маршруты -->
+    <div id="sub-tracks" class="sub-tab-content">
+      <div class="section-title">Заезды по дням & GPX</div>
+      <div id="gpx-tracks-list" class="tracks-grid">
         <!-- Список треков будет подгружаться автоматически -->
       </div>
     </div>
@@ -589,7 +663,6 @@ input:checked + .slider::before {
   </div>
 
 </div>
-
 <div id="rides-tab" class="tab-content">
   <div id="rides-list"></div>
 </div>
