@@ -193,6 +193,275 @@ input:checked + .slider {
 input:checked + .slider::before {
   transform: translateX(22px);
 }
+  /* ==================== СТИЛИ: МОЙ КЭМП ==================== */
+.my-camp-lock-card {
+  background: var(--card-bg, #1e293b);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.lock-badge {
+  display: inline-block;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.lock-title {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  color: #fff;
+}
+
+.lock-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.lock-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.feature-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.feature-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.feature-item strong {
+  display: block;
+  font-size: 13px;
+  color: #fff;
+}
+
+.feature-item p {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.lock-action-box {
+  background: rgba(15, 23, 42, 0.8);
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #334155;
+}
+
+.pin-label {
+  display: block;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 10px;
+}
+
+.pin-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.pin-input-group input {
+  flex: 1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  text-align: center;
+  outline: none;
+  padding: 10px;
+}
+
+.btn-unlock {
+  background: #38bdf8;
+  color: #0f172a;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pin-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.lock-cta p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.btn-primary-camp {
+  display: inline-block;
+  background: #22c55e;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 10px;
+}
+
+/* Кабинет участника */
+.camp-welcome-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid #38bdf8;
+}
+
+.status-pill {
+  display: inline-block;
+  background: #10b981;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.camp-welcome-card h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.camp-welcome-card p {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.sub-tab-bar {
+  display: flex;
+  background: #1e293b;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+  margin-bottom: 16px;
+  border: 1px solid #334155;
+}
+
+.sub-tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: bold;
+  font-size: 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sub-tab-btn.active {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+/* Прогресс-бар Чек-листа */
+.checklist-progress {
+  background: #1e293b;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #0f172a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #10b981);
+  transition: width 0.3s ease;
+}
+
+.checklist-cat-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid #334155;
+}
+
+.checklist-cat-title {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.check-item-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: #fff;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.check-item-label.checked {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.check-item-label input {
+  accent-color: #38bdf8;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -215,6 +484,110 @@ input:checked + .slider::before {
   </div>
 
   <div id="camps-list"></div>
+</div>
+<!-- ==================== ВКЛАДКА: МОЙ КЭМП ==================== -->
+<div id="my-camp-tab" class="tab-content" style="display: none;">
+  
+  <!-- 1. ЭКРАН БЛОКИРОВКИ (Виден тем, кто еще не разблокировал) -->
+  <div id="my-camp-locked" class="my-camp-lock-card">
+    <div class="lock-header">
+      <div class="lock-badge">🔒 Закрытый раздел</div>
+      <h2 class="lock-title">Личный кабинет участника</h2>
+      <p class="lock-subtitle">Доступ только для райдеров активных и предстоящих кэмпов AbhazBand</p>
+    </div>
+
+    <!-- Завлекалка (Что внутри) -->
+    <div class="lock-features">
+      <div class="feature-item">
+        <span class="feature-icon">🗺️</span>
+        <div>
+          <strong>GPX-маршруты и профили</strong>
+          <p>Полная выгрузка заездов по дням, высотные профили и точки отдыха</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🎒</span>
+        <div>
+          <strong>Интерактивный чек-лист</strong>
+          <p>Удобный список экипировки с галочками для комфортных сборов</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📋</span>
+        <div>
+          <strong>Памятка & Инфо-гид</strong>
+          <p>Трансфер, тайминг, контакты гидов, точки встречи и правила кэмпа</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Форма разблокировки -->
+    <div class="lock-action-box">
+      <label for="camp-pin-input" class="pin-label">Уже участвуешь? Введи PIN-код из чата:</label>
+      <div class="pin-input-group">
+        <input type="password" id="camp-pin-input" maxlength="6" placeholder="• • • • • •" inputmode="numeric">
+        <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
+      </div>
+      <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
+    </div>
+
+    <!-- Кнопка бронирования для новых гостей -->
+    <div class="lock-cta">
+      <p>Ещё не забронировал место?</p>
+      <a href="https://t.me/abhazband_bot" target="_blank" class="btn-primary-camp">🚴 Забронировать участие</a>
+    </div>
+  </div>
+
+
+  <!-- 2. КАБИНЕТ УЧАСТНИКА (Скрыт до ввода PIN) -->
+  <div id="my-camp-unlocked" class="my-camp-dashboard" style="display: none;">
+    
+    <div class="camp-welcome-card">
+      <div class="status-pill">🔥 Активный кэмп</div>
+      <h2 id="camp-title-display">AbhazBand Autumn Camp 2026</h2>
+      <p id="camp-dates-display">📅 10 – 18 Октября | Гагра, Абхазия</p>
+    </div>
+
+    <!-- Под-навигация внутри кабинета -->
+    <div class="sub-tab-bar">
+      <button class="sub-tab-btn active" onclick="switchSubTab('sub-tracks', this)">🗺️ Маршруты</button>
+      <button class="sub-tab-btn" onclick="switchSubTab('sub-checklist', this)">🎒 Чек-лист</button>
+      <button class="sub-tab-btn" onclick="switchSubTab('sub-info', this)">📋 Памятка</button>
+    </div>
+
+    <!-- Под-вкладка 1: Маршруты -->
+    <div id="sub-tracks" class="sub-tab-content">
+      <div class="section-title">Заезды по дням & GPX</div>
+      <div id="gpx-tracks-list" class="tracks-grid">
+        <!-- Список треков будет подгружаться автоматически -->
+      </div>
+    </div>
+
+    <!-- Под-вкладка 2: Чек-лист -->
+    <div id="sub-checklist" class="sub-tab-content" style="display: none;">
+      <div class="section-title">Чек-лист снаряжения</div>
+      <div class="checklist-progress">
+        <span>Прогресс сборов:</span>
+        <div class="progress-bar-bg">
+          <div id="checklist-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+        <strong id="checklist-count">0 / 0</strong>
+      </div>
+      <div id="checklist-items" class="checklist-group">
+        <!-- Чек-босы формируются через JS -->
+      </div>
+    </div>
+
+    <!-- Под-вкладка 3: Памятка -->
+    <div id="sub-info" class="sub-tab-content" style="display: none;">
+      <div class="section-title">Важная информация</div>
+      <div id="camp-memo-content" class="memo-card">
+        <!-- Текст памятки -->
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <div id="rides-tab" class="tab-content">
@@ -307,9 +680,13 @@ input:checked + .slider::before {
   </div>
 </div>
 
+<!-- ==================== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ==================== -->
 <nav class="tab-bar">
   <div class="tab-item active" onclick="switchTab('camps-tab', this)">
     <span class="tab-icon">⛺</span>Кэмпы
+  </div>
+  <div class="tab-item" onclick="switchTab('my-camp-tab', this)">
+    <span class="tab-icon">🏕️</span>Мой кэмп
   </div>
   <div class="tab-item" onclick="switchTab('rides-tab', this)">
     <span class="tab-icon">🚴</span>Social Rides
@@ -327,6 +704,7 @@ input:checked + .slider::before {
     <span class="tab-icon">🛠️</span>Фитчи
   </div>
 </nav>
+
 
 <script>
 // --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
@@ -748,6 +1126,210 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
+  // ==================== ЛОГИКА: МОЙ КЭМП ==================== //
+
+// Кодовое слово для входа в активный кэмп
+const CAMP_SECRET_PIN = "ABHAZ2026";
+
+// Данные чек-листа участника
+const CAMP_CHECKLIST_DATA = [
+  {
+    category: "🚲 Велосипед & Запчасти",
+    items: [
+      { id: "c_mech", label: "Запасной петух (специфичный под вашу раму!)" },
+      { id: "c_tubes", label: "Запасные камеры (2 шт) или свежий герметик" },
+      { id: "c_lights", label: "Задний и передний фонарь (для тоннелей)" },
+      { id: "c_pump", label: "Компактный насос или CO2 баллоны" },
+      { id: "c_tool", label: "Мультитул с выжимкой цепи" }
+    ]
+  },
+  {
+    category: "👕 Экипировка & Одежда",
+    items: [
+      { id: "c_wind", label: "Ветровка / Жилетка (обязательно для горных спусков)" },
+      { id: "c_bibs", label: "Велоформа (2-3 комплекта)" },
+      { id: "c_rain", label: "Дождевик или ветрозащитные нарукавники" },
+      { id: "c_shoes", label: "Велотуфли + Запасные шипы" },
+      { id: "c_glasses", label: "Велоочки со светлой/прозрачной линзой" }
+    ]
+  },
+  {
+    category: "💊 Аптечка, Документы & Питание",
+    items: [
+      { id: "c_passport", label: "Паспорт РФ (для границы Псоу)" },
+      { id: "c_cash", label: "Наличные деньги (на горные кафе)" },
+      { id: "c_pbank", label: "Пауэрбанк и кабели для зарядки гаджетов" },
+      { id: "c_nutrition", label: "Энергетические гели / изотоники" },
+      { id: "c_suncream", label: "Крем от солнца & крем от натирания" }
+    ]
+  }
+];
+
+// Автоматическая проверка при старте
+document.addEventListener("DOMContentLoaded", function() {
+  checkCampAccessOnLoad();
+});
+
+function checkCampAccessOnLoad() {
+  const savedPin = localStorage.getItem('abhaz_camp_pin');
+  if (savedPin === CAMP_SECRET_PIN) {
+    showUnlockedCamp();
+  }
+}
+
+// Функция ввода PIN
+function unlockCamp() {
+  const pinInput = document.getElementById('camp-pin-input');
+  const errorMsg = document.getElementById('pin-error-msg');
+  if (!pinInput) return;
+
+  const val = pinInput.value.trim().toUpperCase();
+
+  if (val === CAMP_SECRET_PIN) {
+    localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
+    if (errorMsg) errorMsg.style.display = 'none';
+    showUnlockedCamp();
+  } else {
+    if (errorMsg) errorMsg.style.display = 'block';
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    }
+  }
+}
+
+// Открытие кабинета
+function showUnlockedCamp() {
+  const lockCard = document.getElementById('my-camp-locked');
+  const unlockedDash = document.getElementById('my-camp-unlocked');
+
+  if (lockCard) lockCard.style.display = 'none';
+  if (unlockedDash) unlockedDash.style.display = 'block';
+
+  // Инициализация под-вкладок
+  renderTracksList();
+  renderChecklistUI();
+  renderMemoUI();
+}
+
+// Переключение под-вкладок в кабинете
+function switchSubTab(tabId, btnEl) {
+  document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+  if (btnEl) btnEl.classList.add('active');
+}
+
+// Рендер Треков
+function renderTracksList() {
+  const container = document.getElementById('gpx-tracks-list');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="card" style="border-left: 4px solid #38bdf8; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
+      <div style="font-size:10px; color:#38bdf8; font-weight:bold;">ДЕНЬ 1 • 04 ОКТЯБРЯ</div>
+      <h4 style="margin:4px 0; color:#fff; font-size:14px;">Заезд + Пролог на Мамдзышху</h4>
+      <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0;">Разминка и раскатка до 1-й смотровой площадки.</p>
+      <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">📏 35 км &nbsp;|&nbsp; ↗️ 850 м</div>
+      <div style="display:flex; gap:8px;">
+        <a href="https://t.me/abhazband_bot" target="_blank" class="btn-primary-camp" style="font-size:11px; padding:6px 12px;">📥 GPX Трек</a>
+        <a href="https://t.me/abhazband_bot" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:none; padding:6px 12px;">🗺️ Komoot</a>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #38bdf8; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
+      <div style="font-size:10px; color:#38bdf8; font-weight:bold;">ДЕНЬ 2 • 05 ОКТЯБРЯ</div>
+      <h4 style="margin:4px 0; color:#fff; font-size:14px;">Озеро Рица & Юпшарский Каньон</h4>
+      <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0;">Главный горный этап. Сопровождение технички на всем подъеме.</p>
+      <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">📏 90 км &nbsp;|&nbsp; ↗️ 1 450 м</div>
+      <div style="display:flex; gap:8px;">
+        <a href="https://t.me/abhazband_bot" target="_blank" class="btn-primary-camp" style="font-size:11px; padding:6px 12px;">📥 GPX Трек</a>
+        <a href="https://t.me/abhazband_bot" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:none; padding:6px 12px;">🗺️ Komoot</a>
+      </div>
+    </div>
+  `;
+}
+
+// Рендер Чек-листа
+function renderChecklistUI() {
+  const container = document.getElementById('checklist-items');
+  if (!container) return;
+
+  const savedState = JSON.parse(localStorage.getItem('abhaz_checklist_state') || '{}');
+  let html = '';
+  let totalCount = 0;
+  let checkedCount = 0;
+
+  CAMP_CHECKLIST_DATA.forEach(cat => {
+    html += `<div class="checklist-cat-card"><div class="checklist-cat-title">${cat.category}</div>`;
+    
+    cat.items.forEach(item => {
+      totalCount++;
+      const isChecked = !!savedState[item.id];
+      if (isChecked) checkedCount++;
+
+      html += `
+        <label class="check-item-label ${isChecked ? 'checked' : ''}">
+          <input type="checkbox" onchange="toggleCheckItem('${item.id}', this.checked)" ${isChecked ? 'checked' : ''}>
+          <span>${item.label}</span>
+        </label>
+      `;
+    });
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+
+  // Обновление прогресса
+  const pct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+  const pBar = document.getElementById('checklist-progress-bar');
+  const pCount = document.getElementById('checklist-count');
+
+  if (pBar) pBar.style.width = pct + '%';
+  if (pCount) pCount.innerText = `${checkedCount} / ${totalCount}`;
+}
+
+// Сохранение переключения галочки
+function toggleCheckItem(id, isChecked) {
+  const savedState = JSON.parse(localStorage.getItem('abhaz_checklist_state') || '{}');
+  savedState[id] = isChecked;
+  localStorage.setItem('abhaz_checklist_state', JSON.stringify(savedState));
+
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+  }
+
+  renderChecklistUI();
+}
+
+// Рендер Памятки
+function renderMemoUI() {
+  const container = document.getElementById('camp-memo-content');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #38bdf8;">☕ Где поесть в Гагре и окрестностях</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+        • <b>Кофейня на набережной:</b> Спешелти кофе и завтраки.<br>
+        • <b>Ресторан «Гагрипш»:</b> Вечерний ужин команды.<br>
+        • <b>Пицунда:</b> Рыбные кафе у сосновой рощи.
+      </div>
+    </div>
+
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #f59e0b;">⚠️ Важные нюансы</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+        • <b>Свет:</b> Заряжайте фонари (неосвещенные тоннели на Рицу).<br>
+        • <b>Наличные:</b> Держите 1000–2000 ₽ наличными (в горах нет терминалов).<br>
+        • <b>Спуски:</b> Сдавайте ветровки в техничку перед подъемом.
+      </div>
+    </div>
+  `;
+}
+
 </script>
 
 <!-- ==================== ПАНЕЛЬ АДМИНИСТРАТОРА (РАССЫЛКА) ==================== -->
