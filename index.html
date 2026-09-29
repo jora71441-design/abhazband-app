@@ -615,7 +615,133 @@ function initApp() {
   try { renderMedia(); } catch (e) { console.error('media:', e); }
   try { calcPressure(); } catch (e) { console.error('pressure:', e); }
   try { initSubscriptionToggle(); } catch (e) { console.error('sub:', e); }
+  try { checkAdmin(); } catch (e) { console.error('admin:', e); }
 }
+
+// ==================== ЛОГИКА РАССЫЛКИ (АДМИН) ====================
+const BROADCAST_BOT_TOKEN = '6800059891:AAHyovskefzHoCQ7Ad2H8T9diJm89Bfu4IU'; // ⚠️ Замените на токен бота из BotFather
+const BROADCAST_ADMIN_ID = 303365656;
+
+// Проверка прав и показ панели
+function checkAdmin() {
+  if (tgUser && Number(tgUser.id) === BROADCAST_ADMIN_ID) {
+    const panel = document.getElementById("admin-panel");
+    if (panel) panel.style.display = "block";
+  }
+}
+
+// Запуск процесса отправки
+async function startBroadcast() {
+  const imageUrl = document.getElementById("broadcast-image").value.trim();
+  const text = document.getElementById("broadcast-text").value.trim();
+  const btnText = document.getElementById("broadcast-btn-text").value.trim();
+  const btnUrl = document.getElementById("broadcast-btn-url").value.trim();
+  const statusDiv = document.getElementById("broadcast-status");
+  const btn = document.getElementById("send-broadcast-btn");
+
+  if (!text) {
+    alert("Заполните текст сообщения!");
+    return;
+  }
+
+  if (!confirm("Вы уверены, что хотите запустить рассылку по всем подписчикам?")) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.style.opacity = "0.5";
+  statusDiv.innerHTML = "⏳ Загрузка подписчиков из Supabase...";
+
+  try {
+    if (!supabaseClient) throw new Error("Supabase не инициализирован");
+
+    // Получаем список только активных подписчиков
+    const { data: subscribers, error } = await supabaseClient
+      .from('subscribers')
+      .select('user_id')
+      .eq('is_subscribed', true);
+
+    if (error) throw error;
+
+    if (!subscribers || subscribers.length === 0) {
+      statusDiv.innerHTML = "❌ В базе нет активных подписчиков.";
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      return;
+    }
+
+    let replyMarkup = null;
+    if (btnText && btnUrl) {
+      replyMarkup = { inline_keyboard: [[{ text: btnText, url: btnUrl }]] };
+    }
+
+    let sent = 0;
+    let blocked = 0;
+    let errors = 0;
+
+    for (let i = 0; i < subscribers.length; i++) {
+      const userId = subscribers[i].user_id;
+      statusDiv.innerHTML = `🚀 Отправка: ${i + 1} из ${subscribers.length}...`;
+
+      const method = imageUrl ? 'sendPhoto' : 'sendMessage';
+      const payload = {
+        chat_id: userId,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      };
+
+      if (imageUrl) {
+        payload.photo = imageUrl;
+        payload.caption = text;
+      } else {
+        payload.text = text;
+      }
+
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BROADCAST_BOT_TOKEN}/${method}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+
+        if (result.ok) {
+          sent++;
+        } else {
+          if (result.description && result.description.toLowerCase().includes("blocked")) {
+            blocked++;
+            // Отписываем юзера в Supabase, если бот заблокирован
+            await supabaseClient
+              .from('subscribers')
+              .update({ is_subscribed: false })
+              .eq('user_id', userId);
+          } else {
+            errors++;
+          }
+        }
+      } catch (err) {
+        errors++;
+      }
+
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    statusDiv.innerHTML = `
+      <div style="color: #30d158; font-weight: 600; margin-bottom: 4px;">✅ Рассылка завершена!</div>
+      • Успешно доставлено: <b>${sent}</b><br>
+      • Заблокировали бота (отписаны): <b>${blocked}</b><br>
+      • Ошибки: <b>${errors}</b>
+    `;
+
+  } catch (err) {
+    statusDiv.innerHTML = `❌ Ошибка: ${err.message || err}`;
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+  }
+}
+// =================================================================
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
@@ -623,5 +749,41 @@ if (document.readyState === 'loading') {
   initApp();
 }
 </script>
+
+<!-- ==================== ПАНЕЛЬ АДМИНИСТРАТОРА (РАССЫЛКА) ==================== -->
+<div id="admin-panel" style="display: none; margin: 20px 15px; padding: 16px; background: #1c1c1e; border-radius: 16px; border: 1px solid #2c2c2e; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+    <h3 style="margin: 0; font-size: 18px; font-weight: 700;">📢 Рассылка AbhazBand</h3>
+    <span style="font-size: 11px; background: #007aff22; color: #0a84ff; padding: 3px 8px; border-radius: 6px; font-weight: 600;">ADMIN</span>
+  </div>
+
+  <div style="margin-bottom: 10px;">
+    <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка на обложку (Image URL):</label>
+    <input type="text" id="broadcast-image" placeholder="https://raw.githubusercontent.com/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+  </div>
+
+  <div style="margin-bottom: 10px;">
+    <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст сообщения (HTML форматирование):</label>
+    <textarea id="broadcast-text" rows="4" placeholder="<b>⛺ Новый кэмп!</b>&#10;Открыта бронь на октябрь..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; resize: vertical; outline: none;"></textarea>
+  </div>
+
+  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+    <div style="flex: 1;">
+      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст кнопки:</label>
+      <input type="text" id="broadcast-btn-text" placeholder="🚴 Открыть кэмп" style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+    </div>
+    <div style="flex: 1;">
+      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка кнопки:</label>
+      <input type="text" id="broadcast-btn-url" placeholder="https://t.me/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+    </div>
+  </div>
+
+  <button id="send-broadcast-btn" onclick="startBroadcast()" style="width: 100%; padding: 12px; background: #0a84ff; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">
+    🚀 Отправить подписчикам
+  </button>
+
+  <div id="broadcast-status" style="margin-top: 12px; font-size: 13px; color: #8e8e93; line-height: 1.4;"></div>
+</div>
+<!-- ========================================================================= -->
 </body>
 </html>
