@@ -1125,9 +1125,9 @@ const CAMP_SECRET_PIN = "ABHAZ2026";
 
 // Состояние развилок и переключателей
 let campState = {
-  restDay: 10,       // 10 или 11 октября
+  restDay: 10,       // 10 или 12 октября
   branch: 'gal',     // 'gal' или 'tkuarchal'
-  dist12: 105        // 65 или 105 км (12 октября)
+  distSukhum: 105    // 65 или 105 км (Окрестности Сухума)
 };
 
 // Функция переключения развилок
@@ -1137,95 +1137,6 @@ function updateCampOption(key, val) {
     window.Telegram.WebApp.HapticFeedback.selectionChanged();
   }
   renderTracksList();
-}
-
-// Данные чек-листа участника
-const CAMP_CHECKLIST_DATA = [
-  {
-    category: "🚲 Велосипед & Запчасти",
-    items: [
-      { id: "c_mech", label: "Запасной петух (специфичный под вашу раму!)" },
-      { id: "c_tubes", label: "Запасные камеры (2 шт) или свежий герметик" },
-      { id: "c_lights", label: "Задний и передний фонарь (для тоннелей)" },
-      { id: "c_pump", label: "Компактный насос или CO2 баллоны" },
-      { id: "c_tool", label: "Мультитул с выжимкой цепи" }
-    ]
-  },
-  {
-    category: "👕 Экипировка & Одежда",
-    items: [
-      { id: "c_wind", label: "Ветровка / Жилетка (обязательно для горных спусков)" },
-      { id: "c_bibs", label: "Велоформа (2-3 комплекта)" },
-      { id: "c_rain", label: "Дождевик или ветрозащитные нарукавники" },
-      { id: "c_shoes", label: "Велотуфли + Запасные шипы" },
-      { id: "c_glasses", label: "Велоочки со светлой/прозрачной линзой" }
-    ]
-  },
-  {
-    category: "💊 Аптечка, Документы & Питание",
-    items: [
-      { id: "c_passport", label: "Паспорт РФ (для границы Псоу)" },
-      { id: "c_cash", label: "Наличные деньги (на горные кафе)" },
-      { id: "c_pbank", label: "Пауэрбанк и кабели для зарядки гаджетов" },
-      { id: "c_nutrition", label: "Энергетические гели / изотоники" },
-      { id: "c_suncream", label: "Крем от солнца & крем от натирания" }
-    ]
-  }
-];
-
-// Автоматическая проверка при старте
-document.addEventListener("DOMContentLoaded", function() {
-  checkCampAccessOnLoad();
-});
-
-function checkCampAccessOnLoad() {
-  const savedPin = localStorage.getItem('abhaz_camp_pin');
-  if (savedPin === CAMP_SECRET_PIN) {
-    showUnlockedCamp();
-  }
-}
-
-// Функция ввода PIN
-function unlockCamp() {
-  const pinInput = document.getElementById('camp-pin-input');
-  const errorMsg = document.getElementById('pin-error-msg');
-  if (!pinInput) return;
-
-  const val = pinInput.value.trim().toUpperCase();
-
-  if (val === CAMP_SECRET_PIN) {
-    localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
-    if (errorMsg) errorMsg.style.display = 'none';
-    showUnlockedCamp();
-  } else {
-    if (errorMsg) errorMsg.style.display = 'block';
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-    }
-  }
-}
-
-// Открытие кабинета
-function showUnlockedCamp() {
-  const lockCard = document.getElementById('my-camp-locked');
-  const unlockedDash = document.getElementById('my-camp-unlocked');
-
-  if (lockCard) lockCard.style.display = 'none';
-  if (unlockedDash) unlockedDash.style.display = 'block';
-
-  renderTracksList();
-  renderChecklistUI();
-  renderMemoUI();
-}
-
-// Переключение под-вкладок в кабинете
-function switchSubTab(tabId, btnEl) {
-  document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
-
-  const target = document.getElementById(tabId);
-  if (target) target.style.display = 'block';
-  if (btnEl) btnEl.classList.add('active');
 }
 
 // РЕНДЕР ТРЕКОВ И РАЗВИЛОК
@@ -1242,7 +1153,7 @@ function renderTracksList() {
         <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🛋️ День отдыха (восстановление):</span>
         <div style="display: flex; gap: 6px;">
           <button onclick="updateCampOption('restDay', 10)" class="sub-tab-btn ${campState.restDay === 10 ? 'active' : ''}" style="flex:1; padding:6px;">10 Октября</button>
-          <button onclick="updateCampOption('restDay', 11)" class="sub-tab-btn ${campState.restDay === 11 ? 'active' : ''}" style="flex:1; padding:6px;">11 Октября</button>
+          <button onclick="updateCampOption('restDay', 12)" class="sub-tab-btn ${campState.restDay === 12 ? 'active' : ''}" style="flex:1; padding:6px;">12 Октября</button>
         </div>
       </div>
 
@@ -1262,7 +1173,7 @@ function renderTracksList() {
       day: "4-5 ОКТЯБРЯ",
       title: "📆 Дни приезда & Сборка велосипедов",
       type: "Оргдень",
-      desc: "Встреча участников, совместная сборка байков, подготовка снаряжения.<br>🕕 <b>20:00</b> — Вечерний ужин команды.",
+      desc: "Встреча участников, совместная сборка байков.<br>🕕 <b>20:00</b> — Вечерний ужин команды.",
       stats: "📍 База AbhazBand",
       km: 0, gain: 0
     },
@@ -1274,8 +1185,8 @@ function renderTracksList() {
       stats: "🛣️ 70 км &nbsp;|&nbsp; ⛰️ +290 м &nbsp;|&nbsp; Асфальт 100%",
       km: 70, gain: 290,
       links: [
-        { label: "🚴 Шоссе GPX", url: "./gpx/Day_1_shosse.gpx" },
-        { label: "🚵 Гравел GPX", url: "./gpx/Day_1_gravel.gpx" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/1321206568?ref=aso&share_token=aWG49MO64K7t5GSiGNmAO1VJh65xzwAj6ZUwJvUiWkaopf7otl&t_s=referral&t_cid=route_share" },
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2920620509?ref=aso&share_token=aTotm7kS6lV8x1pozOTdf6P2gedqgBybX6Gpf6NE1f5rRHTT59&t_s=referral&t_cid=route_share" }
       ]
     },
     {
@@ -1286,19 +1197,19 @@ function renderTracksList() {
       stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 85%, Грунты 15%",
       km: 105, gain: 1400,
       links: [
-        { label: "🚴 Шоссе GPX", url: "./gpx/Day_2_Mussera_shosse.gpx" },
-        { label: "🚵 Гравел GPX", url: "./gpx/Day_2_Mussera_gravel.gpx" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com" },
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com" }
       ]
     },
     {
       day: "8 ОКТЯБРЯ",
-      title: "Гагра — Хашупсинский каньон",
+      title: "Ознакомительная по Гагре",
       type: "Шоссе & Гравел",
-      desc: "Поездка к Хашупсинскому каньону и прогулка по нему. Посещение города Цандрипш.<br>🕕 11:00 Выезд | 15:00 Обед в Цандрипше | 18:00 Финиш",
-      stats: "🛣️ 107 км &nbsp;|&nbsp; ⛰️ +1 100 м &nbsp;|&nbsp; Асфальт 90%",
-      km: 107, gain: 1100,
+      desc: "День восстановления. Достопримечательности Гагр, посещение дачи Сталина и знаковых мест.<br>🕕 11:00 Выезд на маршрут.",
+      stats: "🛣️ 83 км &nbsp;|&nbsp; ⛰️ +970 м &nbsp;|&nbsp; Асфальт 100%",
+      km: 83, gain: 970,
       links: [
-        { label: "📥 Маршрут GPX", url: "./gpx/Day_3_Po_Gagre.gpx" }
+        { label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }
       ]
     },
     {
@@ -1309,73 +1220,61 @@ function renderTracksList() {
       stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1 370 м &nbsp;|&nbsp; Асфальт 100%",
       km: 105, gain: 1370,
       links: [
-        { label: "📥 Шоссе GPX", url: "./gpx/Day_4_Ritsa.gpx" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com" }
       ]
     }
   ];
 
-  // Динамика дня отдыха
-  if (campState.restDay === 10) {
-    schedule.push({
-      day: "10 ОКТЯБРЯ",
-      title: "🛋️ Выходной & Восстановление",
-      type: "Rest Day",
-      desc: "День отдыха. Посещение термальных источников / бани, самостоятельное планирование, прогулки и хайкинг.",
-      stats: "♨️ Режим восстановления",
-      km: 0, gain: 0
-    });
-    schedule.push({
-      day: "11 ОКТЯБРЯ",
-      title: "Транзит: Дорога на Сухум",
-      type: "Шоссе / Переезд",
-      desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд | 14:00 Обед | 18:00 Финиш",
-      stats: "🛣️ 112 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 80%",
-      km: 112, gain: 1400,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct11_sukhum.gpx" }]
-    });
-  } else {
-    schedule.push({
-      day: "10 ОКТЯБРЯ",
-      title: "Транзит: Дорога на Сухум",
-      type: "Шоссе / Переезд",
-      desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд | 14:00 Обед | 18:00 Финиш",
-      stats: "🛣️ 112 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 80%",
-      km: 112, gain: 1400,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct11_sukhum.gpx" }]
-    });
-    schedule.push({
-      day: "11 ОКТЯБРЯ",
-      title: "🛋️ Выходной & Восстановление",
-      type: "Rest Day",
-      desc: "День отдыха. Посещение термальных источников / бани, самостоятельное планирование, прогулки и хайкинг.",
-      stats: "♨️ Режим восстановления",
-      km: 0, gain: 0
-    });
-  }
-
-  // 12 Октября
-  const is105 = campState.dist12 === 105;
-  schedule.push({
-    day: "12 ОКТЯБРЯ",
+  // Объекты для Сухумского маршрута и Транзита
+  const is105 = campState.distSukhum === 105;
+  const sukhumRouteObj = {
     title: "Окрестности Сухума и Новый Афон",
     type: "Шоссе & Гравел",
     desc: `Маршрут по окрестностям Сухума. Заезд в Черниговку, Беслетку, Каманы.<br>
       <div style="margin-top:6px;">
         Выбор дистанции: 
-        <button onclick="updateCampOption('dist12', 65)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${!is105 ? '#38bdf8' : '#334155'}; color:${!is105 ? '#0f172a' : '#fff'}; font-weight:bold;">65 км</button>
-        <button onclick="updateCampOption('dist12', 105)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${is105 ? '#38bdf8' : '#334155'}; color:${is105 ? '#0f172a' : '#fff'}; font-weight:bold;">105 км</button>
+        <button onclick="updateCampOption('distSukhum', 65)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${!is105 ? '#38bdf8' : '#334155'}; color:${!is105 ? '#0f172a' : '#fff'}; font-weight:bold;">65 км</button>
+        <button onclick="updateCampOption('distSukhum', 105)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${is105 ? '#38bdf8' : '#334155'}; color:${is105 ? '#0f172a' : '#fff'}; font-weight:bold;">105 км</button>
       </div><br>
       🕕 11:00 Выезд | 15:00 Обед | 17:00 Финиш`,
-    stats: is105 ? "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 98%" : "🛣️ 65 км &nbsp;|&nbsp; ⛰️ +400 м &nbsp;|&nbsp; Асфальт 98%",
+    stats: is105 ? "🛣️ 105 км &nbsp;|&nbsp; ⛰️️ +800 м &nbsp;|&nbsp; Асфальт 98%" : "🛣️ 65 км &nbsp;|&nbsp; ⛰️ +400 м &nbsp;|&nbsp; Асфальт 98%",
     km: is105 ? 105 : 65,
     gain: is105 ? 800 : 400,
     links: [
-      { label: "📥 Трек 65 км GPX", url: "./gpx/oct12_65km.gpx" },
-      { label: "📥 Трек 105 км GPX", url: "./gpx/oct12_105km.gpx" }
+      { label: "🗺️ Komoot 65 км", url: "https://www.komoot.com" },
+      { label: "🗺️ Komoot 105 км", url: "https://www.komoot.com" }
     ]
-  });
+  };
 
-  // Ветки 13-14 октября
+  const transitRouteObj = {
+    title: "Транзит: Дорога на Сухум",
+    type: "Шоссе / Переезд",
+    desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд | 14:00 Обед | 18:00 Финиш",
+    stats: "🛣️ 112 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 80%",
+    km: 112, gain: 1400,
+    links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
+  };
+
+  const restDayObj = {
+    title: "🛋️ Выходной & Восстановление",
+    type: "Rest Day",
+    desc: "День отдыха. Посещение термальных источников / бани, самостоятельное планирование, прогулки и хайкинг.",
+    stats: "♨️ Режим восстановления",
+    km: 0, gain: 0
+  };
+
+  // --- ДИНАМИКА 10, 11, 12 ОКТЯБРЯ ---
+  if (campState.restDay === 10) {
+    schedule.push({ day: "10 ОКТЯБРЯ", ...restDayObj });
+    schedule.push({ day: "11 ОКТЯБРЯ", ...transitRouteObj });
+    schedule.push({ day: "12 ОКТЯБРЯ", ...sukhumRouteObj });
+  } else {
+    schedule.push({ day: "10 ОКТЯБРЯ", ...transitRouteObj });
+    schedule.push({ day: "11 ОКТЯБРЯ", ...sukhumRouteObj });
+    schedule.push({ day: "12 ОКТЯБРЯ", ...restDayObj });
+  }
+
+  // --- ВЕТКИ 13-14 ОКТЯБРЯ ---
   if (campState.branch === 'gal') {
     schedule.push({
       day: "13 ОКТЯБРЯ • ВЕТКА ГАЛ",
@@ -1384,7 +1283,7 @@ function renderTracksList() {
       desc: "Посещение и ночёвка в самом удалённом городе Абхазии — г. Гал.<br>🕕 11:00 Выезд | 15:00 Обед в Гал | 17:00 Финиш",
       stats: "🛣 85 км &nbsp;|&nbsp; ⛰️ +320 м &nbsp;|&nbsp; Асфальт 100%",
       km: 85, gain: 320,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct13_gal.gpx" }]
+      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
     });
     schedule.push({
       day: "14 ОКТЯБРЯ • ВЕТКА ГАЛ",
@@ -1393,7 +1292,7 @@ function renderTracksList() {
       desc: "Поездка на гидроэлектростанцию ИнгурГЭС и к границе. Возвращение на базу в Сухум.<br>🕕 09:00 Выезд | 15:00 Обед в Гал | 18:00 Финиш",
       stats: "🛣️ 140 км &nbsp;|&nbsp; ⛰️ +1 140 м &nbsp;|&nbsp; Асфальт 98%",
       km: 140, gain: 1140,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct14_ingur.gpx" }]
+      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
     });
   } else {
     schedule.push({
@@ -1403,7 +1302,7 @@ function renderTracksList() {
       desc: "Заезд в город-призрак Акармару, посещение крупнейших водопадов Исполин и Святой.",
       stats: "🛣️ 75 км &nbsp;|&nbsp; ⛰️ +1 100 м",
       km: 75, gain: 1100,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct13_tkuarchal.gpx" }]
+      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
     });
     schedule.push({
       day: "14 ОКТЯБРЯ • ВЕТКА ТКУАРЧАЛ",
@@ -1412,7 +1311,7 @@ function renderTracksList() {
       desc: "Живописные предгорья Отапа и возвращение на сухумскую базу.",
       stats: "🛣 80 км &nbsp;|&nbsp; ⛰️ +600 м",
       km: 80, gain: 600,
-      links: [{ label: "📥 Маршрут GPX", url: "./gpx/oct14_otap.gpx" }]
+      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
     });
   }
 
@@ -1453,7 +1352,7 @@ function renderTracksList() {
       ${item.links ? `
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${item.links.map(l => `
-            <a href="${l.url}" download target="_blank" class="btn-primary-camp" style="font-size:10px; padding:5px 10px; text-decoration:none;">${l.label}</a>
+            <a href="${l.url}" target="_blank" class="btn-primary-camp" style="font-size:10px; padding:5px 10px; text-decoration:none;">${l.label}</a>
           `).join('')}
         </div>
       ` : ''}
