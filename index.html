@@ -1138,6 +1138,65 @@ function updateCampOption(key, val) {
   }
   renderTracksList();
 }
+  
+// Автоматическая проверка PIN при загрузке
+document.addEventListener("DOMContentLoaded", function() {
+  checkCampAccessOnLoad();
+});
+
+function checkCampAccessOnLoad() {
+  try {
+    const savedPin = localStorage.getItem('abhaz_camp_pin');
+    if (savedPin === CAMP_SECRET_PIN) {
+      showUnlockedCamp();
+    }
+  } catch(e) {
+    console.error('Ошибка проверки PIN:', e);
+  }
+}
+
+// Функция входа по PIN
+function unlockCamp() {
+  const pinInput = document.getElementById('camp-pin-input');
+  const errorMsg = document.getElementById('pin-error-msg');
+  if (!pinInput) return;
+
+  const val = pinInput.value.trim().toUpperCase();
+
+  if (val === CAMP_SECRET_PIN) {
+    localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
+    if (errorMsg) errorMsg.style.display = 'none';
+    showUnlockedCamp();
+  } else {
+    if (errorMsg) errorMsg.style.display = 'block';
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    }
+  }
+}
+
+// Открытие кабинета
+function showUnlockedCamp() {
+  const lockCard = document.getElementById('my-camp-locked');
+  const unlockedDash = document.getElementById('my-camp-unlocked');
+
+  if (lockCard) lockCard.style.display = 'none';
+  if (unlockedDash) unlockedDash.style.display = 'block';
+
+  renderTracksList();
+  renderChecklistUI();
+  renderMemoUI();
+}
+
+// Переключение под-вкладок кабинета
+function switchSubTab(tabId, btnEl) {
+  document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+  if (btnEl) btnEl.classList.add('active');
+}
 
 // РЕНДЕР ТРЕКОВ И РАЗВИЛОК
 function renderTracksList() {
