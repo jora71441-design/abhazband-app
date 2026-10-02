@@ -1536,51 +1536,240 @@ function renderChecklistUI() {
   if (pCount) pCount.innerText = `${checkedCount} / ${totalCount}`;
 }
 
-// Сохранение переключения галочки
-function toggleCheckItem(id, isChecked) {
-  const savedState = JSON.parse(localStorage.getItem('abhaz_checklist_state') || '{}');
-  savedState[id] = isChecked;
-  localStorage.setItem('abhaz_checklist_state', JSON.stringify(savedState));
-
-  if (window.Telegram?.WebApp?.HapticFeedback) {
-    window.Telegram.WebApp.HapticFeedback.selectionChanged();
-  }
-
-  renderChecklistUI();
-}
-
 // Рендер Памятки
 function renderMemoUI() {
   const container = document.getElementById('camp-memo-content');
   if (!container) return;
 
+  // Вспомогательная функция для генерации прямых ссылок в Яндекс.Карты
+  const mapLink = (query) => `https://yandex.ru/maps/?text=${encodeURIComponent('Гагра ' + query)}`;
+
   container.innerHTML = `
+    <!-- Вводное сообщение -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #38bdf8;">
+      <p style="font-size: 13px; color: #f8fafc; margin: 0; line-height: 1.5;">
+        <b>Друзья, памятка для удобства ориентирования в пространстве:</b> где поесть, что посмотреть, куда прогуляться!
+      </p>
+    </div>
+
+    <!-- 🍚 ЕДА -->
     <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #38bdf8;">☕ Где поесть в Гагре и окрестностях</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
-        • <b>Кофейня на набережной:</b> Спешелти кофе и завтраки.<br>
-        • <b>Ресторан «Гагрипш»:</b> Вечерний ужин команды.<br>
-        • <b>Пицунда:</b> Рыбные кафе у сосновой рощи.
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🍚 ЕДА</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Столовая LASTORIA</b>
+            <a href="${mapLink('Столовая LASTORIA')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Вкусная кухня, разнообразное меню. Невысокий ценник.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Ресторан "Кафе ПУШКИНЪ"</b>
+            <a href="${mapLink('Кафе ПУШКИНЪ')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Отличная кухня. Большой выбор интересных блюд. <span style="color: #10b981; font-weight: bold;">Скидка 10% для велоклуба!</span></div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Ресторан МОККО</b>
+            <a href="${mapLink('Ресторан МОККО')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Отличная кухня, большой выбор блюд, умеренный ценник, огромные порции. <span style="color: #ef4444;">Громкая музыка после 20:00!</span></div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Кафе MON CAFE</b>
+            <a href="${mapLink('Mon Cafe')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Лучшие хинкали, небольшой выбор дополнительных блюд.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Ресторан ЧЕГЕМ</b>
+            <a href="${mapLink('Ресторан Чегем')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Национальная турецкая кухня. Отличный мангал. Вкусная кухня. Большой выбор блюд.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Столовая ЕВРОПА</b>
+            <a href="${mapLink('Столовая Европа')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Хорошая кухня, низкий чек. Оплата нал/безнал. Открыто с 9:00.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Кондитерская BRIOCHE</b>
+            <a href="${mapLink('Кондитерская Brioche')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Большой выбор кондитерки, шикарные десерты, много разного кофе. Место любимо многими велосипедистами.</div>
+        </div>
+
       </div>
     </div>
 
+    <!-- 📞 СВЯЗЬ -->
     <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #f59e0b;">⚠️ Важные нюансы</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
-        • <b>Свет:</b> Заряжайте фонари (неосвещенные тоннели на Рицу).<br>
-        • <b>Наличные:</b> Держите 1000–2000 ₽ наличными (в горах нет терминалов).<br>
-        • <b>Спуски:</b> Сдавайте ветровки в техничку перед подъемом.
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">📞 СВЯЗЬ</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Офис AQUAFON</b>
+            <a href="${mapLink('Аквафон')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Оптимальный оператор для западной Абхазии. Лимитированный трафик с безлимитной скоростью.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️️ Офис AMOBILE</b>
+            <a href="${mapLink('A-Mobile')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Безлимитный трафик, лимитированная скорость. Оптимален для востока Абхазии.</div>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 8px; color: #cbd5e1; font-size: 11px;">
+          💡 <i>У каждого оператора можно подключить временную симку на 3 месяца без паспорта или постоянную с паспортом.</i>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🚶 КУДА ПРОГУЛЯТЬСЯ -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🚶 КУДА ПРОГУЛЯТЬСЯ</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Пансионат МАЯК</b>
+            <a href="${mapLink('Пансионат Маяк')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Заброшка. 5 корпусов бывшего пансионата находятся на возвышении с красивым видом на город. Отличная локация для фото.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Колесо ОБОЗРЕНИЯ</b>
+            <a href="${mapLink('Колесо обозрения')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Рекомендуем прокатиться и встретить закат на нём.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️️ Дворец Принца Ольденбургского</b>
+            <a href="${mapLink('Замок принца Ольденбургского')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Колоритный замок принца - основателя курорта Гагра. Вход ~150₽ (зависит от времени).</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Царский ПРИМОРСКИЙ ПАРК</b>
+            <a href="${mapLink('Приморский парк')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Парк с 110 видами тропических растений. Начинается от колоннады и заканчивается причалом.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏃‍♀️ ЗДОРОВЬЕ -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🏃‍♀️ ЗДОРОВЬЕ</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️️ БАЛЬНЕОЛЕЧЕБНИЦА</b>
+            <a href="${mapLink('Бальнеолечебница')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Массаж Шарко, сероводородные ванны, небольшой бассейн и хамам.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Массажный центр ДЫХАНИЕ ЖИЗНИ</b>
+            <a href="${mapLink('Дыхание жизни')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Большой выбор услуг, включая спортивный массаж. <i>Запись через оргов.</i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🛍 МАГАЗИНЫ -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🛍 МАГАЗИНЫ</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Супермаркет АССОРТИ</b>
+            <a href="${mapLink('Супермаркет Ассорти')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Неплохой выбор продуктов и хозтоваров. Ценник выше среднего. До 22:00.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ ОСТРОВ ВКУСА (Продукты & Рыба)</b>
+            <a href="${mapLink('Остров вкуса')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Хороший выбор, низкие цены. Всё по продуктам рекомендуем брать здесь. Рядом рыбный магазин. До 21:00.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Супермаркет ТЦ ГАГРА</b>
+            <a href="${mapLink('ТЦ Гагра')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Обширный выбор продуктов и хозтоваров. Ценник выше среднего. До 23:00.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Магазин ДАУР</b>
+            <a href="${mapLink('Магазин Даур')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Ночной магазин продуктов. Работает до 2:00 ночи.</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ Центральный РЫНОК</b>
+            <a href="${mapLink('Центральный рынок')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Локальные продукты и сувениры. С 6:00 до 16:00 работает сельскохозяйственный оптово-розничный рынок.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏦 БАНКОМАТЫ -->
+    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
+      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🏦 БАНКОМАТЫ (ближайшие)</h4>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ АМРА-БАНК</b>
+            <a href="${mapLink('Амра банк банкомат')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Круглосуточно (24/7).</div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <b style="color: #fff;">▪️ ТЦ ГАГРА</b>
+            <a href="${mapLink('ТЦ Гагра банкомат')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Доступен с 7:00 до 22:00.</div>
+        </div>
       </div>
     </div>
   `;
-}
-  function openLifeRideBot() {
-  const botUrl = 'https://t.me/liferidelife_bot';
-  if (window.Telegram?.WebApp?.openTelegramLink) {
-    window.Telegram.WebApp.openTelegramLink(botUrl);
-  } else {
-    window.open(botUrl, '_blank');
-  }
 }
 
 </script>
