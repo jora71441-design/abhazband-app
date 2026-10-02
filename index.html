@@ -758,22 +758,35 @@ async function initSubscriptionToggle() {
   }
 
   try {
+    // Проверяем, есть ли юзер уже в базе Supabase
     const { data, error } = await supabaseClient
       .from('subscribers')
       .select('is_subscribed')
       .eq('user_id', tgUser.id)
       .maybeSingle();
 
-    if (!error && data !== null && data.is_subscribed !== undefined) {
+    if (data !== null && data.is_subscribed !== undefined) {
+      // Юзер уже есть — восстанавливаем его сохраненный выбор
       toggle.checked = data.is_subscribed;
     } else {
+      // Новичок! Автоматически включаем тумблер и подписываем в Supabase
       toggle.checked = true;
+      await supabaseClient
+        .from('subscribers')
+        .upsert({
+          user_id: tgUser.id,
+          username: tgUser.username || '',
+          first_name: tgUser.first_name || '',
+          is_subscribed: true,
+          updated_at: new Date().toISOString()
+        });
     }
   } catch (err) {
-    console.error('Ошибка проверки подписки:', err);
+    console.error('Ошибка подписки при входе:', err);
     toggle.checked = true;
   }
 }
+
 
 async function toggleSubscription(isSubscribed) {
   if (!tgUser?.id) {
