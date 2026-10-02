@@ -587,9 +587,46 @@ input:checked + .slider::before {
   <div id="rides-list"></div>
 </div>
 
-<div id="shop-tab" class="tab-content">
-  <div style="text-align:center; padding: 40px 10px; color: var(--hint-color);">
-    👕 Раздел "Магазин Abhaz Band" находится в разработке
+  <div id="shop-tab" class="tab-content">
+  <!-- Под-вкладки магазина -->
+  <div class="sub-tab-bar">
+    <button class="sub-tab-btn active" onclick="switchShopSubTab('shop-abhazband', this)">🔥 Abhaz Band</button>
+    <button class="sub-tab-btn" onclick="switchShopSubTab('shop-velouyut', this)">🏡 Велоуют</button>
+  </div>
+
+  <!-- Вкладка: Abhaz Band -->
+  <div id="shop-abhazband" class="shop-sub-content">
+    <div id="abhazband-products-list">
+      <!-- Карточки мерча Abhaz Band -->
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="card-body">
+          <span class="badge" style="background: #38bdf8; color: #0f172a;">МЕРЧ</span>
+          <h3 class="card-title">Фирменная кэмп-джерси AbhazBand</h3>
+          <p style="font-size: 13px; color: var(--hint-color); margin: 6px 0 12px 0;">Аэродинамический крой, влагоотводящая ткань, кастомный дизайн коллекции.</p>
+          <a href="https://t.me/Piti4" target="_blank" class="btn">Заказать в Telegram 💬</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вкладка: Велоуют -->
+  <div id="shop-velouyut" class="shop-sub-content" style="display: none;">
+    <div id="velouyut-products-list">
+      <div style="text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px;">
+        📦 Загружаем каталог «Велоуют»...
+      </div>
+    </div>
+  </div>
+
+  <!-- Блок для партнеров / размещения новых магазинов -->
+  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 20px;">
+    <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Есть свой бренд или мастерская? 🤝</h4>
+    <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+      Хочешь разместить свои товары в нашем хабе для велосипедистов?
+    </p>
+    <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+      Разместить магазин / Развивать велоуют
+    </a>
   </div>
 </div>
 
@@ -1268,6 +1305,16 @@ function showUnlockedCamp() {
 function switchSubTab(tabId, btnEl) {
   document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+  if (btnEl) btnEl.classList.add('active');
+}
+  
+// Переключение под-вкладок внутри Магазина
+function switchShopSubTab(tabId, btnEl) {
+  document.querySelectorAll('.shop-sub-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#shop-tab .sub-tab-btn').forEach(btn => btn.classList.remove('active'));
 
   const target = document.getElementById(tabId);
   if (target) target.style.display = 'block';
