@@ -948,6 +948,20 @@ function renderCamps() {
 }
 
 function renderRides() {
+// Функция для шеринга заезда в Telegram
+function shareRide(title, date) {
+  const botAppUrl = 'https://t.me/abhazband_bot';
+  const text = `🚴 Поедешь со мной на заезд?\n\n"${title}"\n📅 ${date}`;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botAppUrl)}&text=${encodeURIComponent(text)}`;
+  
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    window.Telegram.WebApp.openTelegramLink(shareUrl);
+  } else {
+    window.open(shareUrl, '_blank');
+  }
+}
+
+function renderRides() {
   const container = document.getElementById('rides-list');
   if (!container) return;
   container.innerHTML = rides.map(ride => `
@@ -960,8 +974,11 @@ function renderRides() {
         <div class="meta-line">${ride.stats}</div>
         <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
         <div class="btn-group">
-          <a href="${ride.chatUrl}" class="btn" target="_blank">Я поеду / ЧАТ</a>
-          <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank">Скачать .GPX</a>
+          <a href="${ride.chatUrl}" class="btn" target="_blank" style="font-size: 12px; padding: 10px 4px;">Я поеду / ЧАТ</a>
+          <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank" style="font-size: 12px; padding: 10px 4px;">Скачать .GPX</a>
+          <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.date.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="flex: 0 0 42px; padding: 10px 0; font-size: 14px;" title="Поделиться">
+            🔗
+          </button>
         </div>
       </div>
     </div>
