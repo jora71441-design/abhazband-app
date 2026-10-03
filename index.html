@@ -1052,6 +1052,16 @@ function calcPressure() {
   if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
+// Функция безопасного открытия Telegram-ссылок в Mini App
+function openBotLink(username) {
+  const url = `https://t.me/${username}`;
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    window.Telegram.WebApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
 function initApp() {
   try { renderCamps(); } catch (e) { console.error('camps:', e); }
   try { renderRides(); } catch (e) { console.error('rides:', e); }
