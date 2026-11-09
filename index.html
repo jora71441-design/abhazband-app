@@ -1,1956 +1,347 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AbhazBand Platform</title>
-<!-- Telegram WebApp SDK -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Supabase JS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AbhazBand Platform</title>
 
-<style>
-:root {
-  --bg-color: var(--tg-theme-bg-color, #121212);
-  --card-bg: var(--tg-theme-secondary-bg-color, #1e1e1e);
-  --text-color: var(--tg-theme-text-color, #ffffff);
-  --hint-color: var(--tg-theme-hint-color, #aaaaaa);
-  --button-color: var(--tg-theme-button-color, #0088cc);
-  --button-text: var(--tg-theme-button-text-color, #ffffff);
-}
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  margin: 0;
-  padding: 12px 12px 80px 12px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
-
-.card {
-  background-color: var(--card-bg);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.card img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-}
-
-.card-body {
-  padding: 14px;
-}
-
-.badge {
-  display: inline-block;
-  background: var(--button-color);
-  color: var(--button-text);
-  font-size: 11px;
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.card-title {
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-.meta-line {
-  font-size: 13px;
-  color: var(--hint-color);
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-group {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.btn {
-  flex: 1;
-  display: block;
-  width: 100%;
-  background-color: var(--button-color);
-  color: var(--button-text);
-  text-align: center;
-  padding: 10px 0;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-}
-
-.tab-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--card-bg);
-  display: flex;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding: 8px 6px 12px 6px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  -webkit-overflow-scrolling: touch;
-  z-index: 9999;
-}
-
-.tab-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.tab-item {
-  flex: 0 0 16.66%;
-  min-width: 68px;
-  text-align: center;
-  color: var(--hint-color);
-  font-size: 10px;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.tab-item.active {
-  color: var(--button-color);
-  font-weight: bold;
-}
-
-.tab-icon {
-  font-size: 18px;
-  display: block;
-  margin-bottom: 2px;
-}
-
-/* Стили для тумблера */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #334155;
-  transition: .3s;
-  border-radius: 26px;
-}
-
-.slider::before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 3px;
-  bottom: 3px;
-  background-color: #ffffff;
-  transition: .3s;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-input:checked + .slider {
-  background-color: #38bdf8;
-}
-
-input:checked + .slider::before {
-  transform: translateX(22px);
-}
-  /* ==================== СТИЛИ: МОЙ КЭМП ==================== */
-.my-camp-lock-card {
-  background: var(--card-bg, #1e293b);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px 16px;
-  text-align: center;
-}
-
-.lock-badge {
-  display: inline-block;
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-}
-
-.lock-title {
-  margin: 0 0 6px 0;
-  font-size: 20px;
-  color: #fff;
-}
-
-.lock-subtitle {
-  margin: 0 0 20px 0;
-  font-size: 13px;
-  color: #94a3b8;
-  line-height: 1.4;
-}
-
-.lock-features {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  text-align: left;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 14px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-.feature-item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.feature-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.feature-item strong {
-  display: block;
-  font-size: 13px;
-  color: #fff;
-}
-
-.feature-item p {
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.3;
-}
-
-.lock-action-box {
-  background: rgba(15, 23, 42, 0.8);
-  padding: 14px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  border: 1px solid #334155;
-}
-
-.pin-label {
-  display: block;
-  font-size: 12px;
-  color: #cbd5e1;
-  margin-bottom: 10px;
-}
-
-.pin-input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.pin-input-group input {
-  flex: 1;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
-  letter-spacing: 4px;
-  text-align: center;
-  outline: none;
-  padding: 10px;
-}
-
-.btn-unlock {
-  background: #38bdf8;
-  color: #0f172a;
-  font-weight: bold;
-  border: none;
-  border-radius: 10px;
-  padding: 0 16px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.pin-error {
-  color: #ef4444;
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-.lock-cta p {
-  margin: 0 0 8px 0;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.btn-primary-camp {
-  display: inline-block;
-  background: #22c55e;
-  color: #fff;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 13px;
-  padding: 10px 18px;
-  border-radius: 10px;
-}
-
-/* Кабинет участника */
-.camp-welcome-card {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 14px;
-  border: 1px solid #38bdf8;
-}
-
-.status-pill {
-  display: inline-block;
-  background: #10b981;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  margin-bottom: 6px;
-}
-
-.camp-welcome-card h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #fff;
-}
-
-.camp-welcome-card p {
-  margin: 4px 0 0 0;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.sub-tab-bar {
-  display: flex;
-  background: #1e293b;
-  padding: 4px;
-  border-radius: 10px;
-  gap: 4px;
-  margin-bottom: 16px;
-  border: 1px solid #334155;
-}
-
-.sub-tab-btn {
-  flex: 1;
-  padding: 8px 4px;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-weight: bold;
-  font-size: 11px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sub-tab-btn.active {
-  background: #38bdf8;
-  color: #0f172a;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 12px;
-}
-
-/* Прогресс-бар Чек-листа */
-.checklist-progress {
-  background: #1e293b;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 14px;
-  border: 1px solid #334155;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #fff;
-}
-
-.progress-bar-bg {
-  flex: 1;
-  height: 8px;
-  background: #0f172a;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #38bdf8, #10b981);
-  transition: width 0.3s ease;
-}
-
-.checklist-cat-card {
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  border: 1px solid #334155;
-}
-
-.checklist-cat-title {
-  margin: 0 0 10px 0;
-  font-size: 13px;
-  color: #38bdf8;
-  font-weight: bold;
-}
-
-.check-item-label {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 12px;
-  color: #fff;
-  cursor: pointer;
-  margin-bottom: 8px;
-}
-
-.check-item-label.checked {
-  color: #64748b;
-  text-decoration: line-through;
-}
-
-.check-item-label input {
-  accent-color: #38bdf8;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-</style>
+  <!-- Подключение вынесенных стилей -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div id="camps-tab" class="tab-content active">
-  <div id="sub-banner" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-    <div style="padding-right: 12px;">
-      <div style="font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
-        <span>🔔</span> Уведомления AbhazBand
+  <!-- ==================== ВКЛАДКА: КЭМПЫ ==================== -->
+  <div id="camps-tab" class="tab-content active">
+    <div id="sub-banner" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+      <div style="padding-right: 12px;">
+        <div style="font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span>🔔</span> Уведомления AbhazBand
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.3;">
+          Анонсы кэмпов, заездов и важные новости
+        </div>
       </div>
-      <div style="font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.3;">
-        Анонсы кэмпов, заездов и важные новости
-      </div>
+      
+      <label class="switch">
+        <input type="checkbox" id="sub-toggle" onchange="toggleSubscription(this.checked)">
+        <span class="slider"></span>
+      </label>
     </div>
+
+    <div id="camps-list"></div>
+  </div>
+
+  <!-- ==================== ВКЛАДКА: МОЙ КЭМП ==================== -->
+  <div id="my-camp-tab" class="tab-content">
     
-    <label class="switch">
-      <input type="checkbox" id="sub-toggle" onchange="toggleSubscription(this.checked)">
-      <span class="slider"></span>
-    </label>
-  </div>
+    <!-- 1. Экран блокировки по PIN-коду -->
+    <div id="my-camp-locked" class="my-camp-lock-card">
+      <div class="lock-header">
+        <div class="lock-badge">🔒 Закрытый раздел</div>
+        <h2 class="lock-title">Личный кабинет участника</h2>
+        <p class="lock-subtitle">Доступ только для участников кэмпов AbhazBand</p>
+      </div>
 
-  <div id="camps-list"></div>
-</div>
-
-<!-- ==================== ВКЛАДКА: МОЙ КЭМП ==================== -->
-<div id="my-camp-tab" class="tab-content">
-  
-  <!-- 1. ЭКРАН БЛОКИРОВКИ -->
-  <div id="my-camp-locked" class="my-camp-lock-card">
-    <div class="lock-header">
-      <div class="lock-badge">🔒 Закрытый раздел</div>
-      <h2 class="lock-title">Личный кабинет участника</h2>
-      <p class="lock-subtitle">Доступ только для участников кэмпов AbhazBand</p>
-    </div>
-
-    <div class="lock-features">
-      <div class="feature-item">
-        <span class="feature-icon">🗺️</span>
-        <div>
-          <strong>GPX-маршруты и профили</strong>
-          <p>Полная выгрузка заездов по дням, высотные профили и точки отдыха</p>
+      <div class="lock-features">
+        <div class="feature-item">
+          <span class="feature-icon">🗺️</span>
+          <div>
+            <strong>GPX-маршруты и профили</strong>
+            <p>Полная выгрузка заездов по дням, высотные профили и точки отдыха</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🎒</span>
+          <div>
+            <strong>Интерактивный чек-лист</strong>
+            <p>Удобный список экипировки с галочками для комфортных сборов</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📋</span>
+          <div>
+            <strong>Памятка & Инфо-гид</strong>
+            <p>Трансфер, тайминг, контакты гидов, точки встречи и правила кэмпа</p>
+          </div>
         </div>
       </div>
-      <div class="feature-item">
-        <span class="feature-icon">🎒</span>
-        <div>
-          <strong>Интерактивный чек-лист</strong>
-          <p>Удобный список экипировки с галочками для комфортных сборов</p>
+
+      <div class="lock-action-box">
+        <label for="camp-pin-input" class="pin-label">Уже участвуешь? Введи PIN-код из чата:</label>
+        <div class="pin-input-group">
+          <input type="text" id="camp-pin-input" maxlength="10" placeholder="********" style="text-transform: uppercase;">
+          <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
         </div>
+        <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
       </div>
-      <div class="feature-item">
-        <span class="feature-icon">📋</span>
-        <div>
-          <strong>Памятка & Инфо-гид</strong>
-          <p>Трансфер, тайминг, контакты гидов, точки встречи и правила кэмпа</p>
+
+      <div class="lock-cta">
+        <p>Ещё не забронировал место?</p>
+        <a href="https://t.me/Piti4" target="_blank" class="btn-primary-camp">🚴 Забронировать участие</a>
+      </div>
+    </div>
+
+    <!-- 2. Кабинет участника -->
+    <div id="my-camp-unlocked" class="my-camp-dashboard" style="display: none;">
+      <div class="camp-welcome-card">
+        <div class="status-pill">🔥 Активный кэмп</div>
+        <h2 id="camp-title-display">Abhaz Band. Октябрь 2026</h2>
+        <p id="camp-dates-display">📅 5 – 15 октября | Гагра/Сухум, Абхазия</p>
+      </div>
+
+      <div class="sub-tab-bar">
+        <button class="sub-tab-btn active" onclick="switchSubTab('sub-tracks', this)">🗺️ Маршруты</button>
+        <button class="sub-tab-btn" onclick="switchSubTab('sub-checklist', this)">🎒 Чек-лист</button>
+        <button class="sub-tab-btn" onclick="switchSubTab('sub-info', this)">📋 Памятка</button>
+      </div>
+
+      <div id="sub-tracks" class="sub-tab-content">
+        <div class="section-title">Заезды по дням & GPX</div>
+        <div id="gpx-tracks-list" class="tracks-grid"></div>
+      </div>
+
+      <div id="sub-checklist" class="sub-tab-content" style="display: none;">
+        <div class="section-title">Чек-лист снаряжения</div>
+        <div class="checklist-progress">
+          <span>Прогресс сборов:</span>
+          <div class="progress-bar-bg">
+            <div id="checklist-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+          <strong id="checklist-count">0 / 0</strong>
         </div>
+        <div id="checklist-items" class="checklist-group"></div>
       </div>
-    </div>
 
-    <div class="lock-action-box">
-      <label for="camp-pin-input" class="pin-label">Уже участвуешь? Введи PIN-код из чата:</label>
-      <div class="pin-input-group">
-        <input type="text" id="camp-pin-input" maxlength="10" placeholder="********" style="text-transform: uppercase;">
-        <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
-      </div>
-      <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
-    </div>
-
-    <div class="lock-cta">
-      <p>Ещё не забронировал место?</p>
-      <a href="https://t.me/Piti4" target="_blank" class="btn-primary-camp">🚴 Забронировать участие</a>
-    </div>
-  </div>
-
-  <!-- 2. КАБИНЕТ УЧАСТНИКА -->
-  <div id="my-camp-unlocked" class="my-camp-dashboard" style="display: none;">
-    
-    <div class="camp-welcome-card">
-  <div class="status-pill">🔥 Активный кэмп</div>
-  <h2 id="camp-title-display">Abhaz Band. Октябрь 2026</h2>
-  <p id="camp-dates-display">📅 5 – 15 октября | Гагра/Сухум, Абхазия</p>
-</div>
-
-    <div class="sub-tab-bar">
-      <button class="sub-tab-btn active" onclick="switchSubTab('sub-tracks', this)">🗺️ Маршруты</button>
-      <button class="sub-tab-btn" onclick="switchSubTab('sub-checklist', this)">🎒 Чек-лист</button>
-      <button class="sub-tab-btn" onclick="switchSubTab('sub-info', this)">📋 Памятка</button>
-    </div>
-
-    <div id="sub-tracks" class="sub-tab-content">
-      <div class="section-title">Заезды по дням & GPX</div>
-      <div id="gpx-tracks-list" class="tracks-grid">
-        <!-- Список треков подгружается через JS -->
-      </div>
-    </div>
-
-    <div id="sub-checklist" class="sub-tab-content" style="display: none;">
-      <div class="section-title">Чек-лист снаряжения</div>
-      <div class="checklist-progress">
-        <span>Прогресс сборов:</span>
-        <div class="progress-bar-bg">
-          <div id="checklist-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
-        </div>
-        <strong id="checklist-count">0 / 0</strong>
-      </div>
-      <div id="checklist-items" class="checklist-group">
-        <!-- Чек-боксы формируются через JS -->
-      </div>
-    </div>
-
-    <div id="sub-info" class="sub-tab-content" style="display: none;">
-      <div class="section-title">Важная информация</div>
-      <div id="camp-memo-content" class="memo-card">
-        <!-- Памятка -->
+      <div id="sub-info" class="sub-tab-content" style="display: none;">
+        <div class="section-title">Важная информация</div>
+        <div id="camp-memo-content" class="memo-card"></div>
       </div>
     </div>
 
   </div>
 
-</div>
+  <!-- ==================== ВКЛАДКА: SOCIAL RIDES ==================== -->
+  <div id="rides-tab" class="tab-content">
+    <div id="rides-list"></div>
+  </div>
 
-<div id="rides-tab" class="tab-content">
-  <div id="rides-list"></div>
-</div>
-
+  <!-- ==================== ВКЛАДКА: МАГАЗИН ==================== -->
   <div id="shop-tab" class="tab-content">
-  <!-- Под-вкладки магазина -->
-  <div class="sub-tab-bar">
-    <button class="sub-tab-btn active" onclick="switchShopSubTab('shop-abhazband', this)">🔥 Abhaz Band</button>
-    <button class="sub-tab-btn" onclick="switchShopSubTab('shop-velouyut', this)">🏡 Велоуют</button>
-  </div>
+    <div class="sub-tab-bar">
+      <button class="sub-tab-btn active" onclick="switchShopSubTab('shop-abhazband', this)">🔥 Abhaz Band</button>
+      <button class="sub-tab-btn" onclick="switchShopSubTab('shop-velouyut', this)">🏡 Велоуют</button>
+    </div>
 
-  <!-- Вкладка: Abhaz Band -->
-  <div id="shop-abhazband" class="shop-sub-content">
-    <div id="abhazband-products-list">
-      <!-- Карточки мерча Abhaz Band -->
-      <div class="card" style="margin-bottom: 14px;">
-        <div class="card-body">
-          <span class="badge" style="background: #38bdf8; color: #0f172a;">МЕРЧ</span>
-          <h3 class="card-title">Фирменная кэмп-джерси AbhazBand</h3>
-          <p style="font-size: 13px; color: var(--hint-color); margin: 6px 0 12px 0;">Аэродинамический крой, влагоотводящая ткань, кастомный дизайн коллекции.</p>
-          <a href="https://t.me/Piti4" target="_blank" class="btn">Заказать в Telegram 💬</a>
+    <!-- Abhaz Band -->
+    <div id="shop-abhazband" class="shop-sub-content">
+      <div id="abhazband-products-list">
+        <div class="card" style="margin-bottom: 14px;">
+          <div class="card-body">
+            <span class="badge" style="background: #38bdf8; color: #0f172a;">МЕРЧ</span>
+            <h3 class="card-title">Фирменная кэмп-джерси AbhazBand</h3>
+            <p style="font-size: 13px; color: var(--hint-color); margin: 6px 0 12px 0;">Аэродинамический крой, влагоотводящая ткань, кастомный дизайн коллекции.</p>
+            <a href="https://t.me/Piti4" target="_blank" class="btn">Заказать в Telegram 💬</a>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Вкладка: Велоуют -->
-  <div id="shop-velouyut" class="shop-sub-content" style="display: none;">
-    <div id="velouyut-products-list">
-      <div style="text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px;">
-        📦 Загружаем каталог «Велоуют»...
-      </div>
-    </div>
-  </div>
-
-  <!-- Блок для партнеров / размещения новых магазинов -->
-  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 20px;">
-    <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Есть свой бренд или мастерская? 🤝</h4>
-    <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
-      Хочешь разместить свои товары в нашем хабе для велосипедистов?
-    </p>
-    <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
-      Разместить магазин 🤝
-    </a>
-  </div>
-</div>
-
-<div id="bikes-tab" class="tab-content">
-  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 18px; margin-bottom: 16px; border: 1px solid #38bdf8; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-    
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-      <span style="font-size: 28px;">🚲</span>
-      <div>
-        <span style="background: #38bdf8; color: #0f172a; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">LifeRideLife</span>
-        <h3 style="margin: 2px 0 0 0; font-size: 18px; color: #fff;">Подбор & Продажа велосипедов</h3>
-      </div>
-    </div>
-
-    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
-      Поможем подобрать шоссейный, гравийный или эндуранс байк под твои задачи и параметры. Расчёт геометрии, ростовки (ETT/Stack/Reach) и заказ компонентов.
-    </p>
-
-    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
-      <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">📏 Авто-подбор ростовки</span>
-      <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">🛣️ Road & Gravel</span>
-      <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">⚙️ Групсеты & Колёса</span>
-    </div>
-
-    <button onclick="openLifeRideBot()" style="width: 100%; padding: 12px; background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-      <span>Запустить бота @liferidelife_bot</span>
-      <span>🚀</span>
-    </button>
-  </div>
-</div>
-
-
-<div id="media-tab" class="tab-content">
-  <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
-  <div id="media-list"></div>
-  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
-    <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
-    <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
-      Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
-    </p>
-    <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
-      🤝 Давайте дружить / Добавить канал
-    </a>
-  </div>
-</div>
-
-<div id="tools-tab" class="tab-content">
-  <h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
-
-  <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
-    <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
-    <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
-    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
-      Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
-    </p>
-    <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-      Настроить посадку 🚀
-    </button>
-  </div>
-
-  <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
-    <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
-    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
-    <input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
-
-    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
-    <select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
-      <option value="tube">Клинчер (с камерой)</option>
-      <option value="tubeless">Бескамерка (Tubeless)</option>
-    </select>
-
-    <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
-    <select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
-      <optgroup label="Шоссе">
-        <option value="road_25">Шоссе 25 мм</option>
-        <option value="road_28" selected>Шоссе 28 мм</option>
-        <option value="road_30">Шоссе 30 мм</option>
-        <option value="road_32">Шоссе 32 мм</option>
-      </optgroup>
-      <optgroup label="Гравел 700c">
-        <option value="g700_35">Гравел 700c — 35 мм</option>
-        <option value="g700_40">Гравел 700c — 40 мм</option>
-        <option value="g700_45">Гравел 700c — 45 мм</option>
-        <option value="g700_48">Гравел 700c — 48 мм</option>
-        <option value="g700_50">Гравел 700c — 50 мм</option>
-      </optgroup>
-      <optgroup label="Гравел 650b / MTB">
-        <option value="g650_19">Гравел 650b — 1.9"</option>
-        <option value="g650_21">Гравел 650b — 2.1"</option>
-        <option value="g650_23">Гравел 650b — 2.3"</option>
-      </optgroup>
-    </select>
-
-    <div style="display: flex; gap: 8px;">
-      <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
-        <span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
-        <span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
-      </div>
-      <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
-        <span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
-        <span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ==================== -->
-<nav class="tab-bar">
-  <div class="tab-item active" onclick="switchTab('camps-tab', this)">
-    <span class="tab-icon">⛺</span>Кэмпы
-  </div>
-  <div class="tab-item" onclick="switchTab('my-camp-tab', this)">
-    <span class="tab-icon">🏕️</span>Мой кэмп
-  </div>
-  <div class="tab-item" onclick="switchTab('rides-tab', this)">
-    <span class="tab-icon">🚴</span>Social Rides
-  </div>
-  <div class="tab-item" onclick="switchTab('shop-tab', this)">
-    <span class="tab-icon">👕</span>Магазин
-  </div>
-  <div class="tab-item" onclick="switchTab('bikes-tab', this)">
-    <span class="tab-icon">🚲</span>Велосипеды
-  </div>
-  <div class="tab-item" onclick="switchTab('media-tab', this)">
-    <span class="tab-icon">📸</span>Фотоканалы
-  </div>
-  <div class="tab-item" onclick="switchTab('tools-tab', this)">
-    <span class="tab-icon">🛠️</span>Фитчи
-  </div>
-</nav>
-
-<script>
-// --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
-const SUPABASE_URL = "https://eotbacbevzxckhyodgak.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvdGJhY2Jldnp4Y2toeW9kZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0MDc2OTAsImV4cCI6MjEwMjk4MzY5MH0.v0lKQkwB7YXOD52TFH-V9a5BKm67M52QBImzdsG_cec"; 
-
-let supabaseClient = null;
-try {
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase init bypassed:", e);
-}
-
-// Инициализация Telegram WebApp
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  try {
-    tg.ready();
-    tg.expand();
-  } catch (e) {
-    console.warn("Telegram WebApp init error:", e);
-  }
-}
-const tgUser = tg?.initDataUnsafe?.user;
-
-// --- ЛОГИКА ПОДПИСКИ И УВЕДОМЛЕНИЙ ---
-async function initSubscriptionToggle() {
-  const toggle = document.getElementById('sub-toggle');
-  if (!toggle) return;
-
-  if (!tgUser?.id || !supabaseClient) {
-    toggle.checked = true;
-    return;
-  }
-
-  try {
-    // Проверяем, есть ли юзер уже в базе Supabase
-    const { data, error } = await supabaseClient
-      .from('subscribers')
-      .select('is_subscribed')
-      .eq('user_id', tgUser.id)
-      .maybeSingle();
-
-    if (data !== null && data.is_subscribed !== undefined) {
-      // Юзер уже есть — восстанавливаем его сохраненный выбор
-      toggle.checked = data.is_subscribed;
-    } else {
-      // Новичок! Автоматически включаем тумблер и подписываем в Supabase
-      toggle.checked = true;
-      await supabaseClient
-        .from('subscribers')
-        .upsert({
-          user_id: tgUser.id,
-          username: tgUser.username || '',
-          first_name: tgUser.first_name || '',
-          is_subscribed: true,
-          updated_at: new Date().toISOString()
-        });
-    }
-  } catch (err) {
-    console.error('Ошибка подписки при входе:', err);
-    toggle.checked = true;
-  }
-}
-
-
-async function toggleSubscription(isSubscribed) {
-  if (!tgUser?.id) {
-    if (tg?.showAlert) {
-      tg.showAlert("Для управления подпиской откройте приложение через Telegram.");
-    }
-    return;
-  }
-
-  if (!supabaseClient) return;
-
-  try {
-    const { error } = await supabaseClient
-      .from('subscribers')
-      .upsert({
-        user_id: tgUser.id,
-        username: tgUser.username || '',
-        first_name: tgUser.first_name || '',
-        is_subscribed: isSubscribed,
-        updated_at: new Date().toISOString()
-      });
-
-    if (error) {
-      console.error('Ошибка сохранения подписки:', error);
-    } else {
-      tg?.HapticFeedback?.impactOccurred('light');
-    }
-  } catch (err) {
-    console.error('Ошибка отправки подписки в Supabase:', err);
-  }
-}
-
-// --- ДАННЫЕ ПРИЛОЖЕНИЯ ---
-const camps = [
-  {
-    id: "camp_oct_1_2026",
-    title: "Комбинированный Шоссе vs Гравел",
-    dates: "04 - 14 октября (11 дней)",
-    location: "База AbhazBand (Гагра / Гал / Сухум)",
-    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-    specs: "Пробег: ~800 км | Набор: ~7 000 м",
-    description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
-    image: "./Okt_shos_gravel-compressed.jpeg",
-    link: "https://t.me/Piti4"
-  },
-  {
-    id: "camp_oct_2_2026",
-    title: "Классический Шоссейный кэмп",
-    dates: "24 октября - 03 ноября (11 дней)",
-    location: "База AbhazBand (Гагра / Гал / Сухум)",
-    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-    specs: "Пробег: ~800 км | Набор: ~7 000 м",
-    description: "Классический шоссейный кэмп по западным и восточным маршрутам.",
-    image: "./Okt_shosse-compressed.jpeg",
-    link: "https://t.me/Piti4"
-  },
-  {
-    id: "camp_nov_2026",
-    title: "Клубные кэмпы",
-    dates: "05 - 30 ноября",
-    location: "Абхазия",
-    price: "Уточняйте",
-    specs: "",
-    description: "Сезонные клубные заезды и тренировочные сборы.",
-    image: "./Klubnie-compressed.jpeg",
-    link: "https://t.me/Piti4"
-  },
-  {
-    id: "camp_dec_2026",
-    title: "Подготовка к Abhaz Band New Year",
-    dates: "1 - 31 декабря",
-    location: "Абхазия",
-    price: "Уточняйте",
-    specs: "",
-    description: "Самостоятельные шоссейные приезды и локальные СошлРайды",
-    image: "./Noviy_god-compressed.jpeg",
-    link: "https://t.me/Piti4"
-  }
-];
-
-const rides = [
-  {
-    title: "Субботний кофе-райд: Гагра — Пицунда",
-    date: "Каждая суббота | Сбор: 09:00",
-    startPoint: "📍 Гагра, Кофейня на набережной",
-    stats: "🚴 55 км | ↗️ 320 м | ⏱️ 23-25 км/ч",
-    type: "Шоссе / Гравел",
-    desc: "Традиционный расслабленный заезд с остановкой на кофе в Пицунде. Подходит для любого уровня подготовки.",
-    gpxUrl: "https://t.me/Piti4",
-    chatUrl: "https://t.me/Piti4"
-  }
-];
-
-const mediaChannels = [
-  {
-    name: "Abhaz Band Photo",
-    tag: "ОФИЦИАЛЬНЫЙ АРХИВ",
-    desc: "Самые сочные кадры с горных серпантинов, кэмпов и субботних кофе-райдов.",
-    image: "./Okt_shos_gravel-compressed.jpeg",
-    link: "https://disk.yandex.ru/d/OIfy3OpN-5yYMg"
-  }
-];
-
-
-function renderCamps() {
-  const container = document.getElementById('camps-list');
-  if (!container) return;
-  container.innerHTML = camps.map(camp => `
-    <div class="card" id="${camp.id}">
-      <img src="${camp.image}" alt="${camp.title}">
-      <div class="card-body">
-        <span class="badge">${camp.dates}</span>
-        <h3 class="card-title">${camp.title}</h3>
-        <div class="meta-line">📍 ${camp.location}</div>
-        ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
-        <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
-        <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
-        <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
-      </div>
-    </div>
-  `).join('');
-}
-
-// Функция для шеринга заезда в Telegram
-function shareRide(title, date) {
-  const botAppUrl = 'https://t.me/abhazband_bot';
-  const text = `🚴 Поедешь со мной на заезд?\n\n"${title}"\n📅 ${date}`;
-  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botAppUrl)}&text=${encodeURIComponent(text)}`;
-  
-  if (window.Telegram?.WebApp?.openTelegramLink) {
-    window.Telegram.WebApp.openTelegramLink(shareUrl);
-  } else {
-    window.open(shareUrl, '_blank');
-  }
-}
-
-function renderRides() {
-  const container = document.getElementById('rides-list');
-  if (!container) return;
-  container.innerHTML = rides.map(ride => `
-    <div class="card">
-      <div class="card-body">
-        <span class="badge" style="background:#ff9500;">${ride.type}</span>
-        <h3 class="card-title">${ride.title}</h3>
-        <div class="meta-line">📅 ${ride.date}</div>
-        <div class="meta-line">${ride.startPoint}</div>
-        <div class="meta-line">${ride.stats}</div>
-        <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
-        <div class="btn-group">
-          <a href="${ride.chatUrl}" class="btn" target="_blank" style="font-size: 12px; padding: 10px 4px;">Я поеду / ЧАТ</a>
-          <a href="${ride.gpxUrl}" class="btn btn-secondary" target="_blank" style="font-size: 12px; padding: 10px 4px;">Скачать .GPX</a>
-          <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.date.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="flex: 0 0 42px; padding: 10px 0; font-size: 14px;" title="Поделиться">
-            🔗
-          </button>
+    <!-- Велоуют -->
+    <div id="shop-velouyut" class="shop-sub-content" style="display: none;">
+      <div id="velouyut-products-list">
+        <div style="text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px;">
+          📦 Загружаем каталог «Велоуют»...
         </div>
       </div>
     </div>
-  `).join('');
-}
 
-function renderMedia() {
-  const container = document.getElementById('media-list');
-  if (!container) return;
-  container.innerHTML = mediaChannels.map(item => `
-    <div class="card" style="margin-bottom: 14px;">
-      <img src="${item.image}" alt="${item.name}">
-      <div class="card-body">
-        <span class="badge" style="background: #38bdf8; color: #0f172a;">${item.tag}</span>
-        <h3 class="card-title">${item.name}</h3>
-        <p style="font-size: 13px; color: var(--hint-color); margin: 0 0 12px 0;">${item.desc}</p>
-        <a href="${item.link}" target="_blank" class="btn">За красотой 🚀</a>
-      </div>
-    </div>
-  `).join('');
-}
-
-function switchTab(tabId, element) {
-  try {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-    const targetTab = document.getElementById(tabId);
-    if (targetTab) targetTab.classList.add('active');
-    if (element) element.classList.add('active');
-  } catch (e) {
-    console.error("Ошибка переключения вкладки:", e);
-  }
-}
-
-function openFititi() {
-  if (window.Telegram?.WebApp?.openLink) {
-    window.Telegram.WebApp.openLink('https://fititi.ru/');
-  } else {
-    window.open('https://fititi.ru/', '_blank');
-  }
-}
-
-function calcPressure() {
-  const weightRange = document.getElementById('weight-range');
-  const systemType = document.getElementById('system-type');
-  const tyreProfile = document.getElementById('tyre-profile');
-
-  if (!weightRange || !systemType || !tyreProfile) return;
-
-  const weight = parseInt(weightRange.value);
-  const system = systemType.value;
-  const profile = tyreProfile.value;
-
-  const weightVal = document.getElementById('weight-val');
-  if (weightVal) weightVal.innerText = weight + ' кг';
-
-  let baseBar = 3.0;
-
-  switch(profile) {
-    case 'road_25': baseBar = 6.2; break;
-    case 'road_28': baseBar = 5.5; break;
-    case 'road_30': baseBar = 4.8; break;
-    case 'road_32': baseBar = 4.5; break;
-    case 'g700_35': baseBar = 3.2; break;
-    case 'g700_40': baseBar = 2.8; break;
-    case 'g700_45': baseBar = 2.4; break;
-    case 'g700_48': baseBar = 2.3; break;
-    case 'g700_50': baseBar = 2.2; break;
-    case 'g650_19': baseBar = 2.4; break;
-    case 'g650_21': baseBar = 2.1; break;
-    case 'g650_23': baseBar = 1.9; break;
-  }
-
-  let weightFactor = weight / 75;
-  let tubelessBonus = (system === 'tubeless') ? -0.35 : 0.0;
-
-  let frontBar = Math.max(1.2, (baseBar * weightFactor * 0.86) + tubelessBonus);
-  let rearBar = Math.max(1.4, (baseBar * weightFactor * 1.14) + tubelessBonus);
-
-  frontBar = frontBar.toFixed(1);
-  rearBar = rearBar.toFixed(1);
-
-  let frontPsi = Math.round(frontBar * 14.5038);
-  let rearPsi = Math.round(rearBar * 14.5038);
-
-  const frontRes = document.getElementById('front-res');
-  const rearRes = document.getElementById('rear-res');
-  if (frontRes) frontRes.innerText = `${frontBar} Bar (${frontPsi} PSI)`;
-  if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
-}
-
-// Функция безопасного открытия Telegram-ссылок в Mini App
-function openBotLink(username) {
-  const url = `https://t.me/${username}`;
-  if (window.Telegram?.WebApp?.openTelegramLink) {
-    window.Telegram.WebApp.openTelegramLink(url);
-  } else {
-    window.open(url, '_blank');
-  }
-}
-
-// Вызов для кнопки запуска LifeRideLife бота
-function openLifeRideBot() {
-  openBotLink('liferidelife_bot');
-}
-
-function initApp() {
-  try { renderCamps(); } catch (e) { console.error('camps:', e); }
-  try { renderRides(); } catch (e) { console.error('rides:', e); }
-  try { renderMedia(); } catch (e) { console.error('media:', e); }
-  try { calcPressure(); } catch (e) { console.error('pressure:', e); }
-  try { initSubscriptionToggle(); } catch (e) { console.error('sub:', e); }
-  try { checkAdmin(); } catch (e) { console.error('admin:', e); }
-  try { renderVelouyutUI(); } catch (e) { console.error('velouyut:', e); }
-}
-
-// ==================== ЛОГИКА РАССЫЛКИ (АДМИН) ====================
-const BROADCAST_BOT_TOKEN = '6800059891:AAHyovskefzHoCQ7Ad2H8T9diJm89Bfu4IU'; // ⚠️ Замените на токен бота из BotFather
-const BROADCAST_ADMIN_ID = 303365656;
-
-// Проверка прав и показ панели
-function checkAdmin() {
-  if (tgUser && Number(tgUser.id) === BROADCAST_ADMIN_ID) {
-    const panel = document.getElementById("admin-panel");
-    if (panel) panel.style.display = "block";
-  }
-}
-
-// Запуск процесса отправки
-async function startBroadcast() {
-  const imageUrl = document.getElementById("broadcast-image").value.trim();
-  const text = document.getElementById("broadcast-text").value.trim();
-  const btnText = document.getElementById("broadcast-btn-text").value.trim();
-  const btnUrl = document.getElementById("broadcast-btn-url").value.trim();
-  const statusDiv = document.getElementById("broadcast-status");
-  const btn = document.getElementById("send-broadcast-btn");
-
-  if (!text) {
-    alert("Заполните текст сообщения!");
-    return;
-  }
-
-  if (!confirm("Вы уверены, что хотите запустить рассылку по всем подписчикам?")) {
-    return;
-  }
-
-  btn.disabled = true;
-  btn.style.opacity = "0.5";
-  statusDiv.innerHTML = "⏳ Загрузка подписчиков из Supabase...";
-
-  try {
-    if (!supabaseClient) throw new Error("Supabase не инициализирован");
-
-    // Получаем список только активных подписчиков
-    const { data: subscribers, error } = await supabaseClient
-      .from('subscribers')
-      .select('user_id')
-      .eq('is_subscribed', true);
-
-    if (error) throw error;
-
-    if (!subscribers || subscribers.length === 0) {
-      statusDiv.innerHTML = "❌ В базе нет активных подписчиков.";
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      return;
-    }
-
-    let replyMarkup = null;
-    if (btnText && btnUrl) {
-      replyMarkup = { inline_keyboard: [[{ text: btnText, url: btnUrl }]] };
-    }
-
-    let sent = 0;
-    let blocked = 0;
-    let errors = 0;
-
-    for (let i = 0; i < subscribers.length; i++) {
-      const userId = subscribers[i].user_id;
-      statusDiv.innerHTML = `🚀 Отправка: ${i + 1} из ${subscribers.length}...`;
-
-      const method = imageUrl ? 'sendPhoto' : 'sendMessage';
-      const payload = {
-        chat_id: userId,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      };
-
-      if (imageUrl) {
-        payload.photo = imageUrl;
-        payload.caption = text;
-      } else {
-        payload.text = text;
-      }
-
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${BROADCAST_BOT_TOKEN}/${method}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const result = await res.json();
-
-        if (result.ok) {
-          sent++;
-        } else {
-          if (result.description && result.description.toLowerCase().includes("blocked")) {
-            blocked++;
-            // Отписываем юзера в Supabase, если бот заблокирован
-            await supabaseClient
-              .from('subscribers')
-              .update({ is_subscribed: false })
-              .eq('user_id', userId);
-          } else {
-            errors++;
-          }
-        }
-      } catch (err) {
-        errors++;
-      }
-
-      await new Promise(r => setTimeout(r, 50));
-    }
-
-    statusDiv.innerHTML = `
-      <div style="color: #30d158; font-weight: 600; margin-bottom: 4px;">✅ Рассылка завершена!</div>
-      • Успешно доставлено: <b>${sent}</b><br>
-      • Заблокировали бота (отписаны): <b>${blocked}</b><br>
-      • Ошибки: <b>${errors}</b>
-    `;
-
-  } catch (err) {
-    statusDiv.innerHTML = `❌ Ошибка: ${err.message || err}`;
-  } finally {
-    btn.disabled = false;
-    btn.style.opacity = "1";
-  }
-}
-// =================================================================
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
-// ==================== ЛОГИКА: МОЙ КЭМП ==================== //
-
-// Кодовое слово для входа в активный кэмп
-const CAMP_SECRET_PIN = "ABHAZ2026";
-  
-// Данные чек-листа участника
-const CAMP_CHECKLIST_DATA = [
-  {
-    category: "🚲 Велосипед & Запчасти",
-    items: [
-      { id: "c_mech", label: "Запасной петух (если есть)" },
-      { id: "c_pads", label: "Колодки запасные" },
-      { id: "c_lube", label: "Смазка цепи" },
-      { id: "c_tubes", label: "Запасные камеры (2 шт)" },
-      { id: "c_lights", label: "Задний и передний фонарь" },
-      { id: "c_pump", label: "Компактный насос или CO2 баллоны" },
-      { id: "c_tool", label: "Мультитул" }
-    ]
-  },
-  {
-    category: "👕 Экипировка & Гаджеты",
-    items: [
-      { id: "c_wind", label: "Ветровка/Жилетка/Рукава/Гамаши " },
-      { id: "c_bibs", label: "Велоформа (2 комплекта)" },
-      { id: "c_rain", label: "Дождевик/бахилы " },
-      { id: "c_shoes", label: "Велотуфли + Запасные шипы" },
-      { id: "c_glasses", label: "Велоочки (в идеале фотохром)" },
-      { id: "c_hr", label: "Пульсометр (проверить батарейку)" },
-      { id: "c_computer", label: "Велокомп (зарядка к компу)" }
-    ]
-  },
-  {
-    category: "💊 Личное, Документы & Питание",
-    items: [
-      { id: "c_passport", label: "Паспорт РФ (для границы)" },
-      { id: "c_hygiene", label: "Средства личной гигиены" },
-      { id: "c_phone_charger", label: "Зарядка мобильного" },
-      { id: "c_pbank", label: "Пауэрбанк и кабели для зарядки гаджетов" },
-      { id: "c_cash", label: "Наличные деньги" },
-      { id: "c_nutrition", label: "Энергетические гели / изотоники" },
-      { id: "c_suncream", label: "Крем от солнца & крем от натирания" }
-    ]
-  }
-];
-
-// Состояние развилок и переключателей
-let campState = {
-  restDay: 10,       // 10 или 12 октября
-  branch: 'gal',     // 'gal' или 'tkuarchal'
-  distSukhum: 90    // 65 или 105 км (Окрестности Сухума)
-};
-
-// Функция переключения развилок
-function updateCampOption(key, val) {
-  campState[key] = val;
-  if (window.Telegram?.WebApp?.HapticFeedback) {
-    window.Telegram.WebApp.HapticFeedback.selectionChanged();
-  }
-  renderTracksList();
-}
-  
-// Автоматическая проверка PIN при загрузке
-document.addEventListener("DOMContentLoaded", function() {
-  checkCampAccessOnLoad();
-});
-
-function checkCampAccessOnLoad() {
-  try {
-    const savedPin = localStorage.getItem('abhaz_camp_pin');
-    if (savedPin === CAMP_SECRET_PIN) {
-      showUnlockedCamp();
-    }
-  } catch(e) {
-    console.error('Ошибка проверки PIN:', e);
-  }
-}
-
-// Функция входа по PIN
-function unlockCamp() {
-  const pinInput = document.getElementById('camp-pin-input');
-  const errorMsg = document.getElementById('pin-error-msg');
-  if (!pinInput) return;
-
-  const val = pinInput.value.trim().toUpperCase();
-
-  if (val === CAMP_SECRET_PIN) {
-    localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
-    if (errorMsg) errorMsg.style.display = 'none';
-    showUnlockedCamp();
-  } else {
-    if (errorMsg) errorMsg.style.display = 'block';
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-    }
-  }
-}
-
-// Открытие кабинета
-function showUnlockedCamp() {
-  const lockCard = document.getElementById('my-camp-locked');
-  const unlockedDash = document.getElementById('my-camp-unlocked');
-
-  if (lockCard) lockCard.style.display = 'none';
-  if (unlockedDash) unlockedDash.style.display = 'block';
-
-  renderTracksList();
-  renderChecklistUI();
-  renderMemoUI();
-}
-
-// Переключение под-вкладок кабинета
-function switchSubTab(tabId, btnEl) {
-  document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
-
-  const target = document.getElementById(tabId);
-  if (target) target.style.display = 'block';
-  if (btnEl) btnEl.classList.add('active');
-}
-  
-// Переключение под-вкладок внутри Магазина
-function switchShopSubTab(tabId, btnEl) {
-  document.querySelectorAll('.shop-sub-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('#shop-tab .sub-tab-btn').forEach(btn => btn.classList.remove('active'));
-
-  const target = document.getElementById(tabId);
-  if (target) target.style.display = 'block';
-  if (btnEl) btnEl.classList.add('active');
-}
-
-// РЕНДЕР ТРЕКОВ И РАЗВИЛОК
-function renderTracksList() {
-  const container = document.getElementById('gpx-tracks-list');
-  if (!container) return;
-
-  let html = `
-    <div style="background: #0f172a; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #334155;">
-      <div style="font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">⚙️ Настройка маршрутной программы</div>
-      
-      <!-- Переключатель дня отдыха -->
-      <div style="margin-bottom: 10px;">
-        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🛋️ День отдыха (восстановление):</span>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="updateCampOption('restDay', 10)" class="sub-tab-btn ${campState.restDay === 10 ? 'active' : ''}" style="flex:1; padding:6px;">10 Октября</button>
-          <button onclick="updateCampOption('restDay', 12)" class="sub-tab-btn ${campState.restDay === 12 ? 'active' : ''}" style="flex:1; padding:6px;">12 Октября</button>
-        </div>
-      </div>
-
-      <!-- Переключатель ветки 13-14 октября -->
-      <div>
-        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🔀 Ветка 13–14 октября:</span>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="updateCampOption('branch', 'gal')" class="sub-tab-btn ${campState.branch === 'gal' ? 'active' : ''}" style="flex:1; padding:6px;">📍 Ветка Гал (ИнгурГЭС)</button>
-          <button onclick="updateCampOption('branch', 'tkuarchal')" class="sub-tab-btn ${campState.branch === 'tkuarchal' ? 'active' : ''}" style="flex:1; padding:6px;">🏔️ Ветка Ткуарчал</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const schedule = [
-    {
-      day: "4-5 ОКТЯБРЯ",
-      title: "📆 Дни приезда & Сборка велосипедов",
-      type: "Оргдень",
-      desc: "Встреча участников, совместная сборка байков.<br>🕕 <b>20:00</b> — Вечерний ужин команды.",
-      stats: "📍 База AbhazBand",
-      km: 0, gain: 0
-    },
-    {
-      day: "6 ОКТЯБРЯ",
-      title: "Пицундский маршрут",
-      type: "Шоссе & Гравел",
-      desc: "Разминочная вкатка. Наслаждение красотами Пицунды, проезд через Реликтовый лес, Золотой берег, небольшие наборы.<br>🕕 11:00 Выезд | 13:00 Кофе в «Амшын» | 16:00 Финиш",
-      stats: "🛣️ 70 км &nbsp;|&nbsp; ⛰️ +600 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 70, gain: 600,
-      links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/1321206568?ref=aso&share_token=aWG49MO64K7t5GSiGNmAO1VJh65xzwAj6ZUwJvUiWkaopf7otl&t_s=referral&t_cid=route_share" },
-        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2920620509?ref=aso&share_token=aTotm7kS6lV8x1pozOTdf6P2gedqgBybX6Gpf6NE1f5rRHTT59&t_s=referral&t_cid=route_share" }
-      ]
-    },
-    {
-      day: "7 ОКТЯБРЯ",
-      title: "Дорога на Лыхны / Мюссеру (Дополненный)",
-      type: "Шоссе & Гравел",
-      desc: "Один из любимейших маршрутов в новом исполнении. Дороги с околонулевым трафиком и отличные виды!<br>🕕 10:30 Выезд | 15:00 Обед | 18:00 Финиш",
-      stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1300 м &nbsp;|&nbsp; Асфальт 85%, Грунты 15%",
-      km: 105, gain: 1300,
-      links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/3229725192?ref=aso&share_token=a5dp3vGaOcX5tgL0cilnYV8zEH57L34BeFNf0MOvoFGjqvRzzX&t_s=referral&t_cid=route_share" },
-        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2666494537?ref=aso&share_token=aVXqttvbkrJIxZkkeeT73LtG1Ly4BilW0gCo6c0BxgokxrRnlT&t_s=referral&t_cid=route_share" }
-      ]
-    },
-    {
-      day: "8 ОКТЯБРЯ",
-      title: "Ознакомительная по Гагре",
-      type: "Шоссе & Гравел",
-      desc: "День восстановления. Достопримечательности Гагр, посещение дачи Сталина и знаковых мест.<br>🕕 11:00 Выезд на маршрут.",
-      stats: "🛣️ 83 км &nbsp;|&nbsp; ⛰️ +970 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 83, gain: 970,
-      links: [
-        { label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2163197173?ref=aso&share_token=a9qpVaqv8hgLSIz40ny0xV3tBKUTth6E8C6uCFmqwhciQBOTAE&t_s=referral&t_cid=route_share" }
-      ]
-    },
-    {
-      day: "9 ОКТЯБРЯ",
-      title: "Рицинский заповедник",
-      type: "Шоссе",
-      desc: "Один из самых красивых маршрутов в мире. Пролегает через ущелье с множеством запоминающихся видов.<br>🕕 10:30 Выезд | 15:30 Обед в балагане | 18:00 Финиш",
-      stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1 370 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 105, gain: 1370,
-      links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/2163164931?ref=aso&share_token=am16MyeqIuonAwi1Zh2WT8TyeaoCEqAbKODb5gr9ftyqcG1M5u&t_s=referral&t_cid=route_share" }
-      ]
-    }
-  ];
-
-  // Объекты для Сухумского маршрута и Транзита
-    const is90 = campState.distSukhum === 90;
-  const sukhumRouteObj = {
-    title: "Окрестности Сухума и Новый Афон",
-    type: "Шоссе & Гравел",
-    desc: `Маршрут по окрестностям Сухума. Заезд в Черниговку, Беслетку, Каманы.<br>
-      <div style="margin-top:6px;">
-        Выбор дистанции: 
-        <button onclick="updateCampOption('distSukhum', 65)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${!is90 ? '#38bdf8' : '#334155'}; color:${!is90 ? '#0f172a' : '#fff'}; font-weight:bold;">65 км</button>
-        <button onclick="updateCampOption('distSukhum', 90)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${is90 ? '#38bdf8' : '#334155'}; color:${is90 ? '#0f172a' : '#fff'}; font-weight:bold;">90 км</button>
-      </div><br>
-      🕕 11:00 Выезд | 15:00 Обед | 17:00 Финиш`,
-    stats: is90 ? "🛣️ 90 км &nbsp;|&nbsp; ⛰️ +1 200 м &nbsp;|&nbsp; Асфальт 98%" : "🛣️ 65 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 98%",
-    km: is90 ? 90 : 65,
-    gain: is90 ? 1200 : 800,
-    links: [
-      { label: "🗺️ Komoot 65 км", url: "https://www.komoot.com/tour/2745236293?ref=aso&share_token=afaOF3FwMBq5f4KjNbFpc6OWZQJLjYFaodzeEWwiL0C2lkq22u&t_s=referral&t_cid=route_share" },
-      { label: "🗺️ Komoot 90 км", url: "https://www.komoot.com/tour/2941874319?ref=aso&share_token=aTE6ufoRqr9OFvK6bygBTQ7L9d7nUbbagDJCWNmYU76CXqBYUA&t_s=referral&t_cid=route_share" }
-    ]
-  };
-
-  const transitRouteObj = {
-    title: "Транзит: Дорога на Сухум",
-    type: "Шоссе / Переезд",
-    desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд | 14:00 Обед | 18:00 Финиш",
-    stats: "🛣️ 112 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 80%",
-    km: 112, gain: 1400,
-    links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
-  };
-
-  const restDayObj = {
-    title: "🛋️ Выходной & Восстановление",
-    type: "Rest Day",
-    desc: "День отдыха. Посещение термальных источников / бани, самостоятельное планирование, прогулки и хайкинг.",
-    stats: "♨️ Режим восстановления",
-    km: 0, gain: 0
-  };
-
-  // --- ДИНАМИКА 10, 11, 12 ОКТЯБРЯ ---
-  if (campState.restDay === 10) {
-    schedule.push({ day: "10 ОКТЯБРЯ", ...restDayObj });
-    schedule.push({ day: "11 ОКТЯБРЯ", ...transitRouteObj });
-    schedule.push({ day: "12 ОКТЯБРЯ", ...sukhumRouteObj });
-  } else {
-    schedule.push({ day: "10 ОКТЯБРЯ", ...transitRouteObj });
-    schedule.push({ day: "11 ОКТЯБРЯ", ...sukhumRouteObj });
-    schedule.push({ day: "12 ОКТЯБРЯ", ...restDayObj });
-  }
-
-  // --- ВЕТКИ 13-14 ОКТЯБРЯ ---
-  if (campState.branch === 'gal') {
-    schedule.push({
-      day: "13 ОКТЯБРЯ • ВЕТКА ГАЛ",
-      title: "Дорога на Гал",
-      type: "Шоссе",
-      desc: "Посещение и ночёвка в самом удалённом городе Абхазии — г. Гал.<br>🕕 11:00 Выезд | 15:00 Обед в Гал | 17:00 Финиш",
-      stats: "🛣 85 км &nbsp;|&nbsp; ⛰️ +320 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 85, gain: 320,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2188906729?ref=aso&share_token=axKRfsfjKifyn6Q5M3Q6G83ptb0Fdga1qggsvNoXKpsaVxPQjC&t_s=referral&t_cid=route_share" }]
-    });
-    schedule.push({
-      day: "14 ОКТЯБРЯ • ВЕТКА ГАЛ",
-      title: "Дорога к ИнгурГЭС & Граница",
-      type: "Шоссе",
-      desc: "Поездка на гидроэлектростанцию ИнгурГЭС и к границе. Возвращение на базу в Сухум.<br>🕕 09:00 Выезд | 15:00 Обед в Гал | 18:00 Финиш",
-      stats: "🛣️ 140 км &nbsp;|&nbsp; ⛰️ +1 140 м &nbsp;|&nbsp; Асфальт 98%",
-      km: 140, gain: 1140,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share" }]
-    });
-  } else {
-    schedule.push({
-      day: "13 ОКТЯБРЯ • ВЕТКА ТКУАРЧАЛ",
-      title: "Шахтерский Ткуарчал & Водопады",
-      type: "Шоссе",
-      desc: "Заезд в город-призрак Акармару, посещение водопада Золотоносец.",
-      stats: "🛣️ 193 км &nbsp;|&nbsp; ⛰️ +1 300 м",
-      km: 193, gain: 1300,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2944745402?ref=aso&share_token=aDEgMYQN5gSehzvu9MXrsX73uwIgd2bMr5CTW14zi3R53z237T&t_s=referral&t_cid=route_share" }]
-    });
-    schedule.push({
-      day: "14 ОКТЯБРЯ • ВЕТКА ТКУАРЧАЛ",
-      title: "Дорога на Гал",
-      type: "Шоссе",
-      desc: "Посещение города Гал и возвращение на сухумскую базу.",
-      stats: "🛣 160 км &nbsp;|&nbsp; ⛰️ +600 м",
-      km: 160, gain: 600,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/3322902922?ref=aso&share_token=aJ9YzF0LA27jXUrfKjYfQJAXWH51XLjXjg09YSW00hApxXWMvn&t_s=referral&t_cid=route_share" }]
-    });
-  }
-
-  // Финал
-  schedule.push({
-    day: "15 ОКТЯБРЯ",
-    title: "🛫 День отъезда & Сборка велосипедов",
-    type: "Финал",
-    desc: "Утренняя заминка, упаковка велосипедов в чехлы, трансфер и отъезд участников.",
-    stats: "👋 До новых встреч!",
-    km: 0, gain: 0
-  });
-
-  const totalKm = schedule.reduce((sum, item) => sum + item.km, 0);
-  const totalGain = schedule.reduce((sum, item) => sum + item.gain, 0);
-
-  html += `
-    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 12px 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed #38bdf8; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <div style="font-size: 11px; color: #94a3b8;">Итоговый суммарный план:</div>
-        <div style="font-size: 15px; font-weight: bold; color: #fff; margin-top: 2px;">
-          🛣️ ${totalKm} км &nbsp;|&nbsp; ⛰️ +${totalGain.toLocaleString()} м
-        </div>
-      </div>
-      <span style="font-size: 20px;">🔥</span>
-    </div>
-  `;
-
-  html += schedule.map(item => `
-    <div class="card" style="border-left: 4px solid ${item.km > 0 ? '#38bdf8' : '#64748b'}; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <div style="font-size:10px; color:#38bdf8; font-weight:bold;">${item.day}</div>
-        <span style="font-size:9px; background:rgba(255,255,255,0.1); color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">${item.type}</span>
-      </div>
-      <h4 style="margin:2px 0 6px 0; color:#fff; font-size:14px;">${item.title}</h4>
-      <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0; line-height: 1.4;">${item.desc}</p>
-      <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">${item.stats}</div>
-      ${item.links ? `
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          ${item.links.map(l => `
-            <a href="${l.url}" target="_blank" class="btn-primary-camp" style="font-size:10px; padding:5px 10px; text-decoration:none;">${l.label}</a>
-          `).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
-
-  container.innerHTML = html;
-}
-
-// Рендер Чек-листа
-function renderChecklistUI() {
-  const container = document.getElementById('checklist-items');
-  if (!container) return;
-
-  const savedState = JSON.parse(localStorage.getItem('abhaz_checklist_state') || '{}');
-  let html = '';
-  let totalCount = 0;
-  let checkedCount = 0;
-
-  CAMP_CHECKLIST_DATA.forEach(cat => {
-    html += `<div class="checklist-cat-card"><div class="checklist-cat-title">${cat.category}</div>`;
-    
-    cat.items.forEach(item => {
-      totalCount++;
-      const isChecked = !!savedState[item.id];
-      if (isChecked) checkedCount++;
-
-      html += `
-        <label class="check-item-label ${isChecked ? 'checked' : ''}">
-          <input type="checkbox" onchange="toggleCheckItem('${item.id}', this.checked)" ${isChecked ? 'checked' : ''}>
-          <span>${item.label}</span>
-        </label>
-      `;
-    });
-
-    html += `</div>`;
-  });
-
-  container.innerHTML = html;
-
-  const pct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
-  const pBar = document.getElementById('checklist-progress-bar');
-  const pCount = document.getElementById('checklist-count');
-
-  if (pBar) pBar.style.width = pct + '%';
-  if (pCount) pCount.innerText = `${checkedCount} / ${totalCount}`;
-}
-
-// Рендер Памятки
-function renderMemoUI() {
-  const container = document.getElementById('camp-memo-content');
-  if (!container) return;
-
-  // Вспомогательная функция для генерации прямых ссылок в Яндекс.Карты
-  const mapLink = (query) => `https://yandex.ru/maps/?text=${encodeURIComponent('Гагра ' + query)}`;
-
-  container.innerHTML = `
-    <!-- Вводное сообщение -->
-    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #38bdf8;">
-      <p style="font-size: 13px; color: #f8fafc; margin: 0; line-height: 1.5;">
-        <b>Друзья, памятка для удобства ориентирования в пространстве:</b> где поесть, что посмотреть, куда прогуляться!
+    <!-- Блок партнерства -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 20px;">
+      <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Есть свой бренд или мастерская? 🤝</h4>
+      <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+        Хочешь разместить свои товары в нашем хабе для велосипедистов?
       </p>
+      <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+        Разместить магазин 🤝
+      </a>
+    </div>
+  </div>
+
+  <!-- ==================== ВКЛАДКА: ВЕЛОСИПЕДЫ ==================== -->
+  <div id="bikes-tab" class="tab-content">
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 18px; margin-bottom: 16px; border: 1px solid #38bdf8; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span style="font-size: 28px;">🚲</span>
+        <div>
+          <span style="background: #38bdf8; color: #0f172a; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">LifeRideLife</span>
+          <h3 style="margin: 2px 0 0 0; font-size: 18px; color: #fff;">Подбор & Продажа велосипедов</h3>
+        </div>
+      </div>
+
+      <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+        Поможем подобрать шоссейный, гравийный или эндуранс байк под твои задачи и параметры. Расчёт геометрии, ростовки (ETT/Stack/Reach) и заказ компонентов.
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+        <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">📏 Авто-подбор ростовки</span>
+        <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">🛣️ Road & Gravel</span>
+        <span style="background: rgba(255,255,255,0.08); color: #94a3b8; font-size: 11px; padding: 4px 8px; border-radius: 6px;">⚙️ Групсеты & Колёса</span>
+      </div>
+
+      <button onclick="openLifeRideBot()" style="width: 100%; padding: 12px; background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>Запустить бота @liferidelife_bot</span>
+        <span>🚀</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== ВКЛАДКА: ФОТОКАНАЛЫ ==================== -->
+  <div id="media-tab" class="tab-content">
+    <h2 style="font-size: 20px; margin-bottom: 16px;">📸 Фотоканалы</h2>
+    <div id="media-list"></div>
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-top: 14px;">
+      <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #fff;">Ты фотограф или ведешь медиа? 🎥</h4>
+      <p style="font-size: 12px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+        Снимаешь велоивенты или хочешь добавить свой канал в подборку? Давай сотрудничать!
+      </p>
+      <a href="https://t.me/Piti4" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 8px 16px; font-size: 13px;" target="_blank">
+        🤝 Давайте дружить / Добавить канал
+      </a>
+    </div>
+  </div>
+
+  <!-- ==================== ВКЛАДКА: ФИТЧИ ==================== -->
+  <div id="tools-tab" class="tab-content">
+    <h2 style="font-size: 20px; margin-bottom: 16px;">🛠️ Фитчи</h2>
+
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155;">
+      <span style="background: #3b82f6; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px;">ПАРТНЕР</span>
+      <h3 style="margin: 8px 0 6px 0; font-size: 18px; color: #fff;">🚴‍♂️ Fititi — Онлайн Байкфит</h3>
+      <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.4;">
+        Настройка удаленной посадки на велосипеде. Загрузи видео со станка и получи разбор биомеханики и углов.
+      </p>
+      <button onclick="openFititi()" style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        Настроить посадку 🚀
+      </button>
     </div>
 
-    <!-- 🍚 ЕДА -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🍚 ЕДА</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Столовая LASTORIA</b>
-            <a href="${mapLink('Столовая LASTORIA')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Вкусная кухня, разнообразное меню. Невысокий ценник.</div>
-        </div>
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #fff;">⚙️ Калькулятор давления в шинах</h3>
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Вес райдера с экипировкой: <b id="weight-val" style="color: #fff;">75 кг</b></label>
+      <input type="range" id="weight-range" min="50" max="120" value="75" oninput="calcPressure()" style="width: 100%; margin-bottom: 12px;">
 
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Ресторан "Кафе ПУШКИНЪ"</b>
-            <a href="${mapLink('Кафе ПУШКИНЪ')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Отличная кухня. Большой выбор интересных блюд. <span style="color: #10b981; font-weight: bold;">Скидка 10% для велоклуба!</span></div>
-        </div>
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Тип системы:</label>
+      <select id="system-type" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 12px;">
+        <option value="tube">Клинчер (с камерой)</option>
+        <option value="tubeless">Бескамерка (Tubeless)</option>
+      </select>
 
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Ресторан МОККО</b>
-            <a href="${mapLink('Ресторан МОККО')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Отличная кухня, большой выбор блюд, умеренный ценник, огромные порции. <span style="color: #ef4444;">Громкая музыка после 20:00!</span></div>
-        </div>
+      <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">Категория и ширина покрышки:</label>
+      <select id="tyre-profile" onchange="calcPressure()" style="width: 100%; padding: 8px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; margin-bottom: 14px;">
+        <optgroup label="Шоссе">
+          <option value="road_25">Шоссе 25 мм</option>
+          <option value="road_28" selected>Шоссе 28 мм</option>
+          <option value="road_30">Шоссе 30 мм</option>
+          <option value="road_32">Шоссе 32 мм</option>
+        </optgroup>
+        <optgroup label="Гравел 700c">
+          <option value="g700_35">Гравел 700c — 35 мм</option>
+          <option value="g700_40">Гравел 700c — 40 мм</option>
+          <option value="g700_45">Гравел 700c — 45 мм</option>
+          <option value="g700_48">Гравел 700c — 48 мм</option>
+          <option value="g700_50">Гравел 700c — 50 мм</option>
+        </optgroup>
+        <optgroup label="Гравел 650b / MTB">
+          <option value="g650_19">Гравел 650b — 1.9"</option>
+          <option value="g650_21">Гравел 650b — 2.1"</option>
+          <option value="g650_23">Гравел 650b — 2.3"</option>
+        </optgroup>
+      </select>
 
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Кафе MON CAFE</b>
-            <a href="${mapLink('Mon Cafe')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Лучшие хинкали, небольшой выбор дополнительных блюд.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Ресторан ЧЕГЕМ</b>
-            <a href="${mapLink('Ресторан Чегем')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Национальная турецкая кухня. Отличный мангал. Вкусная кухня. Большой выбор блюд.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Столовая ЕВРОПА</b>
-            <a href="${mapLink('Столовая Европа')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Хорошая кухня, низкий чек. Оплата нал/безнал. Открыто с 9:00.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Кондитерская BRIOCHE</b>
-            <a href="${mapLink('Кондитерская Brioche')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Большой выбор кондитерки, шикарные десерты, много разного кофе. Место любимо многими велосипедистами.</div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- 📞 СВЯЗЬ -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">📞 СВЯЗЬ</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Офис AQUAFON</b>
-            <a href="${mapLink('Аквафон')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Оптимальный оператор для западной Абхазии. Лимитированный трафик с безлимитной скоростью.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️️ Офис AMOBILE</b>
-            <a href="${mapLink('A-Mobile')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Безлимитный трафик, лимитированная скорость. Оптимален для востока Абхазии.</div>
-        </div>
-
-        <div style="background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 8px; color: #cbd5e1; font-size: 11px;">
-          💡 <i>У каждого оператора можно подключить временную симку на 3 месяца без паспорта или постоянную с паспортом.</i>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🚶 КУДА ПРОГУЛЯТЬСЯ -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🚶 КУДА ПРОГУЛЯТЬСЯ</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Пансионат МАЯК</b>
-            <a href="${mapLink('Пансионат Маяк')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Заброшка. 5 корпусов бывшего пансионата находятся на возвышении с красивым видом на город. Отличная локация для фото.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Колесо ОБОЗРЕНИЯ</b>
-            <a href="${mapLink('Колесо обозрения')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Рекомендуем прокатиться и встретить закат на нём.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️️ Дворец Принца Ольденбургского</b>
-            <a href="${mapLink('Замок принца Ольденбургского')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Колоритный замок принца - основателя курорта Гагра. Вход ~150₽ (зависит от времени).</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Царский ПРИМОРСКИЙ ПАРК</b>
-            <a href="${mapLink('Приморский парк')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Парк с 110 видами тропических растений. Начинается от колоннады и заканчивается причалом.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🏃‍♀️ ЗДОРОВЬЕ -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🏃‍♀️ ЗДОРОВЬЕ</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️️ БАЛЬНЕОЛЕЧЕБНИЦА</b>
-            <a href="${mapLink('Бальнеолечебница')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Массаж Шарко, сероводородные ванны, небольшой бассейн и хамам.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Массажный центр ДЫХАНИЕ ЖИЗНИ</b>
-            <a href="${mapLink('Дыхание жизни')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Большой выбор услуг, включая спортивный массаж. <i>Запись через оргов.</i></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🛍 МАГАЗИНЫ -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🛍 МАГАЗИНЫ</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Супермаркет АССОРТИ</b>
-            <a href="${mapLink('Супермаркет Ассорти')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Неплохой выбор продуктов и хозтоваров. Ценник выше среднего. До 22:00.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ ОСТРОВ ВКУСА (Продукты & Рыба)</b>
-            <a href="${mapLink('Остров вкуса')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Хороший выбор, низкие цены. Всё по продуктам рекомендуем брать здесь. Рядом рыбный магазин. До 21:00.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Супермаркет ТЦ ГАГРА</b>
-            <a href="${mapLink('ТЦ Гагра')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Обширный выбор продуктов и хозтоваров. Ценник выше среднего. До 23:00.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Магазин ДАУР</b>
-            <a href="${mapLink('Магазин Даур')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Ночной магазин продуктов. Работает до 2:00 ночи.</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ Центральный РЫНОК</b>
-            <a href="${mapLink('Центральный рынок')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Локальные продукты и сувениры. С 6:00 до 16:00 работает сельскохозяйственный оптово-розничный рынок.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🏦 БАНКОМАТЫ -->
-    <div style="background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #334155;">
-      <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #38bdf8;">🏦 БАНКОМАТЫ (ближайшие)</h4>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ АМРА-БАНК</b>
-            <a href="${mapLink('Амра банк банкомат')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Круглосуточно (24/7).</div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <b style="color: #fff;">▪️ ТЦ ГАГРА</b>
-            <a href="${mapLink('ТЦ Гагра банкомат')}" target="_blank" style="background: #0f172a; color: #38bdf8; padding: 3px 8px; border-radius: 6px; text-decoration: none; font-size: 10px; font-weight: bold; border: 1px solid #334155;">📍 На карте</a>
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">Доступен с 7:00 до 22:00.</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-  
-// ДАННЫЕ КАТАЛОГА «ВЕЛОУЮТ» (10 ТОВАРОВ ПО РРЦ)
-const VELOUYUT_PRODUCTS_DATA = [
-  { id: "v1", title: "Настенный держатель для велошлема и очков", colors: "Черный / Белый", price: 650, image: "./images/velouyut/V1.jpg" },
-  { id: "v2", title: "Настенный держатель для велошлема Компактный", colors: "Черный / Белый", price: 950, image: "./images/velouyut/v2.png" },
-  { id: "v3", title: "Настенный держатель для велошлема Универсальный", colors: "Черный / Белый", price: 950, image: "./images/velouyut/v3.png" },
-  { id: "v4", title: "Органайзер для велоочков", colors: "Черный / Белый", price: 1500, image: "./images/velouyut/v4.png" },
-  { id: "v5", title: "Настенный держатель для Велошлема Премиум", colors: "Черный / Белый", price: 2200, image: "./images/velouyut/v5.png" },
-  { id: "v6", title: "Настенный держатель для Велоэкипировки МТВ", colors: "Черный / Белый", price: 2200, image: "./images/velouyut/v6.jpg" },
-  { id: "v7", title: "Универсальный настенный держатель велоэкипировки", colors: "Черный / Белый", price: 2500, image: "./images/velouyut/v7.png" },
-  { id: "v8", title: "Горизонтальная стойка для Велоэкипировки", colors: "Черный / Белый", price: 3000, image: "./images/velouyut/v8.png" },
-  { id: "v9", title: "Вертикальная стойка для Велоэкипировки", colors: "Черный / Белый", price: 3000, image: "./images/velouyut/v9.png" },
-  { id: "v10", title: "Настенное крепление для велосипедных колес", colors: "Черный / Белый", price: 1500, image: "./images/velouyut/v10.PNG" }
-];
-
-// ФУНКЦИЯ ДЛЯ ШЕРИНГА ТОВАРА В TELEGRAM
-function shareProduct(title, price) {
-  const botAppUrl = 'https://t.me/abhazband_bot';
-  const text = `🔥 Смотри, классная вещь для велоуюта: ${title} (${price.toLocaleString()} ₽)`;
-  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botAppUrl)}&text=${encodeURIComponent(text)}`;
-  
-  if (window.Telegram?.WebApp?.openTelegramLink) {
-    window.Telegram.WebApp.openTelegramLink(shareUrl);
-  } else {
-    window.open(shareUrl, '_blank');
-  }
-}
-
-// РЕНДЕР ТОВАРОВ ВЕЛОУЮТ (ПОЛНЫЕ ФОТО И КНОПКА ПОДЕЛИЦИ)
-function renderVelouyutUI() {
-  const container = document.getElementById('velouyut-products-list');
-  if (!container) return;
-
-  container.innerHTML = VELOUYUT_PRODUCTS_DATA.map(item => `
-    <div class="card" style="margin-bottom: 14px; background: #1e293b; padding: 12px; border-radius: 12px; border: 1px solid #334155; overflow: hidden;">
-      
-      <!-- Картинка без обрезки (object-fit: contain) -->
-      ${item.image ? `
-        <img src="${item.image}" alt="${item.title}" style="width: 100%; height: 230px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; background: #0f172a;" onerror="this.style.display='none'">
-      ` : ''}
-
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-        <span class="badge" style="background: #10b981; color: #fff; font-size: 10px;">ВЕЛОУЮТ</span>
-        <span style="font-size: 11px; color: #94a3b8;">🎨 ${item.colors}</span>
-      </div>
-
-      <h4 style="margin: 4px 0 8px 0; color: #fff; font-size: 15px;">${item.title}</h4>
-
-      <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        <span style="font-size: 16px; font-weight: bold; color: #38bdf8;">${item.price.toLocaleString()} ₽</span>
-      </div>
-
-      <!-- Кнопки: Заказать и Поделиться -->
       <div style="display: flex; gap: 8px;">
-        <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу заказать из раздела Велоуют: ' + item.title)}" target="_blank" class="btn" style="flex: 2; padding: 9px 0; font-size: 13px; text-align: center;">Заказать 💬</a>
-        <button onclick="shareProduct('${item.title.replace(/'/g, "\\'")}', ${item.price})" class="btn" style="flex: 1; padding: 9px 0; font-size: 13px; background: #334155; color: #38bdf8; border: 1px solid #475569; display: flex; align-items: center; justify-content: center; gap: 4px;">
-          <span>🔗</span> Поделиться
-        </button>
+        <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Переднее колесо:</span>
+          <span id="front-res" style="font-size: 15px; font-weight: bold; color: #38bdf8;">--</span>
+        </div>
+        <div style="flex: 1; background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;">
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Заднее колесо:</span>
+          <span id="rear-res" style="font-size: 15px; font-weight: bold; color: #10b981;">--</span>
+        </div>
       </div>
-
-    </div>
-  `).join('');
-}
-
-</script>
-
-<!-- ==================== ПАНЕЛЬ АДМИНИСТРАТОРА (РАССЫЛКА) ==================== -->
-<div id="admin-panel" style="display: none; margin: 20px 15px; padding: 16px; background: #1c1c1e; border-radius: 16px; border: 1px solid #2c2c2e; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-    <h3 style="margin: 0; font-size: 18px; font-weight: 700;">📢 Рассылка AbhazBand</h3>
-    <span style="font-size: 11px; background: #007aff22; color: #0a84ff; padding: 3px 8px; border-radius: 6px; font-weight: 600;">ADMIN</span>
-  </div>
-
-  <div style="margin-bottom: 10px;">
-    <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка на обложку (Image URL):</label>
-    <input type="text" id="broadcast-image" placeholder="https://raw.githubusercontent.com/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
-  </div>
-
-  <div style="margin-bottom: 10px;">
-    <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст сообщения (HTML форматирование):</label>
-    <textarea id="broadcast-text" rows="4" placeholder="<b>⛺ Новый кэмп!</b>&#10;Открыта бронь на октябрь..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; resize: vertical; outline: none;"></textarea>
-  </div>
-
-  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-    <div style="flex: 1;">
-      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст кнопки:</label>
-      <input type="text" id="broadcast-btn-text" placeholder="🚴 Открыть кэмп" style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
-    </div>
-    <div style="flex: 1;">
-      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка кнопки:</label>
-      <input type="text" id="broadcast-btn-url" placeholder="https://t.me/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
     </div>
   </div>
 
-  <button id="send-broadcast-btn" onclick="startBroadcast()" style="width: 100%; padding: 12px; background: #0a84ff; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">
-    🚀 Отправить подписчикам
-  </button>
+  <!-- ==================== ПАНЕЛЬ АДМИНИСТРАТОРА (РАССЫЛКА) ==================== -->
+  <div id="admin-panel" style="display: none; margin: 20px 0; padding: 16px; background: #1c1c1e; border-radius: 16px; border: 1px solid #2c2c2e; color: #ffffff;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <h3 style="margin: 0; font-size: 18px; font-weight: 700;">📢 Рассылка AbhazBand</h3>
+      <span style="font-size: 11px; background: #007aff22; color: #0a84ff; padding: 3px 8px; border-radius: 6px; font-weight: 600;">ADMIN</span>
+    </div>
 
-  <div id="broadcast-status" style="margin-top: 12px; font-size: 13px; color: #8e8e93; line-height: 1.4;"></div>
-</div>
-<!-- ========================================================================= -->
+    <div style="margin-bottom: 10px;">
+      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка на обложку (Image URL):</label>
+      <input type="text" id="broadcast-image" placeholder="https://raw.githubusercontent.com/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст сообщения (HTML форматирование):</label>
+      <textarea id="broadcast-text" rows="4" placeholder="<b>⛺ Новый кэмп!</b>&#10;Открыта бронь на октябрь..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; resize: vertical; outline: none;"></textarea>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <div style="flex: 1;">
+        <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Текст кнопки:</label>
+        <input type="text" id="broadcast-btn-text" placeholder="🚴 Открыть кэмп" style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+      </div>
+      <div style="flex: 1;">
+        <label style="display: block; font-size: 12px; color: #8e8e93; margin-bottom: 4px;">Ссылка кнопки:</label>
+        <input type="text" id="broadcast-btn-url" placeholder="https://t.me/..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: #fff; font-size: 14px; outline: none;">
+      </div>
+    </div>
+
+    <button id="send-broadcast-btn" onclick="startBroadcast()" style="width: 100%; padding: 12px; background: #0a84ff; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">
+      🚀 Отправить подписчикам
+    </button>
+
+    <div id="broadcast-status" style="margin-top: 12px; font-size: 13px; color: #8e8e93; line-height: 1.4;"></div>
+  </div>
+
+  <!-- ==================== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ==================== -->
+  <nav class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('camps-tab', this)">
+      <span class="tab-icon">⛺</span>Кэмпы
+    </div>
+    <div class="tab-item" onclick="switchTab('my-camp-tab', this)">
+      <span class="tab-icon">🏕️</span>Мой кэмп
+    </div>
+    <div class="tab-item" onclick="switchTab('rides-tab', this)">
+      <span class="tab-icon">🚴</span>Social Rides
+    </div>
+    <div class="tab-item" onclick="switchTab('shop-tab', this)">
+      <span class="tab-icon">👕</span>Магазин
+    </div>
+    <div class="tab-item" onclick="switchTab('bikes-tab', this)">
+      <span class="tab-icon">🚲</span>Велосипеды
+    </div>
+    <div class="tab-item" onclick="switchTab('media-tab', this)">
+      <span class="tab-icon">📸</span>Фотоканалы
+    </div>
+    <div class="tab-item" onclick="switchTab('tools-tab', this)">
+      <span class="tab-icon">🛠️</span>Фитчи
+    </div>
+  </nav>
+
+  <!-- ==================== ПОДКЛЮЧЕНИЕ МОДУЛЕЙ ПРИЛОЖЕНИЯ ==================== -->
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
