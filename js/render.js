@@ -1,4 +1,4 @@
-// Рендер кэмпов
+// ==================== РЕНДЕР КЭМПОВ ====================
 function renderCamps() {
   const container = document.getElementById('camps-list');
   if (!container) return;
@@ -18,32 +18,240 @@ function renderCamps() {
   `).join('');
 }
 
-// Рендер заездов
+// ==================== ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ ЗАЕЗДОВ ====================
+const CALENDAR_MONTH_NAMES = [
+  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+];
+
 function renderRides() {
   const container = document.getElementById('rides-list');
   if (!container) return;
-  container.innerHTML = rides.map(ride => `
-    <div class="card">
-      <div class="card-body">
-        <span class="badge" style="background:#ff9500;">${ride.type}</span>
-        <h3 class="card-title">${ride.title}</h3>
-        <div class="meta-line">📅 ${ride.date}</div>
-        <div class="meta-line">${ride.startPoint}</div>
-        <div class="meta-line">${ride.stats}</div>
-        <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${ride.desc}</p>
-        
-        <div class="btn-group" style="display: flex; gap: 8px; margin-top: 12px;">
-          <a href="${ride.chatUrl}" class="btn" target="_blank" style="flex: 2; padding: 10px 0; font-size: 13px; text-align: center;">Я еду / Детали 🚴</a>
-          <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.date.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-            <span>🔗</span> Поделиться
-          </button>
+
+  const year = calendarCurrentYear;
+  const month = calendarCurrentMonth;
+
+  // Расчет дней в месяце и первого дня недели (Пн = 0, Вс = 6)
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayWeekIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+
+  let daysHtml = '';
+
+  // Пустые ячейки до 1-го числа
+  for (let i = 0; i < firstDayWeekIndex; i++) {
+    daysHtml += `<div class="calendar-day-cell empty"></div>`;
+  }
+
+  // Генерация ячеек дней
+  for (let day = 1; day <= daysInMonth; day++) {
+    const monthStr = String(month + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const dateKey = `${year}-${monthStr}-${dayStr}`;
+
+    const ride = rides.find(r => r.dates && r.dates.includes(dateKey));
+
+    if (ride) {
+      const eventClass = ride.type === 'weekend' ? 'event-weekend' : 'event-social';
+      daysHtml += `
+        <div class="calendar-day-cell ${eventClass}" onclick="openRideModal('${ride.id}')">
+          <span>${day}</span>
+          <div class="calendar-day-dot"></div>
+        </div>
+      `;
+    } else {
+      daysHtml += `
+        <div class="calendar-day-cell">
+          <span>${day}</span>
+        </div>
+      `;
+    }
+  }
+
+  container.innerHTML = `
+    <!-- Инфо-плашка параметров -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-around; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 600;">
+      <div>⚡ Темп: <span style="color:#fff;">27–30 км/ч</span></div>
+      <div>🚗 <span style="color:#fff;">Техничка & багаж</span></div>
+      <div>☕ <span style="color:#fff;">Кофе & фотосет</span></div>
+    </div>
+
+    <!-- Основной блок календаря -->
+    <div class="calendar-card">
+      <div class="calendar-nav-header">
+        <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">‹</button>
+        <div class="calendar-month-title">${CALENDAR_MONTH_NAMES[month].toUpperCase()} ${year}</div>
+        <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">›</button>
+      </div>
+
+      <!-- Дни недели -->
+      <div class="calendar-weekdays-grid">
+        <div class="calendar-weekday-item">ПН</div>
+        <div class="calendar-weekday-item">ВТ</div>
+        <div class="calendar-weekday-item">СР</div>
+        <div class="calendar-weekday-item">ЧТ</div>
+        <div class="calendar-weekday-item">ПТ</div>
+        <div class="calendar-weekday-item" style="color: #38bdf8;">СБ</div>
+        <div class="calendar-weekday-item" style="color: #ef4444;">ВС</div>
+      </div>
+
+      <!-- Сетка чисел -->
+      <div class="calendar-days-grid">
+        ${daysHtml}
+      </div>
+
+      <!-- Легенда -->
+      <div class="calendar-legend-box">
+        <div class="legend-item">
+          <span class="legend-color-dot" style="background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);"></span>
+          <span>Weekend Camp (2 дня)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color-dot" style="background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);"></span>
+          <span>Social Ride (1 день)</span>
         </div>
       </div>
     </div>
-  `).join('');
+
+    <!-- Карточка Band Pass для Сочи и Адлера -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 14px; padding: 14px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+          <span style="font-size: 14px;">🎟️</span>
+          <strong style="font-size: 12px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">BAND PASS ДЛЯ СОЧИ И АДЛЕРА</strong>
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; line-height: 1.3;">
+          Абонементы на 2 Social Rides или 2 Weekends • 1 перенос при непогоде
+        </div>
+      </div>
+      <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Расскажи подробнее про условия и абонемент BAND PASS для Сочи/Адлера')}" target="_blank" class="btn" style="width: auto; padding: 8px 12px; font-size: 11px; font-weight: bold; white-space: nowrap; flex-shrink: 0; background: #ef4444; color: #fff; text-decoration: none;">
+        Связь: @Piti4
+      </a>
+    </div>
+
+    <!-- Контейнер всплывающего окна (Bottom Sheet) -->
+    <div id="ride-sheet-overlay" class="bottom-sheet-overlay" onclick="closeRideModal(event)">
+      <div class="bottom-sheet-modal" id="ride-sheet-modal" onclick="event.stopPropagation()"></div>
+    </div>
+  `;
 }
 
-// Рендер медиа каналов
+// Переключение месяца календаря
+function changeCalendarMonth(delta) {
+  calendarCurrentMonth += delta;
+  if (calendarCurrentMonth < 0) {
+    calendarCurrentMonth = 11;
+    calendarCurrentYear--;
+  } else if (calendarCurrentMonth > 11) {
+    calendarCurrentMonth = 0;
+    calendarCurrentYear++;
+  }
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+  }
+  renderRides();
+}
+
+// Открытие всплывающего окна с условиями заезда
+function openRideModal(rideId) {
+  const ride = rides.find(r => r.id === rideId);
+  if (!ride) return;
+
+  const modal = document.getElementById('ride-sheet-modal');
+  const overlay = document.getElementById('ride-sheet-overlay');
+  if (!modal || !overlay) return;
+
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+  }
+
+  modal.innerHTML = `
+    <div class="bottom-sheet-handle"></div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+      <span class="sheet-badge" style="background: ${ride.badgeColor}22; color: ${ride.badgeColor}; border: 1px solid ${ride.badgeColor};">
+        ${ride.typeLabel} • ${ride.durationLabel}
+      </span>
+      <span style="font-size: 11px; color: #94a3b8; font-weight: bold;">📅 ${ride.dateDisplay}</span>
+    </div>
+
+    <h3 class="sheet-title">${ride.title}</h3>
+    <div class="sheet-subtitle">${ride.subtitle}</div>
+
+    <!-- Метрики заезда -->
+    <div class="sheet-metrics-grid">
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">🛣️ Дистанция</span>
+        <span class="sheet-metric-val">${ride.stats.distance}</span>
+      </div>
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">⛰️ Набор высоты</span>
+        <span class="sheet-metric-val">${ride.stats.elevation}</span>
+      </div>
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">⚡ Темп пачки</span>
+        <span class="sheet-metric-val">${ride.stats.pace}</span>
+      </div>
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">🛤️ Покрытие</span>
+        <span class="sheet-metric-val">${ride.stats.surface}</span>
+      </div>
+    </div>
+
+    <!-- Тайминг дня и логистика -->
+    <div class="sheet-section-title">⏰ Логистика и тайминг</div>
+    <div style="margin-bottom: 14px;">
+      ${ride.timing.map(item => `
+        <div class="sheet-timing-item">
+          <span class="sheet-time-tag">${item.time}</span>
+          <span class="sheet-timing-desc">${item.text}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Что входит в слот -->
+    <div class="sheet-section-title">🎒 Включено в слот</div>
+    <div style="margin-bottom: 18px;">
+      ${ride.included.map(inc => `
+        <div class="sheet-included-item">
+          <span class="sheet-included-icon">✓</span>
+          <span>${inc}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Кнопки действий -->
+    <div style="display: flex; gap: 8px;">
+      <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу забронировать участие в заезде: ' + ride.title + ' (' + ride.dateDisplay + ')')}" 
+         target="_blank" 
+         class="btn" 
+         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center; text-decoration: none;">
+        🚴 Забронировать участие
+      </a>
+      <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.dateDisplay.replace(/'/g, "\\'")}')" 
+              class="btn btn-secondary" 
+              style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+        <span>🔗</span> Поделиться
+      </button>
+    </div>
+  `;
+
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+// Закрытие окна по клику на фон
+function closeRideModal(event) {
+  if (event && event.target && event.target.closest('#ride-sheet-modal')) {
+    return;
+  }
+  const overlay = document.getElementById('ride-sheet-overlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+// ==================== РЕНДЕР МЕДИА КАНАЛОВ ====================
 function renderMedia() {
   const container = document.getElementById('media-list');
   if (!container) return;
@@ -60,7 +268,7 @@ function renderMedia() {
   `).join('');
 }
 
-// Рендер каталога Велоуют
+// ==================== РЕНДЕР КАТАЛОГА ВЕЛОУЮТ ====================
 function renderVelouyutUI() {
   const container = document.getElementById('velouyut-products-list');
   if (!container) return;
@@ -92,7 +300,7 @@ function renderVelouyutUI() {
   `).join('');
 }
 
-// Проверка PIN при входе в «Мой кэмп»
+// ==================== ЛОГИКА КАБИНЕТА «МОЙ КЭМП» ====================
 function checkCampAccessOnLoad() {
   try {
     const savedPin = localStorage.getItem('abhaz_camp_pin');
@@ -143,7 +351,6 @@ function updateCampOption(key, val) {
   renderTracksList();
 }
 
-// Отрисовка GPX маршрутов
 function renderTracksList() {
   const container = document.getElementById('gpx-tracks-list');
   if (!container) return;
@@ -360,7 +567,7 @@ function renderTracksList() {
   container.innerHTML = html;
 }
 
-// Отрисовка интерактивного чек-листа с сохранением
+// ==================== ЧЕК-ЛИСТ УЧАСТНИКА ====================
 function renderChecklistUI() {
   const container = document.getElementById('checklist-items');
   if (!container) return;
@@ -399,7 +606,6 @@ function renderChecklistUI() {
   if (pCount) pCount.innerText = `${checkedCount} / ${totalCount}`;
 }
 
-// Функция сохранения состояния пунктов чек-листа
 function toggleCheckItem(id, isChecked) {
   const savedState = JSON.parse(localStorage.getItem('abhaz_checklist_state') || '{}');
   savedState[id] = isChecked;
@@ -407,7 +613,7 @@ function toggleCheckItem(id, isChecked) {
   renderChecklistUI();
 }
 
-// Отрисовка памятки для участников
+// ==================== ПАМЯТКА УЧАСТНИКА ====================
 function renderMemoUI() {
   const container = document.getElementById('camp-memo-content');
   if (!container) return;
