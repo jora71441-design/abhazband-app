@@ -626,11 +626,11 @@ input:checked + .slider::before {
 .bottom-sheet-modal {
   width: 100%;
   max-width: 540px;
-  max-height: 86vh;
+  max-height: 88vh;
   background: #1e293b;
   border-top: 1px solid #334155;
   border-radius: 20px 20px 0 0;
-  padding: 12px 16px 28px 16px;
+  padding: 12px 16px 32px 16px;
   box-sizing: border-box;
   overflow-y: auto;
   transform: translateY(100%);
@@ -642,11 +642,58 @@ input:checked + .slider::before {
 }
 
 .bottom-sheet-handle {
-  width: 44px;
+  width: 42px;
   height: 4px;
   background: #475569;
   border-radius: 3px;
-  margin: 0 auto 14px auto;
+  margin: 0 auto 10px auto;
+}
+
+/* Верхняя строка навигации шторки */
+.sheet-top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sheet-back-btn {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.sheet-back-btn:active {
+  opacity: 0.7;
+}
+
+.sheet-close-btn {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sheet-close-btn:active {
+  background: #334155;
+  color: #fff;
 }
 
 .sheet-badge {
