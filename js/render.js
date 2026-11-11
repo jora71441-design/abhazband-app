@@ -151,7 +151,7 @@ function changeCalendarMonth(delta) {
   renderRides();
 }
 
-// Открытие всплывающего окна с условиями заезда
+    // Открытие всплывающего окна с условиями заезда
 function openRideModal(rideId) {
   const ride = rides.find(r => r.id === rideId);
   if (!ride) return;
@@ -164,9 +164,23 @@ function openRideModal(rideId) {
     window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
   }
 
+  // Нативная системная кнопка «Назад» в шапке Telegram
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.show();
+    window.Telegram.WebApp.BackButton.onClick(closeRideModal);
+  }
+
   modal.innerHTML = `
     <div class="bottom-sheet-handle"></div>
     
+    <!-- Навигация: Кнопка «‹ В календарь» и Крестик -->
+    <div class="sheet-top-nav">
+      <button class="sheet-back-btn" onclick="closeRideModal()">
+        <span>‹</span> Вернуться в календарь
+      </button>
+      <button class="sheet-close-btn" onclick="closeRideModal()" title="Закрыть">✕</button>
+    </div>
+
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
       <span class="sheet-badge" style="background: ${ride.badgeColor}22; color: ${ride.badgeColor}; border: 1px solid ${ride.badgeColor};">
         ${ride.typeLabel} • ${ride.durationLabel}
@@ -239,15 +253,21 @@ function openRideModal(rideId) {
   document.body.style.overflow = 'hidden';
 }
 
-// Закрытие окна по клику на фон
+// Закрытие окна по клику на фон или кнопкам возврата
 function closeRideModal(event) {
-  if (event && event.target && event.target.closest('#ride-sheet-modal')) {
+  if (event && event.target && event.target.closest('#ride-sheet-modal') && !event.target.closest('.sheet-back-btn') && !event.target.closest('.sheet-close-btn')) {
     return;
   }
   const overlay = document.getElementById('ride-sheet-overlay');
   if (overlay) {
     overlay.classList.remove('active');
     document.body.style.overflow = '';
+  }
+
+  // Прячем системную стрелку Telegram и отвязываем слушатель
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.hide();
+    window.Telegram.WebApp.BackButton.offClick(closeRideModal);
   }
 }
 
