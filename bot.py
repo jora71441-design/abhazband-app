@@ -19,7 +19,42 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 FILE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 THUMB_ICON_URL = f"{MINIAPP_URL}/Klubnie-compressed.jpeg"
 
-# Карточки для инлайн-шеринга ТОЛЬКО в личных диалогах (в группах список пуст, чтобы не спамить)
+# Данные для интерактивного резервного пульта (если клиент Telegram не поддерживает sendWidget)
+FALLBACK_RIDES = [
+    {
+        "title": "🔴 14–15 Ноября • Weekend Camp: Гагра — Сухум",
+        "details": "2 дня / 1 ночь • 195 км, +1 950 м • Темп 27–30 км/ч\n⏰ Старт: 09:00 КПП Псоу • База с бассейном в Сухуме и техничка",
+    },
+    {
+        "title": "🟢 21 Ноября • Social Ride: Псоу — Пицунда",
+        "details": "1 день • 85 км, +350 м • Темп 25–28 км/ч\n⏰ Старт: 09:00 КПП Псоу • Сосновые аллеи, кофе-стоп и авто сопровождения",
+    },
+    {
+        "title": "🔴 28–29 Ноября • Восточный эпик: ИнгурГЭС",
+        "details": "2 дня • Сухум — Очамчыра — Гал — ИнгурГЭС • 220 км, +1 450 м\n🚆 Встреча вечерней Ласточки в Сухуме, пустые трассы Востока",
+    },
+    {
+        "title": "🟢 5 Декабря • Social Ride: Мюссера и Форель",
+        "details": "1 день • Псоу — Мюссера — Форелевое хозяйство • 95 км, +850 м\n⏰ Старт: 09:00 КПП Псоу • Обед со свежей форелью у горной реки",
+    },
+]
+
+FALLBACK_CAMPS = [
+    {
+        "title": "⛺ Ноябрьский велокэмп в Гагре (5 – 30 Ноября)",
+        "details": "Формат: Шоссе / Гравел • Заезд от 4 до 10 дней\nРадиалки на озеро Рица, Мамдзышху и побережье с машиной сопровождения.",
+    },
+    {
+        "title": "⛺ Декабрьская подготовка (1 – 30 Декабря)",
+        "details": "Формат: Шоссе • Тёплый зимний объём без снега и гололёда\nТренировочные выезды вдоль моря + субботние клубные Social Rides.",
+    },
+    {
+        "title": "⛺ Новогодний велокэмп 2027 (1 – 10 Января)",
+        "details": "Формат: Шоссе / Гравел • Праздничные старты в Абхазии\nПустые горные дороги, мандарины, горячие источники и полное сопровождение.",
+    },
+]
+
+# Карточки для инлайн-шеринга ТОЛЬКО в личных диалогах
 PRIVATE_SHARE_CARDS = [
     {
         "id": "share_rides_nov",
@@ -72,18 +107,73 @@ async def send_message(
     return await tg_request(session, "sendMessage", payload)
 
 
+def render_fallback_screen(tab: str, idx: int = 0) -> tuple[str, dict]:
+    """Строит интерактивную карточку с переключением вкладок внутри сообщения."""
+    if tab == "rides":
+        idx = idx % len(FALLBACK_RIDES)
+        item = FALLBACK_RIDES[idx]
+        text = (
+            f"📅 <b>ЗАЕЗДЫ ABHAZBAND</b> ({idx + 1} из {len(FALLBACK_RIDES)})\n\n"
+            f"<b>{item['title']}</b>\n{item['details']}"
+        )
+        markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "◀️ Пред.", "callback_data": f"fb_nav:rides:{(idx - 1) % len(FALLBACK_RIDES)}"},
+                    {"text": "🏠 Обзор", "callback_data": "fb_nav:overview:0"},
+                    {"text": "След. ▶️", "callback_data": f"fb_nav:rides:{(idx + 1) % len(FALLBACK_RIDES)}"},
+                ],
+                [{"text": "🚴 Занять слот на этот выезд", "callback_data": f"fb_book:ride:{idx}"}],
+                [{"text": "📅 Весь календарь и GPX →", "web_app": {"url": f"{MINIAPP_URL}/?tab=calendar"}}],
+            ]
+        }
+        return text, markup
+
+    if tab == "camps":
+        idx = idx % len(FALLBACK_CAMPS)
+        item = FALLBACK_CAMPS[idx]
+        text = (
+            f"⛺ <b>ВЕЛОКЭМПЫ ABHAZBAND</b> ({idx + 1} из {len(FALLBACK_CAMPS)})\n\n"
+            f"<b>{item['title']}</b>\n{item['details']}"
+        )
+        markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "◀️ Пред.", "callback_data": f"fb_nav:camps:{(idx - 1) % len(FALLBACK_CAMPS)}"},
+                    {"text": "🏠 Обзор", "callback_data": "fb_nav:overview:0"},
+                    {"text": "След. ▶️", "callback_data": f"fb_nav:camps:{(idx + 1) % len(FALLBACK_CAMPS)}"},
+                ],
+                [{"text": "⛺ Забронировать место в кэмпе", "callback_data": f"fb_book:camp:{idx}"}],
+                [{"text": "📖 Полная программа кэмпов →", "web_app": {"url": f"{MINIAPP_URL}/?tab=camps"}}],
+            ]
+        }
+        return text, markup
+
+    text = (
+        "🏠 <b>Пульт велоклуба AbhazBand (Гагра, Абхазия)</b>\n\n"
+        "Шоссейные и гравел-сборы, а также выезды выходного дня от КПП Псоу с машиной сопровождения.\n\n"
+        "Выбери раздел ниже:"
+    )
+    markup = {
+        "inline_keyboard": [
+            [
+                {"text": "📅 Заезды", "callback_data": "fb_nav:rides:0"},
+                {"text": "⛺ Кэмпы", "callback_data": "fb_nav:camps:0"},
+            ],
+            [{"text": "🚀 Открыть весь Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}}],
+        ]
+    }
+    return text, markup
+
+
 async def send_hub_widget(
     session: ClientSession, chat_id: int, initial_tab: str = "overview", user_name: str = "Райдер"
 ) -> bool:
     """
-    Отправляет HTML-виджет Bot API 10.4 (Обзор / Заезды / Кэмпы) в ЛС пользователю.
-    Если версия клиента Telegram ещё не поддерживает sendWidget, отдаёт компактную карточку с кнопками.
+    Отправляет HTML-виджет Bot API 10.4 (формат LifeRideLife: type='html', html=...).
+    Если клиент Telegram не поддерживает sendWidget, открывает интерактивный inline-пульт внутри сообщения.
     """
-    widget_html = build_hub_widget_html(
-        initial_tab=initial_tab,
-        user_name=user_name,
-        miniapp_url=MINIAPP_URL,
-    )
+    widget_html = build_hub_widget_html(initial_tab=initial_tab, user_name=user_name)
     res = await tg_request(
         session,
         "sendWidget",
@@ -92,59 +182,14 @@ async def send_hub_widget(
             "widget": {
                 "type": "html",
                 "html": widget_html,
-                "height": 365,
             },
         },
     )
     if res.get("ok"):
         return True
 
-    # Мягкий откат для необновлённых клиентов Telegram
-    if initial_tab == "camps":
-        text = (
-            "⛺ <b>Велокэмпы AbhazBand в Гагре</b>\n\n"
-            "• <b>5–30 Ноября:</b> Клубные заезды (Шоссе / Гравел, 4–10 дней)\n"
-            "• <b>1–30 Декабря:</b> Зимняя вкатка без снега + Social Rides\n"
-            "• <b>1–10 Января:</b> Новогодний кэмп в Абхазии\n\n"
-            "Открой полную программу кэмпов или забронируй место:"
-        )
-        markup = {
-            "inline_keyboard": [
-                [{"text": "📖 Полная программа кэмпов →", "web_app": {"url": f"{MINIAPP_URL}/?tab=camps"}}],
-                [{"text": "🚴 Записаться (@Piti4)", "url": "https://t.me/Piti4"}],
-            ]
-        }
-    elif initial_tab == "rides":
-        text = (
-            "📅 <b>Ближайшие заезды AbhazBand</b>\n\n"
-            "• <b>14–15 Ноя:</b> Weekend Camp Гагра — Сухум (195 км, +1 950 м)\n"
-            "• <b>21 Ноя:</b> Social Ride Псоу — Пицунда (85 км, +350 м)\n"
-            "• <b>28–29 Ноя:</b> Восточный эпик ИнгурГЭС (220 км, +1 450 м)\n\n"
-            "Открой весь календарь с треками GPX или займи слот:"
-        )
-        markup = {
-            "inline_keyboard": [
-                [{"text": "📅 Весь календарь и GPX →", "web_app": {"url": f"{MINIAPP_URL}/?tab=rides"}}],
-                [{"text": "🚴 Записаться (@Piti4)", "url": "https://t.me/Piti4"}],
-            ]
-        }
-    else:
-        text = (
-            "🏠 <b>Пульт велоклуба AbhazBand (Гагра, Абхазия)</b>\n\n"
-            "Выбери интересующее направление:\n"
-            "• <b>📅 Заезды:</b> уикенды и Social Rides на 1–2 дня от КПП Псоу\n"
-            "• <b>⛺ Кэмпы:</b> многодневные шоссейные и гравел-сборы"
-        )
-        markup = {
-            "inline_keyboard": [
-                [
-                    {"text": "📅 Заезды", "web_app": {"url": f"{MINIAPP_URL}/?tab=rides"}},
-                    {"text": "⛺ Кэмпы", "web_app": {"url": f"{MINIAPP_URL}/?tab=camps"}},
-                ],
-                [{"text": "🚀 Открыть весь Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}}],
-            ]
-        }
-
+    logging.warning(f"sendWidget вернул отказ для chat_id={chat_id}: {res}")
+    text, markup = render_fallback_screen(initial_tab, 0)
     fallback_res = await send_message(session, chat_id, text, reply_markup=markup)
     return bool(fallback_res.get("ok"))
 
@@ -223,7 +268,6 @@ async def handle_text(session: ClientSession, message: dict):
         parts = text.split(maxsplit=1)
         deep_param = parts[1].strip() if len(parts) > 1 else ""
 
-        # Диплинки из инлайн-кнопки и группового закрепа -> сразу нужная вкладка виджета в ЛС
         if deep_param in ("hub", "w_overview"):
             await send_hub_widget(session, chat_id, initial_tab="overview", user_name=user_name)
             return
@@ -276,12 +320,13 @@ async def handle_text(session: ClientSession, message: dict):
 
 
 async def handle_callback_query(session: ClientSession, callback_query: dict):
-    """Тихая отправка виджета в ЛС по нажатию кнопок в общем чате."""
+    """Обработка кнопок группового закрепа и внутреннего переключения экранов пульта."""
     cb_id = callback_query["id"]
     user = callback_query.get("from", {})
     user_id = user.get("id")
     user_name = user.get("username") or user.get("first_name") or "Райдер"
     data = callback_query.get("data", "")
+    msg = callback_query.get("message", {})
 
     if data.startswith("pm_widget:"):
         tab = data.split(":", 1)[1]
@@ -305,6 +350,48 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
                     "url": f"https://t.me/{BOT_USERNAME}?start=w_{tab}",
                 },
             )
+        return
+
+    if data.startswith("fb_nav:") and msg:
+        _, tab, raw_idx = data.split(":", 2)
+        text, markup = render_fallback_screen(tab, int(raw_idx))
+        await tg_request(
+            session,
+            "editMessageText",
+            {
+                "chat_id": msg["chat"]["id"],
+                "message_id": msg["message_id"],
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": markup,
+            },
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+
+    if data.startswith("fb_book:"):
+        _, category, raw_idx = data.split(":", 2)
+        idx = int(raw_idx)
+        item = FALLBACK_CAMPS[idx % len(FALLBACK_CAMPS)] if category == "camp" else FALLBACK_RIDES[idx % len(FALLBACK_RIDES)]
+        cat_label = "Кэмп" if category == "camp" else "Заезд"
+        uname = f"@{user['username']}" if user.get("username") else html.escape(user.get("first_name", "Райдер"))
+
+        await send_message(
+            session,
+            ADMIN_ID,
+            f"🚴 <b>Новая заявка из пульта ({cat_label})!</b>\n"
+            f"• Программа: <b>{html.escape(item['title'])}</b>\n"
+            f"• Участник: {uname} (ID: <code>{user_id}</code>)",
+        )
+        await tg_request(
+            session,
+            "answerCallbackQuery",
+            {
+                "callback_query_id": cb_id,
+                "text": "✅ Заявка отправлена! Организатор (@Piti4) свяжется с тобой.",
+                "show_alert": True,
+            },
+        )
 
 
 async def handle_inline_query(session: ClientSession, inline_query: dict):
@@ -367,7 +454,7 @@ async def handle_inline_query(session: ClientSession, inline_query: dict):
 
 
 async def handle_widget_query(session: ClientSession, widget_query: dict):
-    """Обработчик действий из HTML-виджета Bot API 10.4 (заявка на слот или переход в раздел Mini App)."""
+    """Обработчик событий из HTML-виджета Bot API 10.4 (заявка на слот, переход в Mini App, связь с @Piti4)."""
     query_id = widget_query.get("id")
     user = widget_query.get("from", {})
     user_id = user.get("id")
@@ -404,7 +491,7 @@ async def handle_widget_query(session: ClientSession, widget_query: dict):
         elif tab == "rides":
             msg_text = "📅 <b>Полный интерактивный календарь заездов и треки GPX:</b>"
             btn_text = "📅 Открыть раздел «Календарь»"
-            target_url = f"{MINIAPP_URL}/?tab=rides"
+            target_url = f"{MINIAPP_URL}/?tab=calendar"
         else:
             msg_text = "🚴 <b>Abhaz Band Hub — все разделы клуба:</b>"
             btn_text = "🚀 Открыть Abhaz Band Hub"
@@ -416,6 +503,19 @@ async def handle_widget_query(session: ClientSession, widget_query: dict):
             msg_text,
             reply_markup={
                 "inline_keyboard": [[{"text": btn_text, "web_app": {"url": target_url}}]]
+            },
+        )
+        if query_id:
+            await tg_request(session, "answerWidgetQuery", {"widget_query_id": query_id})
+        return
+
+    if action == "contact_org" and user_id:
+        await send_message(
+            session,
+            user_id,
+            "💬 Напиши организатору велоклуба — ответим по датам, трансферу и слотам:",
+            reply_markup={
+                "inline_keyboard": [[{"text": "Написать @Piti4", "url": "https://t.me/Piti4"}]]
             },
         )
         if query_id:
