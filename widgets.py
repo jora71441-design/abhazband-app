@@ -5,15 +5,13 @@ import json
 def build_hub_widget_html(
     initial_tab: str = "overview",
     user_name: str = "Райдер",
-    miniapp_url: str = "https://jora71441-design.github.io/abhazband-app/",
 ) -> str:
     """
-    Автономный HTML/CSS/JS виджет Bot API 10.4 (QuickJS, ~9 КБ, без сетевых запросов).
-    Три вкладки: «Обзор» (стартовый экран выбора), «Заезды» и «Кэмпы».
+    Автономный HTML/CSS/JS виджет Bot API 10.4 (QuickJS, без внешних ссылок <a> и сетевых запросов).
+    Оформлен в стиле микровиджета LifeRideLife: стартовый экран «Обзор» + вкладки «Заезды» и «Кэмпы».
     """
     safe_tab = initial_tab if initial_tab in ("overview", "rides", "camps") else "overview"
     safe_user = html.escape(user_name[:24])
-    base_url = miniapp_url.rstrip("/")
 
     return f"""<!DOCTYPE html>
 <html lang="ru">
@@ -21,53 +19,56 @@ def build_hub_widget_html(
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
-  body {{ background: #0f172a; color: #f8fafc; padding: 12px; font-size: 13px; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }}
+  body {{ background: var(--tg-theme-bg-color, #0f172a); color: var(--tg-theme-text-color, #f8fafc); padding: 12px; font-size: 13px; }}
   .hdr {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-  .brand {{ font-weight: 800; font-size: 14px; letter-spacing: 0.3px; color: #f8fafc; }}
+  .brand {{ font-weight: 800; font-size: 14px; letter-spacing: 0.4px; display: flex; align-items: center; gap: 6px; }}
+  .dot {{ width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; }}
   .brand span {{ color: #10b981; }}
-  .tag {{ font-size: 10px; background: #1e293b; color: #94a3b8; padding: 3px 7px; border-radius: 99px; border: 1px solid #334155; }}
-  .tabs {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #1e293b; padding: 4px; border-radius: 10px; margin-bottom: 11px; }}
-  .tab {{ border: none; background: transparent; color: #94a3b8; padding: 7px 4px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.15s; }}
-  .tab.active {{ background: #334155; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }}
+  .tag {{ font-size: 10.5px; font-weight: 600; background: #1e293b; color: #94a3b8; padding: 3px 8px; border-radius: 99px; border: 1px solid #334155; }}
+
+  .tabs {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #1e293b; padding: 4px; border-radius: 11px; border: 1px solid #334155; margin-bottom: 11px; }}
+  .tab {{ border: none; background: transparent; color: #94a3b8; padding: 7px 4px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; }}
+  .tab.active {{ background: #334155; color: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.28); }}
   .panel {{ display: none; }}
   .panel.active {{ display: block; }}
 
-  /* Стартовый экран Обзор */
-  .intro {{ background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.28); border-radius: 10px; padding: 9px 10px; font-size: 11.5px; line-height: 1.38; color: #cbd5e1; margin-bottom: 9px; }}
-  .nav-card {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 11px; margin-bottom: 8px; cursor: pointer; transition: 0.15s; }}
-  .nav-card:active {{ transform: scale(0.99); border-color: #10b981; }}
-  .nc-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }}
-  .nc-title {{ font-size: 13.5px; font-weight: 800; color: #f8fafc; }}
-  .nc-cta {{ font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.14); padding: 3px 8px; border-radius: 6px; }}
+  .hero {{ background: linear-gradient(135deg, rgba(16,185,129,0.14), rgba(15,23,42,0.9)); border: 1px solid rgba(16,185,129,0.32); border-radius: 11px; padding: 10px 11px; font-size: 11.5px; line-height: 1.4; color: #e2e8f0; margin-bottom: 9px; }}
+  .nav-card {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 11px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }}
+  .nav-card:active {{ transform: scale(0.985); border-color: #10b981; }}
+  .nc-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 6px; }}
+  .nc-title {{ font-size: 13px; font-weight: 800; color: #f8fafc; }}
+  .nc-cta {{ font-size: 10.5px; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3); padding: 3px 8px; border-radius: 7px; white-space: nowrap; }}
   .nc-desc {{ font-size: 11px; color: #94a3b8; line-height: 1.35; }}
   .ov-foot {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }}
 
-  /* Вкладки Заезды и Кэмпы */
   .pills {{ display: flex; gap: 5px; overflow-x: auto; margin-bottom: 9px; padding-bottom: 2px; }}
-  .pill {{ border: 1px solid #334155; background: #1e293b; color: #cbd5e1; padding: 5px 9px; border-radius: 8px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; }}
+  .pill {{ border: 1px solid #334155; background: #1e293b; color: #cbd5e1; padding: 5px 9px; border-radius: 8px; font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer; }}
   .pill.active-w {{ background: rgba(239,68,68,0.18); border-color: #ef4444; color: #fca5a5; }}
   .pill.active-s {{ background: rgba(16,185,129,0.18); border-color: #10b981; color: #6ee7b7; }}
+
   .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 11px; }}
-  .badge {{ display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-bottom: 5px; }}
-  .b-w {{ background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid #ef4444; }}
-  .b-s {{ background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid #10b981; }}
-  .title {{ font-size: 14px; font-weight: 800; margin-bottom: 3px; line-height: 1.25; }}
+  .badge {{ display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: 0.4px; padding: 2px 7px; border-radius: 6px; margin-bottom: 5px; }}
+  .b-w {{ background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.45); }}
+  .b-s {{ background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.45); }}
+  .title {{ font-size: 14px; font-weight: 800; margin-bottom: 3px; line-height: 1.25; color: #ffffff; }}
   .sub {{ font-size: 11px; color: #94a3b8; margin-bottom: 9px; line-height: 1.35; }}
+
   .grid2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }}
-  .stat {{ background: #0f172a; border-radius: 8px; padding: 6px 8px; }}
-  .stat-l {{ font-size: 10px; color: #64748b; display: block; }}
-  .stat-v {{ font-size: 12px; font-weight: 700; color: #e2e8f0; }}
+  .stat {{ background: #0f172a; border: 1px solid rgba(51,65,85,0.6); border-radius: 8px; padding: 6px 8px; }}
+  .stat-l {{ font-size: 10px; color: #64748b; display: block; margin-bottom: 1px; }}
+  .stat-v {{ font-size: 12px; font-weight: 700; color: #f1f5f9; }}
+
   .actions {{ display: flex; flex-direction: column; gap: 6px; }}
-  .btn {{ width: 100%; border: none; border-radius: 9px; padding: 10px; font-size: 12px; font-weight: 700; cursor: pointer; background: #10b981; color: #052e16; text-align: center; text-decoration: none; display: block; }}
+  .btn {{ width: 100%; border: none; border-radius: 9px; padding: 10px; font-size: 12px; font-weight: 800; cursor: pointer; background: #10b981; color: #052e16; text-align: center; transition: opacity 0.15s; }}
   .btn:active {{ opacity: 0.85; }}
-  .btn.booked {{ background: #334155; color: #6ee7b7; }}
-  .btn-sec {{ background: #0f172a; color: #e2e8f0; border: 1px solid #334155; font-weight: 600; padding: 8px; font-size: 11.5px; }}
+  .btn.booked {{ background: #334155; color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4); }}
+  .btn-sec {{ background: #0f172a; color: #e2e8f0; border: 1px solid #334155; font-weight: 700; padding: 8px; font-size: 11.5px; }}
 </style>
 </head>
 <body>
   <div class="hdr">
-    <div class="brand">ABHAZ<span>BAND</span> • ПУЛЬТ</div>
+    <div class="brand"><i class="dot"></i>ABHAZ<span>BAND</span> • ПУЛЬТ</div>
     <div class="tag">@{safe_user}</div>
   </div>
 
@@ -79,7 +80,7 @@ def build_hub_widget_html(
 
   <!-- ВКЛАДКА 0: СТАРТОВЫЙ ОБЗОР -->
   <div class="panel" id="p-overview">
-    <div class="intro">
+    <div class="hero">
       <b>Велоклуб AbhazBand (Гагра, Абхазия)</b> — шоссейные и гравел-сборы, а также выезды выходного дня от КПП Псоу с машиной сопровождения.
     </div>
 
@@ -100,8 +101,8 @@ def build_hub_widget_html(
     </div>
 
     <div class="ov-foot">
-      <a class="btn btn-sec" href="{base_url}/" onclick="openAppTab('overview')">🚀 Открыть Хаб</a>
-      <a class="btn btn-sec" href="https://t.me/Piti4">💬 Вопрос @Piti4</a>
+      <button class="btn btn-sec" onclick="triggerOpenTab('overview')">🚀 Открыть Хаб</button>
+      <button class="btn btn-sec" onclick="triggerContact()">💬 Вопрос @Piti4</button>
     </div>
   </div>
 
@@ -120,7 +121,7 @@ def build_hub_widget_html(
       </div>
       <div class="actions">
         <button class="btn" id="r-book-btn" onclick="bookItem('ride')">🚴 Занять слот на этот выезд</button>
-        <a class="btn btn-sec" href="{base_url}/?tab=rides" onclick="openAppTab('rides')">📅 Весь календарь и GPX →</a>
+        <button class="btn btn-sec" onclick="triggerOpenTab('rides')">📅 Весь календарь и GPX →</button>
       </div>
     </div>
   </div>
@@ -140,7 +141,7 @@ def build_hub_widget_html(
       </div>
       <div class="actions">
         <button class="btn" id="c-book-btn" onclick="bookItem('camp')">⛺ Забронировать место в кэмпе</button>
-        <a class="btn btn-sec" href="{base_url}/?tab=camps" onclick="openAppTab('camps')">📖 Полная программа и маршруты →</a>
+        <button class="btn btn-sec" onclick="triggerOpenTab('camps')">📖 Полная программа и маршруты →</button>
       </div>
     </div>
   </div>
@@ -248,8 +249,12 @@ def build_hub_widget_html(
     }});
   }}
 
-  function openAppTab(tabName) {{
+  function triggerOpenTab(tabName) {{
     sendBridge({{ action: "open_tab", tab: tabName }});
+  }}
+
+  function triggerContact() {{
+    sendBridge({{ action: "contact_org" }});
   }}
 
   setTab("{safe_tab}");
