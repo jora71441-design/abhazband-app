@@ -47,6 +47,50 @@ function openCampModal(campId) {
     window.Telegram.WebApp.BackButton.onClick(closeCampModal);
   }
 
+  // Генерация блока "Что включено", если он есть
+  let includedHtml = '';
+  if (camp.included && camp.included.length > 0) {
+    includedHtml = `
+      <div class="sheet-section-title" style="margin-top: 20px;">🎒 В стоимость входит:</div>
+      <div style="margin-bottom: 24px;">
+        ${camp.included.map(inc => `
+          <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 13px; color: #cbd5e1; line-height: 1.4;">
+            <span style="color: #38bdf8; font-weight: bold; flex-shrink: 0;">👉</span>
+            <span>${inc}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Генерация блока метрик (с добавлением км и набора, если они есть)
+  const metricsHtml = `
+    <div class="sheet-metrics-grid" style="margin-bottom:16px;">
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">💰 Стоимость участия</span>
+        <span class="sheet-metric-val" style="color:#4cd964; font-size:12px;">${camp.price}</span>
+      </div>
+      ${camp.specs ? `
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">🚴 Формат</span>
+        <span class="sheet-metric-val">${camp.specs}</span>
+      </div>
+      ` : ''}
+      ${camp.totalKm ? `
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">🛣️ Общий пробег</span>
+        <span class="sheet-metric-val">${camp.totalKm}</span>
+      </div>
+      ` : ''}
+      ${camp.totalGain ? `
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">⛰️ Общий набор</span>
+        <span class="sheet-metric-val">${camp.totalGain}</span>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
   modal.innerHTML = `
     <div class="bottom-sheet-handle"></div>
     
@@ -58,13 +102,13 @@ function openCampModal(campId) {
       <button class="sheet-close-btn" onclick="closeCampModal()" title="Закрыть">✕</button>
     </div>
 
-    <!-- Обложка кэмпа -->
-    <img src="${camp.image}" alt="${camp.title}" style="width:100%; height:200px; object-fit:cover; border-radius:12px; margin-bottom:12px;">
+    <!-- Обложка кэмпа (поддержка отдельной картинки imageSheet) -->
+    <img src="${camp.imageSheet || camp.image}" alt="${camp.title}" style="width:100%; height:200px; object-fit:cover; border-radius:12px; margin-bottom:12px;">
 
     <!-- Бейдж и Даты -->
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
       <span class="sheet-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #38bdf8;">
-        ${camp.dates}
+        📅 ${camp.dates}
       </span>
     </div>
 
@@ -72,25 +116,15 @@ function openCampModal(campId) {
     <h3 class="sheet-title" style="margin-bottom:4px;">${camp.title}</h3>
     <div class="sheet-subtitle" style="margin-bottom:12px;">📍 ${camp.location}</div>
 
-    <!-- Метрики кэмпа -->
-    <div class="sheet-metrics-grid" style="margin-bottom:16px;">
-      <div class="sheet-metric-box">
-        <span class="sheet-metric-label">💰 Стоимость участия</span>
-        <span class="sheet-metric-val" style="color:#4cd964;">${camp.price}</span>
-      </div>
-      ${camp.specs ? `
-      <div class="sheet-metric-box">
-        <span class="sheet-metric-label">🚴 Формат</span>
-        <span class="sheet-metric-val">${camp.specs}</span>
-      </div>
-      ` : ''}
-    </div>
+    ${metricsHtml}
 
     <!-- Описание кэмпа -->
-    <div class="sheet-section-title">О кэмпе</div>
+    <div class="sheet-section-title">ℹ️ О кэмпе</div>
     <div style="font-size:13px; color:#cbd5e1; line-height:1.5; margin-bottom:24px;">
-      ${camp.description}
+      ${camp.fullDesc || camp.description}
     </div>
+
+    ${includedHtml}
 
     <!-- Кнопки действий -->
     <div style="display: flex; gap: 8px; position: sticky; bottom: 0; background: var(--card-bg); padding-top: 10px; margin-top: -10px;">
@@ -100,7 +134,7 @@ function openCampModal(campId) {
          style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center; text-decoration: none;">
         💬 Задать вопрос / Забронировать
       </a>
-      <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.replace(/'/g, "\\'")}')" 
+      <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.split('(')[0].trim().replace(/'/g, "\\'")}')" 
               class="btn btn-secondary" 
               style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
         <span>✈️</span> Поделиться
@@ -262,7 +296,7 @@ function changeCalendarMonth(delta) {
   renderRides();
 }
 
-    // Открытие всплывающего окна с условиями заезда
+// Открытие всплывающего окна с условиями заезда
 function openRideModal(rideId) {
   const ride = rides.find(r => r.id === rideId);
   if (!ride) return;
