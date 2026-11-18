@@ -126,8 +126,8 @@ function openCampModal(campId) {
 
     ${includedHtml}
 
-    <!-- Кнопки действий -->
-    <div style="display: flex; gap: 8px; position: sticky; bottom: 0; background: var(--card-bg); padding-top: 10px; margin-top: -10px;">
+  <!-- Кнопки действий -->
+    <div style="display: flex; gap: 8px; position: sticky; bottom: 0; background: #0f172a; padding: 14px 12px 20px 12px; margin-top: 0; border-top: 1px solid rgba(56, 189, 248, 0.15); box-shadow: 0 -8px 16px rgba(15, 23, 42, 0.9); z-index: 10;">
       <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу задать вопрос/забронировать слот в кэмп: ' + camp.title + ' (' + camp.dates + ')')}" 
          target="_blank" 
          class="btn" 
@@ -140,7 +140,7 @@ function openCampModal(campId) {
         <span>✈️</span> Поделиться
       </button>
     </div>
-  `;
+   `;
 
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
