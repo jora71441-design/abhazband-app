@@ -1,5 +1,6 @@
 import asyncio
 import html
+import json
 import logging
 import os
 from aiohttp import web, ClientSession
@@ -43,25 +44,25 @@ async def send_hub_widget(
     session: ClientSession, chat_id: int, initial_tab: str = "overview", user_name: str = "Райдер"
 ) -> bool:
     widget_html = build_hub_widget_html(initial_tab=initial_tab, user_name=user_name)
+    
+    # ИСПРАВЛЕНИЕ: Сериализуем объект widget в JSON-строку
     res = await tg_request(
         session,
         "sendWidget",
         {
             "chat_id": chat_id,
-            "widget": {
+            "widget": json.dumps({
                 "type": "html",
                 "html": widget_html,
-            },
+            })
         }
     )
     if res.get("ok"):
         return True
 
-    # Если API отклонил рабочий виджет, выводим админу точную причину прямо в чат!
     if chat_id == ADMIN_ID:
         await send_message(session, chat_id, f"⚠️ <b>Отказ API (Главный виджет):</b>\n<code>{html.escape(str(res))}</code>")
 
-    # Мягкий откат на текст (чтобы бот не молчал)
     await send_message(
         session, 
         chat_id, 
@@ -113,24 +114,24 @@ async def handle_text(session: ClientSession, message: dict):
     if text.startswith("/start") or text.startswith("/widget"):
         await send_hub_widget(session, chat_id, initial_tab="overview", user_name=user_name)
 
-    # 🟢 СТЕРИЛЬНЫЙ ТЕСТ ВИДЖЕТА
     elif text.startswith("/test"):
         if user_id != ADMIN_ID:
             return
         
         test_html = (
             "<!DOCTYPE html><html><body style='background:#0f172a;color:#10b981;padding:30px;text-align:center;font-family:sans-serif;'>"
-            "<h2>✅ Виджет доступен!</h2><p>Telegram разрешает HTML.</p>"
+            "<h2>✅ Виджет работает!</h2><p>Проблема была в JSON-сериализации.</p>"
             "</body></html>"
         )
         
+        # ИСПРАВЛЕНИЕ: Сериализуем объект widget в JSON-строку
         res = await tg_request(session, "sendWidget", {
             "chat_id": chat_id,
-            "widget": {"type": "html", "html": test_html}
+            "widget": json.dumps({"type": "html", "html": test_html})
         })
         
         if not res.get("ok"):
-            await send_message(session, chat_id, f"❌ <b>API отклонил даже пустой виджет:</b>\n<code>{html.escape(str(res))}</code>")
+            await send_message(session, chat_id, f"❌ <b>API снова отклонил виджет:</b>\n<code>{html.escape(str(res))}</code>")
 
 
 async def handle_callback_query(session: ClientSession, callback_query: dict):
