@@ -1,8 +1,10 @@
 import asyncio
 import calendar
 import html
+import json
 import logging
 import os
+import re
 from aiohttp import web, ClientSession
 from github_uploader import process_uploaded_file, get_uploader_status
 
@@ -13,30 +15,101 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 BOT_USERNAME = os.getenv("BOT_USERNAME", "AbhazBand_bot").strip().lstrip("@")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "303365656"))
 MINIAPP_URL = os.getenv("MINIAPP_URL", "https://jora71441-design.github.io/abhazband-app/").strip().rstrip("/")
+DATA_JS_URL = "https://raw.githubusercontent.com/jora71441-design/abhazband-app/main/js/data.js"
 PORT = int(os.getenv("PORT", "10000"))
 
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 FILE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 THUMB_ICON_URL = f"{MINIAPP_URL}/Klubnie-compressed.jpeg"
 
-# ==================== ДАННЫЕ ЗАЕЗДОВ И КЭМПОВ ====================
-# В будущем мы будем парсить эти данные прямо из js/data.js
-RIDES_DATA = {
-    "2026-11-14": {"type": "🔴", "title": "Weekend Camp: Гагра — Сухум (День 1)", "desc": "195 км, +1 950 м • Темп 27–30 км/ч\n⏰ Старт: 09:00 КПП Псоу • База с бассейном и техничка"},
-    "2026-11-15": {"type": "🔴", "title": "Weekend Camp: Гагра — Сухум (День 2)", "desc": "Возвращение в Гагру/Псоу с базы в Сухуме."},
-    "2026-11-21": {"type": "🟢", "title": "Social Ride: Псоу — Пицунда", "desc": "85 км, +350 м • Темп 25–28 км/ч\n⏰ Старт: 09:00 КПП Псоу • Сосновые аллеи и кофе-стоп"},
-    "2026-11-28": {"type": "🔴", "title": "Восточный эпик: ИнгурГЭС (День 1)", "desc": "220 км, +1 450 м • Очамчыра — Гал — ИнгурГЭС\n🚆 Встреча Ласточки в Сухуме"},
-    "2026-11-29": {"type": "🔴", "title": "Восточный эпик: ИнгурГЭС (День 2)", "desc": "Возвращение с Востока Абхазии."},
-    "2026-12-05": {"type": "🟢", "title": "Social Ride: Мюссера и Форель", "desc": "95 км, +850 м • Темп 25–28 км/ч\n⏰ Старт: 09:00 КПП Псоу • Обед у горной реки"},
-}
-
-CAMPS_DATA = [
-    {"title": "⛺ Ноябрьский велокэмп в Гагре", "dates": "5 – 30 Ноября", "desc": "Шоссе / Гравел • 4–10 дней\nРадиалки на озеро Рица и Мамдзышху с авто сопровождения."},
-    {"title": "⛺ Декабрьская подготовка", "dates": "1 – 30 Декабря", "desc": "Шоссе • Зимний объём без снега\nТёплые выезды вдоль моря + клубные Social Rides по субботам."},
-    {"title": "⛺ Новогодний велокэмп 2027", "dates": "1 – 10 Января", "desc": "Шоссе / Гравел • Праздничные старты\nПустые горные дороги, мандарины, горячие источники и техничка."},
-]
-
 MONTH_NAMES = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
+
+# Глобальные переменные (обновляются парсером)
+RIDES_DATA = {}
+CAMPS_DATA = []
+
+# ==================== ПАРСЕР ДАННЫХ ИЗ JS ====================
+def parse_js_data(js_text: str):
+    new_camps = []
+    new_rides = {}
+    
+    # 1. Парсинг Кэмпов
+    camps_match = re.search(r'const camps = \[(.*?)\];', js_text, re.DOTALL)
+    if camps_match:
+        blocks = re.findall(r'\{([^{}]*)\}', camps_match.group(1))
+        for block in blocks:
+            title = re.search(r'title:\s*["\']([^"\']+)["\']', block)
+            dates = re.search(r'dates:\s*["\']([^"\']+)["\']', block)
+            desc = re.search(r'description:\s*["\'](.*?)["\']', block, re.DOTALL)
+            specs = re.search(r'specs:\s*["\'](.*?)["\']', block)
+            
+            if title and dates:
+                s_str = f"{specs.group(1)} • " if specs and specs.group(1) else ""
+                d_str = desc.group(1) if desc else ""
+                new_camps.append({
+                    "title": f"⛺ {title.group(1)}",
+                    "dates": dates.group(1),
+                    "desc": f"{s_str}{d_str}"
+                })
+
+    # 2. Парсинг Заездов
+    rides_match = re.search(r'const rides = \[(.*?)\];', js_text, re.DOTALL)
+    if rides_match:
+        chunks = rides_match.group(1).split('id:')[1:]
+        for chunk in chunks:
+            type_match = re.search(r'type:\s*["\']([^"\']+)["\']', chunk)
+            title = re.search(r'title:\s*["\']([^"\']+)["\']', chunk)
+            subtitle = re.search(r'subtitle:\s*["\'](.*?)["\']', chunk)
+            dates_match = re.search(r'dates:\s*\[(.*?)\]', chunk)
+            
+            dist = re.search(r'distance:\s*["\']([^"\']+)["\']', chunk)
+            elev = re.search(r'elevation:\s*["\']([^"\']+)["\']', chunk)
+            pace = re.search(r'pace:\s*["\']([^"\']+)["\']', chunk)
+            
+            if title and dates_match:
+                emoji = "🔴" if type_match and type_match.group(1) == "weekend" else "🟢"
+                date_str_match = re.search(r'["\']([^"\']+)["\']', dates_match.group(1))
+                if date_str_match:
+                    date_key = date_str_match.group(1)
+                    desc_parts = []
+                    if dist and elev:
+                        desc_parts.append(f"{dist.group(1)}, {elev.group(1)}")
+                    if pace:
+                        desc_parts.append(f"Темп {pace.group(1)}")
+                    
+                    desc_header = " • ".join(desc_parts)
+                    desc_full = f"{desc_header}\n{subtitle.group(1) if subtitle else ''}"
+                    
+                    new_rides[date_key] = {
+                        "type": emoji,
+                        "title": title.group(1),
+                        "desc": desc_full
+                    }
+                    
+    return new_camps, new_rides
+
+
+async def load_remote_data():
+    """Фоновая загрузка и обновление RIDES и CAMPS с GitHub"""
+    global RIDES_DATA, CAMPS_DATA
+    try:
+        async with ClientSession() as session:
+            async with session.get(DATA_JS_URL, timeout=10) as resp:
+                if resp.status == 200:
+                    js_text = await resp.text()
+                    c, r = parse_js_data(js_text)
+                    if c: CAMPS_DATA = c
+                    if r: RIDES_DATA = r
+                    logging.info("✅ Синхронизация: Данные календаря обновлены из GitHub")
+    except Exception as e:
+        logging.error(f"Ошибка загрузки data.js: {e}")
+
+async def data_sync_loop():
+    """Цикл автообновления данных каждые 5 минут"""
+    await asyncio.sleep(5)  # Ждем старта сервера
+    while True:
+        await load_remote_data()
+        await asyncio.sleep(300)
 
 
 # ==================== TELEGRAM API HELPERS ====================
@@ -67,7 +140,6 @@ def get_overview_ui():
         "💬 <b>Вопрос организатору (@Piti4)</b> — прямая связь для любых вопросов.\n\n"
         "<i>Выбери раздел ниже:</i>"
     )
-
     markup = {
         "inline_keyboard": [
             [
@@ -88,17 +160,14 @@ def get_calendar_ui(year: int, month: int):
 
     markup = {"inline_keyboard": []}
     
-    # Шапка месяца
     markup["inline_keyboard"].append([
         {"text": "◀️", "callback_data": f"nav_cal:{prev_y}:{prev_m}"},
         {"text": f"{MONTH_NAMES[month].upper()} {year}", "callback_data": "ignore"},
         {"text": "▶️", "callback_data": f"nav_cal:{next_y}:{next_m}"},
     ])
     
-    # Дни недели
     markup["inline_keyboard"].append([{"text": d, "callback_data": "ignore"} for d in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]])
     
-    # Сетка дней
     cal = calendar.monthcalendar(year, month)
     for week in cal:
         row = []
@@ -147,6 +216,9 @@ def get_ride_ui(date_str: str):
     return text, markup
 
 def get_camps_ui(idx: int):
+    if not CAMPS_DATA:
+        return "Данные кэмпов загружаются...", {"inline_keyboard": [[{"text": "🏠 Обзор", "callback_data": "nav_overview"}]]}
+        
     idx = idx % len(CAMPS_DATA)
     camp = CAMPS_DATA[idx]
     
@@ -201,11 +273,8 @@ async def handle_text(session: ClientSession, message: dict):
 
     if text.startswith("/group_menu") and user_id == ADMIN_ID and chat_type in ("group", "supergroup"):
         await tg_request(session, "deleteMessage", {"chat_id": chat_id, "message_id": message["message_id"]})
-        await send_message(
-            session, chat_id,
-            "🚴 <b>Пульт велоклуба AbhazBand</b>\nВыбери раздел ниже — я открою интерактивный пульт <b>тебе в личку</b>:",
-            reply_markup={"inline_keyboard": [[{"text": "🎛️ Открыть пульт управления", "url": f"https://t.me/{BOT_USERNAME}?start=hub"}]]}
-        )
+        text_ui, markup = get_overview_ui()
+        await send_message(session, chat_id, text_ui, reply_markup=markup)
         return
 
     if chat_type != "private":
@@ -314,13 +383,15 @@ async def healthcheck(request: web.Request):
     return web.Response(text="OK", status=200)
 
 async def on_startup(app: web.Application):
+    app["data_task"] = asyncio.create_task(data_sync_loop())
     app["polling_task"] = asyncio.create_task(polling_loop(app))
 
 async def on_cleanup(app: web.Application):
-    task = app.get("polling_task")
-    if task:
-        task.cancel()
-        await task
+    for task_name in ["data_task", "polling_task"]:
+        task = app.get(task_name)
+        if task:
+            task.cancel()
+            await task
 
 def main():
     app = web.Application()
