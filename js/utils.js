@@ -128,3 +128,15 @@ function calcPressure() {
   if (frontRes) frontRes.innerText = `${frontBar} Bar (${frontPsi} PSI)`;
   if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
+
+// --- ШЕРИНГ КЭМПА ---
+function shareCamp(title, dates, location, price) {
+  const textToShare = `⛺ **${title}**\n📆 ${dates}\n📍 ${location}\n💰 ${price}\n\n👉 Открыть программу и забронировать слот в экосистеме AbhazBand:`;
+  const urlToShare = 'https://t.me/AbhazBand_bot?start=w_camps';
+  
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(urlToShare)}&text=${encodeURIComponent(textToShare)}`);
+  } else {
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(urlToShare)}&text=${encodeURIComponent(textToShare)}`, '_blank');
+  }
+}
