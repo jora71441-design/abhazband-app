@@ -1,25 +1,14 @@
 // --- КЭМПЫ ---
 const camps = [
   {
-    id: "camp_oct_1_2026",
-    title: "Комбинированный Шоссе vs Гравел",
-    dates: "04 - 14 октября (11 дней)",
-    location: "База AbhazBand (Гагра / Гал / Сухум)",
-    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-    specs: "Пробег: ~800 км | Набор: ~7 000 м",
-    description: "Комбинированный шоссейно-гравийный кэмп по западным и восточным маршрутам.",
-    image: "./Okt_shos_gravel-compressed.jpeg",
-    link: "https://t.me/Piti4"
-  },
-  {
-    id: "camp_oct_2_2026",
-    title: "Классический Шоссейный кэмп",
-    dates: "24 октября - 03 ноября (11 дней)",
-    location: "База AbhazBand (Гагра / Гал / Сухум)",
-    price: "85 000 ₽ (80 000 ₽ для членов AbhazBand)",
-    specs: "Пробег: ~800 км | Набор: ~7 000 м",
-    description: "Классический шоссейный кэмп по западным и восточным маршрутам.",
-    image: "./Okt_shosse-compressed.jpeg",
+    id: "camp_ny_2027",
+    title: "Новогодний кэмп Abhaz Band 2027",
+    dates: "01 - 10 января (10 дней)",
+    location: "Гагра ➡️ Сухум ➡️ Гал",
+    price: "85 000 ₽ (75 000 ₽ для клуба AbhazBand)",
+    specs: "Шоссе (95% асфальт) / Гравел (70/30) | Резина от 30мм",
+    description: "Вырываемся из зимы на волю! Формат «Одна пачка - две истории». Катаем по живому асфальту налегке (вещи везет техничка), едим мандарины и хурму прямо с дерева. Всего 12 мест (повышение цены после 1 декабря).",
+    image: "./New_Year.jpg",
     link: "https://t.me/Piti4"
   },
   {
@@ -28,7 +17,7 @@ const camps = [
     dates: "05 - 30 ноября",
     location: "Абхазия",
     price: "Уточняйте",
-    specs: "",
+    specs: "Шоссе / Гравел",
     description: "Сезонные клубные заезды и тренировочные сборы.",
     image: "./Klubnie-compressed.jpeg",
     link: "https://t.me/Piti4"
@@ -39,7 +28,7 @@ const camps = [
     dates: "1 - 31 декабря",
     location: "Абхазия",
     price: "Уточняйте",
-    specs: "",
+    specs: "Шоссе / Вкатка",
     description: "Самостоятельные шоссейные приезды и локальные СошлРайды",
     image: "./Noviy_god-compressed.jpeg",
     link: "https://t.me/Piti4"
