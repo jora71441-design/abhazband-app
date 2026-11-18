@@ -30,7 +30,7 @@ const camps = [
     location: "Абхазия",
     price: "Уточняйте",
     specs: "Шоссе / Гравел",
-    description: "Сезонные клубные заезды и тренировочные сборы.",
+    description: "Открытые даты для ваших клубных кемпов и тренировочных сборов. Подробности и согласование в ЛС",
     image: "./Klubnie-compressed.jpeg",
     link: "https://t.me/Piti4"
   },
@@ -41,7 +41,7 @@ const camps = [
     location: "Абхазия",
     price: "Уточняйте",
     specs: "Шоссе / Гравел",
-    description: "Самостоятельные шоссейные приезды и локальные Social Ride",
+    description: "Самостоятельные шоссейные приезды, локальные Social Ride и Weekend (подробности в календаре событий)",
     image: "./Noviy_god-compressed.jpeg",
     link: "https://t.me/Piti4"
   }
