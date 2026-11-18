@@ -185,7 +185,7 @@ def get_calendar_ui(year: int, month: int):
     
     markup["inline_keyboard"].append([
         {"text": "🏠 Обзор", "callback_data": "nav_overview"},
-        {"text": "🗺 Весь Хаб и треки GPX →", "web_app": {"url": f"{MINIAPP_URL}/?tab=calendar"}}
+        {"text": "🗺 Полный календарь →", "web_app": {"url": f"{MINIAPP_URL}/?tab=calendar"}}
     ])
     
     text = (
