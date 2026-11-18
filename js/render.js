@@ -2,7 +2,8 @@
 function renderCamps() {
   const container = document.getElementById('camps-list');
   if (!container) return;
-  container.innerHTML = camps.map(camp => `
+  
+  let html = camps.map(camp => `
     <div class="card" id="${camp.id}">
       <img src="${camp.image}" alt="${camp.title}">
       <div class="card-body">
@@ -12,10 +13,120 @@ function renderCamps() {
         ${camp.specs ? `<div class="meta-line">🚴 ${camp.specs}</div>` : ''}
         <div class="meta-line" style="color:#4cd964; font-weight:bold; margin-top:6px;">💰 ${camp.price}</div>
         <p style="font-size:13px; color:var(--hint-color); margin: 8px 0;">${camp.description}</p>
-        <a href="${camp.link}" class="btn" target="_blank">Подробнее и запись</a>
+        <button class="btn" onclick="openCampModal('${camp.id}')">Подробнее</button>
       </div>
     </div>
   `).join('');
+
+  html += `
+    <!-- Контейнер всплывающего окна для кэмпов (Bottom Sheet) -->
+    <div id="camp-sheet-overlay" class="bottom-sheet-overlay" onclick="closeCampModal(event)">
+      <div class="bottom-sheet-modal" id="camp-sheet-modal" onclick="event.stopPropagation()"></div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+// Открытие всплывающего окна с подробностями кэмпа
+function openCampModal(campId) {
+  const camp = camps.find(c => c.id === campId);
+  if (!camp) return;
+
+  const modal = document.getElementById('camp-sheet-modal');
+  const overlay = document.getElementById('camp-sheet-overlay');
+  if (!modal || !overlay) return;
+
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+  }
+
+  // Нативная системная кнопка «Назад» в шапке Telegram
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.show();
+    window.Telegram.WebApp.BackButton.onClick(closeCampModal);
+  }
+
+  modal.innerHTML = `
+    <div class="bottom-sheet-handle"></div>
+    
+    <!-- Навигация -->
+    <div class="sheet-top-nav">
+      <button class="sheet-back-btn" onclick="closeCampModal()">
+        <span>‹</span> Вернуться в расписание
+      </button>
+      <button class="sheet-close-btn" onclick="closeCampModal()" title="Закрыть">✕</button>
+    </div>
+
+    <!-- Обложка кэмпа -->
+    <img src="${camp.image}" alt="${camp.title}" style="width:100%; height:200px; object-fit:cover; border-radius:12px; margin-bottom:12px;">
+
+    <!-- Бейдж и Даты -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+      <span class="sheet-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #38bdf8;">
+        ${camp.dates}
+      </span>
+    </div>
+
+    <!-- Заголовок и локация -->
+    <h3 class="sheet-title" style="margin-bottom:4px;">${camp.title}</h3>
+    <div class="sheet-subtitle" style="margin-bottom:12px;">📍 ${camp.location}</div>
+
+    <!-- Метрики кэмпа -->
+    <div class="sheet-metrics-grid" style="margin-bottom:16px;">
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">💰 Стоимость участия</span>
+        <span class="sheet-metric-val" style="color:#4cd964;">${camp.price}</span>
+      </div>
+      ${camp.specs ? `
+      <div class="sheet-metric-box">
+        <span class="sheet-metric-label">🚴 Формат</span>
+        <span class="sheet-metric-val">${camp.specs}</span>
+      </div>
+      ` : ''}
+    </div>
+
+    <!-- Описание кэмпа -->
+    <div class="sheet-section-title">О кэмпе</div>
+    <div style="font-size:13px; color:#cbd5e1; line-height:1.5; margin-bottom:24px;">
+      ${camp.description}
+    </div>
+
+    <!-- Кнопки действий -->
+    <div style="display: flex; gap: 8px; position: sticky; bottom: 0; background: var(--card-bg); padding-top: 10px; margin-top: -10px;">
+      <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу задать вопрос/забронировать слот в кэмп: ' + camp.title + ' (' + camp.dates + ')')}" 
+         target="_blank" 
+         class="btn" 
+         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center; text-decoration: none;">
+        💬 Задать вопрос / Забронировать
+      </a>
+      <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.replace(/'/g, "\\'")}')" 
+              class="btn btn-secondary" 
+              style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+        <span>✈️</span> Поделиться
+      </button>
+    </div>
+  `;
+
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+// Закрытие окна по клику на фон или кнопкам возврата
+function closeCampModal(event) {
+  if (event && event.target && event.target.closest('#camp-sheet-modal') && !event.target.closest('.sheet-back-btn') && !event.target.closest('.sheet-close-btn')) {
+    return;
+  }
+  const overlay = document.getElementById('camp-sheet-overlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (window.Telegram?.WebApp?.BackButton) {
+    window.Telegram.WebApp.BackButton.hide();
+    window.Telegram.WebApp.BackButton.offClick(closeCampModal);
+  }
 }
 
 // ==================== ИНТЕРАКТИВНЫЙ КАЛЕНДАРЬ ЗАЕЗДОВ ====================
