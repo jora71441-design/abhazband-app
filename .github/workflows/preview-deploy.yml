@@ -86,7 +86,7 @@ jobs:
         run: |
           set -e
           BRANCH_NAME="${GITHUB_REF_NAME#preview/}"
-          SAFE_SLUG="$(echo "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-')"
+          SAFE_SLUG="$(printf '%s' "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-' | sed 's/^-*//; s/-*$//')"
           rm -rf /tmp/gh_pages_work
           git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || {
             mkdir -p /tmp/gh_pages_work
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -e
           BRANCH_NAME="${GITHUB_REF#refs/heads/preview/}"
-          SAFE_SLUG="$(echo "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-')"
+          SAFE_SLUG="$(printf '%s' "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-' | sed 's/^-*//; s/-*$//')"
           git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || exit 0
           if [ -d "/tmp/gh_pages_work/preview/$SAFE_SLUG" ]; then
             rm -rf "/tmp/gh_pages_work/preview/$SAFE_SLUG"
