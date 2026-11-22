@@ -12,6 +12,9 @@ on:
 permissions:
   contents: write
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   deploy-main-to-gh-pages:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
