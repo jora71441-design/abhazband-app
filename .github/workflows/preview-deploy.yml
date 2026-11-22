@@ -6,8 +6,6 @@ on:
       - main
       - 'preview/**'
   delete:
-    branches:
-      - 'preview/**'
 
 permissions:
   contents: write
@@ -25,15 +23,16 @@ jobs:
         with:
           path: repo
 
-      - name: Publish main to gh-pages root
+      - name: Publish main to gh-pages root and prune stale previews
         shell: bash
         run: |
           set -e
           rm -rf /tmp/gh_pages_work
-          git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || {
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --branch gh-pages --single-branch "$REPO_URL" /tmp/gh_pages_work || {
             mkdir -p /tmp/gh_pages_work
             git -C /tmp/gh_pages_work init -b gh-pages
-            git -C /tmp/gh_pages_work remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git -C /tmp/gh_pages_work remote add origin "$REPO_URL"
           }
 
           rsync -a --delete \
@@ -42,6 +41,27 @@ jobs:
             --exclude='preview' \
             --exclude='preview/**' \
             repo/ /tmp/gh_pages_work/
+
+          python3 - <<'PY'
+          import os, pathlib, re, shutil, subprocess
+
+          repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
+          out = subprocess.check_output(["git", "ls-remote", "--heads", repo_url, "refs/heads/preview/*"], text=True)
+          active_slugs = set()
+          for line in out.splitlines():
+              parts = line.split("\t")
+              if len(parts) == 2 and parts[1].startswith("refs/heads/preview/"):
+                  name = parts[1][len("refs/heads/preview/"):]
+                  slug = re.sub(r"[^A-Za-z0-9_-]+", "-", name).strip("-")
+                  if slug:
+                      active_slugs.add(slug)
+
+          preview_dir = pathlib.Path("/tmp/gh_pages_work/preview")
+          if preview_dir.exists():
+              for child in preview_dir.iterdir():
+                  if child.is_dir() and child.name not in active_slugs:
+                      shutil.rmtree(child)
+          PY
 
           git -C /tmp/gh_pages_work config user.name "Abhaz Band Bot"
           git -C /tmp/gh_pages_work config user.email "bot@abhazband.ru"
@@ -88,10 +108,11 @@ jobs:
           BRANCH_NAME="${GITHUB_REF_NAME#preview/}"
           SAFE_SLUG="$(printf '%s' "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-' | sed 's/^-*//; s/-*$//')"
           rm -rf /tmp/gh_pages_work
-          git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || {
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --branch gh-pages --single-branch "$REPO_URL" /tmp/gh_pages_work || {
             mkdir -p /tmp/gh_pages_work
             git -C /tmp/gh_pages_work init -b gh-pages
-            git -C /tmp/gh_pages_work remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git -C /tmp/gh_pages_work remote add origin "$REPO_URL"
           }
 
           rm -rf "/tmp/gh_pages_work/preview/$SAFE_SLUG"
@@ -107,21 +128,44 @@ jobs:
           fi
 
   cleanup-preview:
-    if: github.event_name == 'delete' && startsWith(github.event.ref, 'refs/heads/preview/')
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && startsWith(github.event.ref, 'preview/')
     runs-on: ubuntu-latest
+    env:
+      DELETED_REF: ${{ github.event.ref }}
     steps:
-      - name: Remove preview folder from gh-pages
+      - name: Remove deleted preview folder from gh-pages
         shell: bash
         run: |
           set -e
-          BRANCH_NAME="${GITHUB_REF#refs/heads/preview/}"
-          SAFE_SLUG="$(printf '%s' "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-' | sed 's/^-*//; s/-*$//')"
-          git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || exit 0
-          if [ -d "/tmp/gh_pages_work/preview/$SAFE_SLUG" ]; then
-            rm -rf "/tmp/gh_pages_work/preview/$SAFE_SLUG"
-            git -C /tmp/gh_pages_work config user.name "Abhaz Band Bot"
-            git -C /tmp/gh_pages_work config user.email "bot@abhazband.ru"
-            git -C /tmp/gh_pages_work add -A
-            git -C /tmp/gh_pages_work commit -m "Cleanup preview: preview/${BRANCH_NAME}"
+          rm -rf /tmp/gh_pages_work
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --branch gh-pages --single-branch "$REPO_URL" /tmp/gh_pages_work || exit 0
+
+          python3 - <<'PY'
+          import os, pathlib, re, shutil, subprocess
+
+          repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
+          out = subprocess.check_output(["git", "ls-remote", "--heads", repo_url, "refs/heads/preview/*"], text=True)
+          active_slugs = set()
+          for line in out.splitlines():
+              parts = line.split("\t")
+              if len(parts) == 2 and parts[1].startswith("refs/heads/preview/"):
+                  name = parts[1][len("refs/heads/preview/"):]
+                  slug = re.sub(r"[^A-Za-z0-9_-]+", "-", name).strip("-")
+                  if slug:
+                      active_slugs.add(slug)
+
+          preview_dir = pathlib.Path("/tmp/gh_pages_work/preview")
+          if preview_dir.exists():
+              for child in preview_dir.iterdir():
+                  if child.is_dir() and child.name not in active_slugs:
+                      shutil.rmtree(child)
+          PY
+
+          git -C /tmp/gh_pages_work config user.name "Abhaz Band Bot"
+          git -C /tmp/gh_pages_work config user.email "bot@abhazband.ru"
+          git -C /tmp/gh_pages_work add -A
+          if ! git -C /tmp/gh_pages_work diff --cached --quiet; then
+            git -C /tmp/gh_pages_work commit -m "Cleanup preview: ${DELETED_REF}"
             git -C /tmp/gh_pages_work push origin gh-pages
           fi
