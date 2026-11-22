@@ -538,7 +538,19 @@ input:checked + .slider::before {
   pointer-events: none;
 }
 
-/* Событие: Weekend Camp (2 дня) */
+/* Событие: Фестиваль / Гонка (Приоритет 1 — Изумрудный) */
+.calendar-day-cell.event-festival {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, #0f172a 100%);
+  border: 1.5px solid #10b981;
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendar-day-cell.event-festival:active {
+  transform: scale(0.94);
+}
+
+/* Событие: Weekend Camp / Dour Tour (2 дня — Коралловый) */
 .calendar-day-cell.event-weekend {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, #0f172a 100%);
   border: 1.5px solid #ef4444;
@@ -550,15 +562,27 @@ input:checked + .slider::before {
   transform: scale(0.94);
 }
 
-/* Событие: Social Ride (1 день) */
+/* Событие: Social Ride (1 день — Небесно-голубой) */
 .calendar-day-cell.event-social {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, #0f172a 100%);
-  border: 1.5px solid #10b981;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, #0f172a 100%);
+  border: 1.5px solid #38bdf8;
   color: #fff;
   cursor: pointer;
 }
 
 .calendar-day-cell.event-social:active {
+  transform: scale(0.94);
+}
+
+/* Событие: Длинный кэмп (Янтарный / Золотой) */
+.calendar-day-cell.event-camp {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.20) 0%, #0f172a 100%);
+  border: 1.5px solid #f59e0b;
+  color: #fff;
+  cursor: pointer;
+}
+
+.calendar-day-cell.event-camp:active {
   transform: scale(0.94);
 }
 
@@ -569,20 +593,31 @@ input:checked + .slider::before {
   margin-top: 3px;
 }
 
+.calendar-day-cell.event-festival .calendar-day-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.9);
+}
+
 .calendar-day-cell.event-weekend .calendar-day-dot {
   background: #ef4444;
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
 }
 
 .calendar-day-cell.event-social .calendar-day-dot {
-  background: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+.calendar-day-cell.event-camp .calendar-day-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
 }
 
 /* Легенда календаря */
 .calendar-legend-box {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   justify-content: center;
   margin-top: 14px;
   padding-top: 12px;
