@@ -1,0 +1,97 @@
+name: Abhaz Band Preview & Checks
+
+on:
+  push:
+    branches:
+      - 'preview/**'
+  delete:
+    branches:
+      - 'preview/**'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy-preview:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview branch
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Run syntax and data sanity checks
+        shell: bash
+        run: |
+          set -e
+          python3 -m py_compile repo/bot.py
+          if command -v node >/dev/null 2>&1; then
+            for f in repo/js/*.js; do
+              [ -f "$f" ] && node --check "$f"
+            done
+          fi
+          python3 - <<'PY'
+          import pathlib
+
+          data_path = pathlib.Path("repo/js/data.js")
+          if data_path.exists():
+              text = data_path.read_text(encoding="utf-8")
+              for marker in ("camps", "rides"):
+                  if marker not in text:
+                      raise SystemExit(f"Missing '{marker}' in js/data.js")
+          print("Checks passed.")
+          PY
+
+      - name: Prepare isolated preview bundle on gh-pages
+        shell: bash
+        run: |
+          set -e
+          BRANCH_NAME="${GITHUB_REF_NAME#preview/}"
+          SAFE_SLUG="$(echo "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-')"
+          rm -rf /tmp/preview_src /tmp/gh_pages_work
+          mkdir -p "/tmp/preview_src/$SAFE_SLUG"
+          rsync -a --exclude='.git' --exclude='.github' repo/ "/tmp/preview_src/$SAFE_SLUG/"
+
+          git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || {
+            mkdir -p /tmp/gh_pages_work
+            git -C /tmp/gh_pages_work init -b gh-pages
+          }
+
+          rm -rf "/tmp/gh_pages_work/preview/$SAFE_SLUG"
+          mkdir -p "/tmp/gh_pages_work/preview/$SAFE_SLUG"
+          rsync -a "/tmp/preview_src/$SAFE_SLUG/" "/tmp/gh_pages_work/preview/$SAFE_SLUG/"
+
+          git -C /tmp/gh_pages_work config user.name "Abhaz Band Bot"
+          git -C /tmp/gh_pages_work config user.email "bot@abhazband.ru"
+          git -C /tmp/gh_pages_work add -A
+          if ! git -C /tmp/gh_pages_work diff --cached --quiet; then
+            git -C /tmp/gh_pages_work commit -m "Preview build: preview/${BRANCH_NAME}"
+            git -C /tmp/gh_pages_work push -u origin gh-pages
+          fi
+
+          PREVIEW_URL="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY##*/}/preview/${SAFE_SLUG}/"
+          echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+          echo "Preview URL: $PREVIEW_URL"
+
+  cleanup-preview:
+    if: github.event_name == 'delete' && startsWith(github.event.ref, 'refs/heads/preview/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove preview folder from gh-pages
+        shell: bash
+        run: |
+          set -e
+          BRANCH_NAME="${GITHUB_REF#refs/heads/preview/}"
+          SAFE_SLUG="$(echo "$BRANCH_NAME" | tr -cs 'A-Za-z0-9_-' '-')"
+          git clone --branch gh-pages --single-branch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/gh_pages_work || exit 0
+          if [ -d "/tmp/gh_pages_work/preview/$SAFE_SLUG" ]; then
+            rm -rf "/tmp/gh_pages_work/preview/$SAFE_SLUG"
+            git -C /tmp/gh_pages_work config user.name "Abhaz Band Bot"
+            git -C /tmp/gh_pages_work config user.email "bot@abhazband.ru"
+            git -C /tmp/gh_pages_work add -A
+            git -C /tmp/gh_pages_work commit -m "Cleanup preview: preview/${BRANCH_NAME}"
+            git -C /tmp/gh_pages_work push origin gh-pages
+          fi
