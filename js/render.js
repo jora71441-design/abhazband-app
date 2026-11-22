@@ -193,10 +193,20 @@ function renderRides() {
     const dayStr = String(day).padStart(2, '0');
     const dateKey = `${year}-${monthStr}-${dayStr}`;
 
-    const ride = rides.find(r => r.dates && r.dates.includes(dateKey));
+    const EVENT_PRIORITY = { festival: 1, weekend: 2, social: 3, camp: 4 };
+    const dayRides = rides
+      .filter(r => r.dates && r.dates.includes(dateKey))
+      .sort((a, b) => (EVENT_PRIORITY[a.type] || 99) - (EVENT_PRIORITY[b.type] || 99));
+    const ride = dayRides[0];
 
     if (ride) {
-      const eventClass = ride.type === 'weekend' ? 'event-weekend' : 'event-social';
+      const classMap = {
+        festival: 'event-festival',
+        weekend: 'event-weekend',
+        social: 'event-social',
+        camp: 'event-camp'
+      };
+      const eventClass = classMap[ride.type] || 'event-social';
       daysHtml += `
         <div class="calendar-day-cell ${eventClass}" onclick="openRideModal('${ride.id}')">
           <span>${day}</span>
@@ -247,12 +257,20 @@ function renderRides() {
       <!-- Легенда -->
       <div class="calendar-legend-box">
         <div class="legend-item">
-          <span class="legend-color-dot" style="background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);"></span>
-          <span>Weekend Camp (2 дня)</span>
+          <span class="legend-color-dot" style="background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);"></span>
+          <span>Фестивали</span>
         </div>
         <div class="legend-item">
-          <span class="legend-color-dot" style="background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);"></span>
-          <span>Social Ride (1 день)</span>
+          <span class="legend-color-dot" style="background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);"></span>
+          <span>Weekend / Dour Tour</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color-dot" style="background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);"></span>
+          <span>Social Ride</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color-dot" style="background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);"></span>
+          <span>Кэмпы</span>
         </div>
       </div>
     </div>
