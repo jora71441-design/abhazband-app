@@ -58,6 +58,7 @@ CAMPS_DATA = []
 # Состояние ожидающих действий владельца
 PENDING_INPUT: Dict[int, Dict[str, Any]] = {}
 PENDING_ROLLBACK: Dict[int, str] = {}
+ACTIVE_UPLOAD_BRANCH: Dict[int, str] = {}
 
 
 # ==================== ПАРСЕР ДАННЫХ ИЗ JS ====================
@@ -316,10 +317,14 @@ def preview_controls_keyboard(branch: str) -> Dict[str, Any]:
         "inline_keyboard": [
             [{"text": "🔍 Открыть Preview", "url": preview_url_for(branch)}],
             [
-                {"text": "✏️ Заметка к ветке", "callback_data": f"pv_note:{short_slug}"},
+                {"text": "📥 Загружать файлы сюда", "callback_data": f"pv_use:{short_slug}"},
                 {"text": "🚀 Выкатить в main", "callback_data": f"pv_push:{short_slug}"},
             ],
-            [{"text": "🗑 Закрыть ветку", "callback_data": f"pv_close:{short_slug}"}],
+            [
+                {"text": "✏️ Заметка к ветке", "callback_data": f"pv_note:{short_slug}"},
+                {"text": "🗑 Закрыть ветку", "callback_data": f"pv_close:{short_slug}"},
+            ],
+            [{"text": "📦 Вернуть загрузку в main", "callback_data": "sys_use_main"}],
         ]
     }
 
@@ -340,21 +345,24 @@ def admin_panel_keyboard() -> Dict[str, Any]:
     }
 
 
-async def build_status_text(session: ClientSession) -> str:
+async def build_status_text(session: ClientSession, user_id: Optional[int] = None) -> str:
     main_sha = await get_branch_sha(session, MAIN_BRANCH) or "неизвестно"
     prev_sha = await get_previous_main_sha(session)
     previews = await list_preview_branches(session)
+    active_branch = ACTIVE_UPLOAD_BRANCH.get(user_id or ADMIN_ID, MAIN_BRANCH)
     uploader_info = get_uploader_status() if callable(get_uploader_status) else ""
     lines = [
         "🛠 <b>Панель управления Abhaz Band</b>",
         f"• Прод (<code>{html.escape(MAIN_BRANCH)}</code>): <code>{main_sha[:7]}</code>",
         f"• Точка отката: <code>{prev_sha[:7]}</code>" if prev_sha else "• Точка отката: нет данных",
+        f"• Ветка загрузки файлов: <code>{html.escape(active_branch)}</code>",
         f"• Активных preview-веток: <b>{len(previews)}</b>",
     ]
     for b in previews:
-        lines.append(f"  — <code>{html.escape(b)}</code>")
+        marker = " ✅" if b == active_branch else ""
+        lines.append(f"  — <code>{html.escape(b)}</code>{marker}")
     if uploader_info:
-        lines.append(f"• Загрузчик: <code>{html.escape(str(uploader_info)[:120])}</code>")
+        lines.append(uploader_info)
     return "\n".join(lines)
 
 
@@ -511,33 +519,18 @@ async def handle_document(session: ClientSession, message: dict):
             return
         raw_bytes = await f_resp.read()
 
-    pending = PENDING_INPUT.get(user_id, {})
-    target_branch = pending.get("branch")
+    target_branch = ACTIVE_UPLOAD_BRANCH.get(user_id, MAIN_BRANCH)
     file_name = doc.get("file_name", "unknown")
 
-    if target_branch and target_branch.startswith("preview/"):
-        if file_name.endswith(".py"):
-            try:
-                compile(raw_bytes.decode("utf-8"), file_name, "exec")
-            except Exception as exc:
-                await send_message(
-                    session,
-                    chat_id,
-                    f"⚠️ Ошибка синтаксиса в <code>{html.escape(file_name)}</code>:\n<code>{html.escape(str(exc))}</code>",
-                )
-                return
-        ok, msg = await upsert_file_in_branch(
-            session,
-            target_branch,
-            file_name.lstrip("/"),
-            raw_bytes,
-            f"Update {file_name} in {target_branch}",
-        )
-        await send_message(session, chat_id, msg, reply_markup=preview_controls_keyboard(target_branch))
-        return
-
-    report_text = await process_uploaded_file(session, file_name, raw_bytes, message.get("caption", ""))
-    await send_message(session, chat_id, report_text)
+    report_text = await process_uploaded_file(
+        session,
+        file_name,
+        raw_bytes,
+        message.get("caption", ""),
+        branch=target_branch,
+    )
+    markup = preview_controls_keyboard(target_branch) if target_branch.startswith("preview/") else None
+    await send_message(session, chat_id, report_text, reply_markup=markup)
 
 
 async def handle_text(session: ClientSession, message: dict):
@@ -564,6 +557,9 @@ async def handle_text(session: ClientSession, message: dict):
             if mode == "create_preview":
                 ok, msg = await create_preview_branch(session, text)
                 branch = f"preview/{slugify_branch(text)}"
+                if ok:
+                    ACTIVE_UPLOAD_BRANCH[user_id] = branch
+                    msg += "\n\n📥 <b>Все отправленные файлы теперь будут загружаться в эту preview-ветку.</b>"
                 markup = preview_controls_keyboard(branch) if ok else admin_panel_keyboard()
                 await send_message(session, chat_id, msg, reply_markup=markup)
                 return
@@ -596,6 +592,9 @@ async def handle_text(session: ClientSession, message: dict):
             async with ClientSession() as gh_session:
                 ok, msg = await create_preview_branch(gh_session, slug)
             branch = f"preview/{slugify_branch(slug)}"
+            if ok:
+                ACTIVE_UPLOAD_BRANCH[user_id] = branch
+                msg += "\n\n📥 <b>Все отправленные файлы теперь будут загружаться в эту preview-ветку.</b>"
             markup = preview_controls_keyboard(branch) if ok else admin_panel_keyboard()
             await send_message(session, chat_id, msg, reply_markup=markup)
             return
@@ -674,14 +673,18 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         else:
             lines = ["<b>Активные preview-ветки:</b>"]
             buttons = []
+            active_b = ACTIVE_UPLOAD_BRANCH.get(user_id, MAIN_BRANCH)
             for b in branches:
                 short = b[len("preview/") :]
-                lines.append(f"• <code>{html.escape(b)}</code>")
+                mark = " ✅" if b == active_b else ""
+                lines.append(f"• <code>{html.escape(b)}</code>{mark}")
                 buttons.append([
-                    {"text": f"🔍 {short}", "url": preview_url_for(b)},
+                    {"text": f"📥 {short}", "callback_data": f"pv_use:{short}"},
+                    {"text": "🔍", "url": preview_url_for(b)},
                     {"text": "🚀 В main", "callback_data": f"pv_push:{short}"},
                     {"text": "🗑", "callback_data": f"pv_close:{short}"},
                 ])
+            buttons.append([{"text": "📦 Переключить загрузку на main", "callback_data": "sys_use_main"}])
             buttons.append([{"text": "⬅️ Назад", "callback_data": "sys_status"}])
             await edit_message(session, chat_id, msg_id, "\n".join(lines), {"inline_keyboard": buttons})
         return
@@ -729,12 +732,34 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Жду текст заметки"})
         await send_message(session, chat_id, f"Напишите правку/заметку для <code>{html.escape(branch)}</code> следующим сообщением:")
         return
+    elif user_id == ADMIN_ID and data.startswith("pv_use:"):
+        short = data.split(":", 1)[1]
+        branch = f"preview/{short}"
+        ACTIVE_UPLOAD_BRANCH[user_id] = branch
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Загрузка → {branch}"})
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"📥 Активная ветка для загрузки файлов: <code>{html.escape(branch)}</code>\n\nОтправляй файлы прямо в чат — они пойдут в эту ветку, не трогая <code>{html.escape(MAIN_BRANCH)}</code>.",
+            preview_controls_keyboard(branch),
+        )
+        return
+    elif user_id == ADMIN_ID and data == "sys_use_main":
+        ACTIVE_UPLOAD_BRANCH[user_id] = MAIN_BRANCH
+        async with ClientSession() as gh_session:
+            st_text = await build_status_text(gh_session, user_id)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Загрузка → {MAIN_BRANCH}"})
+        await edit_message(session, chat_id, msg_id, st_text, admin_panel_keyboard())
+        return
     elif user_id == ADMIN_ID and data.startswith("pv_push:"):
         short = data.split(":", 1)[1]
         branch = f"preview/{short}"
         async with ClientSession() as gh_session:
             ok, msg_txt = await merge_preview_to_main(gh_session, branch)
-            st_text = await build_status_text(gh_session)
+            if ok and ACTIVE_UPLOAD_BRANCH.get(user_id) == branch:
+                ACTIVE_UPLOAD_BRANCH[user_id] = MAIN_BRANCH
+            st_text = await build_status_text(gh_session, user_id)
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Выложено" if ok else "Ошибка"})
         await edit_message(session, chat_id, msg_id, f"{msg_txt}\n\n{st_text}", admin_panel_keyboard())
         return
@@ -743,7 +768,9 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         branch = f"preview/{short}"
         async with ClientSession() as gh_session:
             ok, msg_txt = await close_preview_branch(gh_session, branch)
-            st_text = await build_status_text(gh_session)
+            if ok and ACTIVE_UPLOAD_BRANCH.get(user_id) == branch:
+                ACTIVE_UPLOAD_BRANCH[user_id] = MAIN_BRANCH
+            st_text = await build_status_text(gh_session, user_id)
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Закрыта" if ok else "Ошибка"})
         await edit_message(session, chat_id, msg_id, f"{msg_txt}\n\n{st_text}", admin_panel_keyboard())
         return
