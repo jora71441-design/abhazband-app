@@ -1,7 +1,9 @@
 import ast
+import asyncio
 import base64
 import html
 import os
+from typing import Optional
 from aiohttp import ClientSession
 
 # ==================== КОНФИГУРАЦИЯ GITHUB И RENDER ====================
@@ -12,7 +14,10 @@ GITHUB_BOT_REPO = os.getenv("GITHUB_BOT_REPO", GITHUB_APP_REPO).strip()
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main").strip()
 RENDER_DEPLOY_HOOK = os.getenv("RENDER_DEPLOY_HOOK", "").strip()
 
-# Автоматическая карта путей для фронтенда AbhazBand Mini App
+# Очередь коммитов для защиты от 409 при отправке нескольких файлов подряд
+UPLOAD_LOCK = asyncio.Lock()
+
+# Автоматическая карта путей для фронтенда Abhaz Band Mini App
 FRONTEND_PATH_MAP = {
     "index.html": "index.html",
     "style.css": "css/style.css",
@@ -68,9 +73,15 @@ def validate_python_syntax(filename: str, raw_bytes: bytes) -> tuple[bool, str]:
 
 
 async def upload_to_github(
-    session: ClientSession, repo: str, path: str, content_bytes: bytes, commit_message: str
+    session: ClientSession,
+    repo: str,
+    path: str,
+    content_bytes: bytes,
+    commit_message: str,
+    branch: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Получает текущий SHA файла (если существует) и создаёт коммит через GitHub Contents API."""
+    target_branch = (branch or GITHUB_BRANCH).strip()
     url = f"https://api.github.com/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -79,7 +90,7 @@ async def upload_to_github(
     }
 
     sha = None
-    async with session.get(url, headers=headers, params={"ref": GITHUB_BRANCH}) as resp:
+    async with session.get(url, headers=headers, params={"ref": target_branch}) as resp:
         if resp.status == 200:
             data = await resp.json()
             sha = data.get("sha")
@@ -90,7 +101,7 @@ async def upload_to_github(
     payload = {
         "message": commit_message,
         "content": base64.b64encode(content_bytes).decode("ascii"),
-        "branch": GITHUB_BRANCH,
+        "branch": target_branch,
     }
     if sha:
         payload["sha"] = sha
@@ -113,7 +124,11 @@ async def trigger_render_deploy(session: ClientSession) -> bool:
 
 
 async def process_uploaded_file(
-    session: ClientSession, filename: str, raw_bytes: bytes, caption: str = ""
+    session: ClientSession,
+    filename: str,
+    raw_bytes: bytes,
+    caption: str = "",
+    branch: Optional[str] = None,
 ) -> str:
     """Полный пайплайн обработки документа от администратора. Возвращает HTML-отчёт для Telegram."""
     if not GITHUB_TOKEN:
@@ -129,20 +144,29 @@ async def process_uploaded_file(
                 f"<code>{safe_err}</code>"
             )
 
+    target_branch = (branch or GITHUB_BRANCH).strip()
+    is_preview = target_branch.startswith("preview/")
     target_repo, target_path, need_redeploy = resolve_target(filename, caption)
-    commit_msg = f"Update {target_path} via @AbhazBand_bot"
+    commit_msg = f"Update {target_path} in {target_branch} via @AbhazBand_bot"
 
-    ok, info = await upload_to_github(session, target_repo, target_path, raw_bytes, commit_msg)
+    async with UPLOAD_LOCK:
+        ok, info = await upload_to_github(
+            session, target_repo, target_path, raw_bytes, commit_msg, branch=target_branch
+        )
+
     if not ok:
         return f"❌ <b>Сбой GitHub API:</b>\n<code>{html.escape(info)}</code>"
 
     lines = [
         "✅ <b>Файл успешно залит в репозиторий!</b>",
         f"📦 Репо: <code>{GITHUB_OWNER}/{target_repo}</code>",
-        f"📄 Путь: <code>{target_path}</code>",
+        f"🌿 Ветка: <code>{html.escape(target_branch)}</code>",
+        f"📄 Путь: <code>{html.escape(target_path)}</code>",
     ]
 
-    if need_redeploy:
+    if is_preview:
+        lines.append("🔍 <b>Preview-стенд:</b> обновится автоматически (~30 сек). Основной сайт (<code>main</code>) не затронут.")
+    elif need_redeploy:
         if RENDER_DEPLOY_HOOK:
             redeployed = await trigger_render_deploy(session)
             if redeployed:
@@ -162,6 +186,6 @@ def get_uploader_status() -> str:
     hook_status = "✅ подключён" if RENDER_DEPLOY_HOOK else "⚠️ не задан"
     return (
         f"• GitHub Token: {gh_status}\n"
-        f"• Репозиторий: <code>{GITHUB_OWNER}/{GITHUB_APP_REPO}</code> (ветка <code>{GITHUB_BRANCH}</code>)\n"
+        f"• Репозиторий: <code>{GITHUB_OWNER}/{GITHUB_APP_REPO}</code>\n"
         f"• Render Deploy Hook: {hook_status}"
     )
