@@ -394,9 +394,17 @@ async def edit_message(session: ClientSession, chat_id: int, message_id: int, te
 
 
 async def setup_bot_settings(session: ClientSession) -> dict:
-    """Автонастройка бота через Bot API 10.5 (включаем боковую панель тем)"""
+    """Автонастройка бота через Bot API 10.5 (включаем режим тем, боковую панель и создание тем)"""
     try:
-        res = await tg_request(session, "setMySettings", {"has_topic_sidebar": True})
+        res = await tg_request(
+            session,
+            "setMySettings",
+            {
+                "has_topics_enabled": True,
+                "has_topic_sidebar": True,
+                "allows_users_to_create_topics": True,
+            },
+        )
         logging.info(f"⚙️ Bot API 10.5 setMySettings: {res}")
         return res
     except Exception as e:
@@ -660,16 +668,16 @@ async def handle_text(session: ClientSession, message: dict):
                 return
 
         if text.startswith("/test_105"):
-            me_res = await tg_request(session, "getMe", {})
             set_res = await setup_bot_settings(session)
-            me_json = html.escape(json.dumps(me_res, ensure_ascii=False, indent=2)[:1500])
+            me_res = await tg_request(session, "getMe", {})
             set_json = html.escape(json.dumps(set_res, ensure_ascii=False, indent=2)[:1500])
+            me_json = html.escape(json.dumps(me_res, ensure_ascii=False, indent=2)[:1500])
             await send_message(
                 session,
                 chat_id,
                 f"🧪 <b>Диагностика Bot API 10.5</b>\n\n"
-                f"<b>setMySettings:</b>\n<pre>{set_json}</pre>\n\n"
-                f"<b>getMe (BotFullInfo):</b>\n<pre>{me_json}</pre>",
+                f"<b>1. setMySettings:</b>\n<pre>{set_json}</pre>\n\n"
+                f"<b>2. getMe (BotFullInfo):</b>\n<pre>{me_json}</pre>",
                 message_thread_id=thread_id,
             )
             return
