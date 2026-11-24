@@ -62,22 +62,29 @@ PENDING_INPUT: Dict[int, Dict[str, Any]] = {}
 PENDING_ROLLBACK: Dict[int, str] = {}
 
 
-# ==================== ОКНО КАЛЕНДАРЯ (2 БЛИЖАЙШИХ МЕСЯЦА) ====================
+# ==================== ОКНО КАЛЕНДАРЯ (4 МЕСЯЦА ВПЕРЁД) ====================
 def get_allowed_months() -> List[Tuple[int, int]]:
-    """Возвращает 2 ближайших месяца: текущий и следующий."""
+    """Возвращает 4 ближайших месяца: текущий и 3 следующих."""
     today = datetime.date.today()
-    y1, m1 = today.year, today.month
-    y2, m2 = (y1, m1 + 1) if m1 < 12 else (y1 + 1, 1)
-    return [(y1, m1), (y2, m2)]
+    months: List[Tuple[int, int]] = []
+    y, m = today.year, today.month
+    for _ in range(4):
+        months.append((y, m))
+        if m == 12:
+            y += 1
+            m = 1
+        else:
+            m += 1
+    return months
 
 
 def clamp_calendar_month(year: int, month: int) -> Tuple[int, int]:
-    """Ограничивает выбор месяца окном из 2 ближайших месяцев."""
+    """Ограничивает выбор месяца окном из 4 ближайших месяцев."""
     allowed = get_allowed_months()
     if (year, month) in allowed:
         return year, month
     first_y, first_m = allowed[0]
-    last_y, last_m = allowed[1]
+    last_y, last_m = allowed[-1]
     if (year, month) < (first_y, first_m):
         return first_y, first_m
     return last_y, last_m
@@ -107,7 +114,10 @@ def parse_js_data(js_text: str):
                     "desc": f"{s_str}{d_str}",
                 })
 
-    # 2. Парсинг Заездов (поддерживаем многодневные dates и оба стиля ключей в JS)
+    # 2. Парсинг Заездов:
+    # weekend / social -> красная кнопка ("danger"), маркер 🔴
+    # festival -> зелёная кнопка ("success"), маркер 🟢
+    # camp -> синяя кнопка ("primary"), маркер 🔵
     rides_match = re.search(r"const rides\s*=\s*\[(.*?)\];", js_text, re.DOTALL)
     if rides_match:
         chunks = re.split(r"(?:^|\n)\s*\{", rides_match.group(1))[1:]
@@ -123,7 +133,17 @@ def parse_js_data(js_text: str):
             pace = re.search(r'["\']?pace["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
 
             if title and dates_match:
-                emoji = "🔴" if type_match and type_match.group(1) == "weekend" else "🟢"
+                rtype = type_match.group(1) if type_match else "social"
+                if rtype == "camp":
+                    marker = "🔵"
+                    btn_style = "primary"
+                elif rtype == "festival":
+                    marker = "🟢"
+                    btn_style = "success"
+                else:
+                    marker = "🔴"
+                    btn_style = "danger"
+
                 date_keys = re.findall(r'["\'](\d{4}-\d{2}-\d{2})["\']', dates_match.group(1))
                 desc_parts = []
                 if dist and elev:
@@ -138,8 +158,11 @@ def parse_js_data(js_text: str):
 
                 for date_key in date_keys:
                     new_rides[date_key] = {
-                        "type": emoji,
+                        "type": marker,
+                        "style": btn_style,
+                        "rtype": rtype,
                         "title": title.group(1),
+                        "date_display": date_disp.group(1) if date_disp else date_key,
                         "desc": desc_full,
                     }
 
@@ -464,17 +487,39 @@ def get_overview_ui():
     return text, markup
 
 
+def _build_month_events_summary(year: int, month: int) -> List[str]:
+    """Собирает список уникальных событий за выбранный месяц с согласованными цветными метками."""
+    prefix = f"{year}-{month:02d}-"
+    seen_titles = set()
+    lines: List[str] = []
+    for date_key in sorted(RIDES_DATA.keys()):
+        if not date_key.startswith(prefix):
+            continue
+        item = RIDES_DATA[date_key]
+        sig = (item["type"], item["title"], item.get("date_display", ""))
+        if sig in seen_titles:
+            continue
+        seen_titles.add(sig)
+        disp = html.escape(item.get("date_display", date_key))
+        lines.append(f"{item['type']} <b>{disp}</b> — {html.escape(item['title'])}")
+    return lines
+
+
 def get_calendar_ui(year: int, month: int):
     year, month = clamp_calendar_month(year, month)
     allowed = get_allowed_months()
-    first_y, first_m = allowed[0]
-    last_y, last_m = allowed[1]
+    idx = allowed.index((year, month))
 
-    if (year, month) == (first_y, first_m):
-        prev_btn = {"text": "·", "callback_data": "cal_limit"}
-        next_btn = {"text": "▶️", "callback_data": f"nav_cal:{last_y}:{last_m}"}
+    if idx > 0:
+        py, pm = allowed[idx - 1]
+        prev_btn = {"text": "◀️", "callback_data": f"nav_cal:{py}:{pm}"}
     else:
-        prev_btn = {"text": "◀️", "callback_data": f"nav_cal:{first_y}:{first_m}"}
+        prev_btn = {"text": "·", "callback_data": "cal_limit"}
+
+    if idx < len(allowed) - 1:
+        ny, nm = allowed[idx + 1]
+        next_btn = {"text": "▶️", "callback_data": f"nav_cal:{ny}:{nm}"}
+    else:
         next_btn = {"text": "·", "callback_data": "cal_limit"}
 
     markup = {"inline_keyboard": []}
@@ -496,8 +541,14 @@ def get_calendar_ui(year: int, month: int):
             else:
                 date_str = f"{year}-{month:02d}-{day:02d}"
                 if date_str in RIDES_DATA:
-                    emoji = RIDES_DATA[date_str]["type"]
-                    row.append({"text": f"{emoji}{day}", "callback_data": f"view_ride:{date_str}"})
+                    ride_item = RIDES_DATA[date_str]
+                    btn: Dict[str, Any] = {
+                        "text": f"[{day}]",
+                        "callback_data": f"view_ride:{date_str}",
+                    }
+                    if ride_item.get("style"):
+                        btn["style"] = ride_item["style"]
+                    row.append(btn)
                 else:
                     row.append({"text": str(day), "callback_data": "ignore"})
         markup["inline_keyboard"].append(row)
@@ -507,11 +558,14 @@ def get_calendar_ui(year: int, month: int):
         {"text": "🗺 Полный календарь →", "web_app": {"url": f"{MINIAPP_URL}/?tab=calendar"}},
     ])
 
+    events_lines = _build_month_events_summary(year, month)
+    events_block = "\n".join(events_lines) if events_lines else "<i>В этом месяце запланированных выездов в списке пока нет.</i>"
+
     text = (
         f"📅 <b>КАЛЕНДАРЬ ЗАЕЗДОВ ({MONTH_NAMES[month]} {year})</b>\n\n"
-        "🔴 — Weekend Camp (2 дня)\n"
-        "🟢 — Social Ride (1 день)\n\n"
-        "<i>Показаны 2 ближайших месяца. Остальные даты — в полном календаре:</i>"
+        f"{events_block}\n\n"
+        "🔴 Выезды (Weekend / Social) • 🟢 Фестивали • 🔵 Кэмпы\n"
+        "<i>В сетке выделены даты [число]. Нажми на дату, чтобы открыть детали:</i>"
     )
     return text, markup
 
@@ -770,7 +824,7 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
             "answerCallbackQuery",
             {
                 "callback_query_id": cb_id,
-                "text": "В виджете показаны 2 ближайших месяца. Остальные даты — в кнопке «Полный календарь».",
+                "text": "В виджете показаны 4 ближайших месяца. Остальные даты — в кнопке «Полный календарь».",
                 "show_alert": False,
             },
         )
