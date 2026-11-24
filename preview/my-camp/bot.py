@@ -370,7 +370,7 @@ def preview_controls_keyboard(branch: str) -> Dict[str, Any]:
     short_slug = branch[len("preview/") :] if branch.startswith("preview/") else branch
     return {
         "inline_keyboard": [
-            [{"text": "🔍 Открыть Preview", "url": preview_url_for(branch)}],
+            [{"text": "🔍 Открыть Preview", "web_app": {"url": preview_url_for(branch)}}],
             [
                 {"text": "✏️ Заметка к ветке", "callback_data": f"pv_note:{short_slug}"},
                 {"text": "🚀 Выкатить в main", "callback_data": f"pv_push:{short_slug}"},
@@ -1119,7 +1119,7 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
                 short = b[len("preview/") :]
                 lines.append(f"• <code>{html.escape(b)}</code>")
                 buttons.append([
-                    {"text": f"🔍 {short}", "url": preview_url_for(b)},
+                    {"text": f"🔍 {short}", "web_app": {"url": preview_url_for(b)}},
                     {"text": "🚀 В main", "callback_data": f"pv_push:{short}"},
                     {"text": "🗑", "callback_data": f"pv_close:{short}"},
                 ])
