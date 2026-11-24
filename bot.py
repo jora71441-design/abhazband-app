@@ -394,7 +394,7 @@ async def edit_message(session: ClientSession, chat_id: int, message_id: int, te
 
 
 async def setup_bot_settings(session: ClientSession) -> dict:
-    """Автонастройка бота через Bot API 10.5 (включаем режим тем, боковую панель и создание тем)"""
+    """Автонастройка бота через Bot API 10.5 (включаем боковую панель, отключаем создание тем для обычных пользователей)"""
     try:
         res = await tg_request(
             session,
@@ -402,7 +402,7 @@ async def setup_bot_settings(session: ClientSession) -> dict:
             {
                 "has_topics_enabled": True,
                 "has_topic_sidebar": True,
-                "allows_users_to_create_topics": True,
+                "allows_users_to_create_topics": False,
             },
         )
         logging.info(f"⚙️ Bot API 10.5 setMySettings: {res}")
@@ -418,6 +418,7 @@ def get_overview_ui():
         "🏠 <b>Интерактивный виджет событий Abhaz Band</b>\n\n"
         "📅 <b>Календарь заездов</b> — узнать ближайшие даты;\n"
         "⛺ <b>Расписание кэмпов</b> — быстрый просмотр дат кэмпов;\n"
+        "🛠 <b>Полезные фичи</b> — онлайн bike-fit и другие полезности;\n"
         "🚀 <b>Открыть Abhaz Band Hub</b> — полная экосистема со всей информацией и возможностями;\n"
         "💬 <b>Вопрос организатору (@Piti4)</b> — прямая связь для любых вопросов.\n\n"
         "<i>Выбери раздел ниже:</i>"
@@ -426,9 +427,12 @@ def get_overview_ui():
         "inline_keyboard": [
             [
                 {"text": "📅 Календарь заездов", "callback_data": "nav_cal:2026:11"},
-                {"text": "⛺ Расписание кэмпов", "callback_data": "nav_camps:0"},
+                {"text": "🏕 Ближайшие кэмпы", "callback_data": "nav_camps:0"},
             ],
-            [{"text": "🚀 Открыть Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}}],
+            [
+                {"text": "🛠 Полезные фичи", "web_app": {"url": f"{MINIAPP_URL}/?tab=features"}},
+                {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
+            ],
             [{"text": "💬 Вопрос организатору (@Piti4)", "url": "https://t.me/Piti4"}],
         ]
     }
@@ -506,22 +510,23 @@ def get_camps_ui(idx: int):
 
     idx = idx % len(CAMPS_DATA)
     camp = CAMPS_DATA[idx]
+    badge = "🔥 Ближайший кэмп" if idx == 0 else f"Кэмп {idx + 1} из {len(CAMPS_DATA)}"
 
     text = (
-        f"⛺ <b>РАСПИСАНИЕ КЭМПОВ</b> ({idx + 1} из {len(CAMPS_DATA)})\n\n"
+        f"🏕 <b>{badge}</b>\n\n"
         f"<b>{camp['title']}</b>\n"
         f"📆 <b>Даты:</b> {camp['dates']}\n\n"
         f"{camp['desc']}"
     )
     markup = {
         "inline_keyboard": [
+            [{"text": "⛺ Забронировать место", "callback_data": f"book_camp:{idx}"}],
+            [{"text": "📖 Полный список кэмпов →", "web_app": {"url": f"{MINIAPP_URL}/?tab=camps"}}],
             [
                 {"text": "◀️", "callback_data": f"nav_camps:{(idx - 1) % len(CAMPS_DATA)}"},
-                {"text": "🏠 Обзор", "callback_data": "nav_overview"},
+                {"text": "🏠 В меню", "callback_data": "nav_overview"},
                 {"text": "▶️", "callback_data": f"nav_camps:{(idx + 1) % len(CAMPS_DATA)}"},
             ],
-            [{"text": "⛺ Забронировать место", "callback_data": f"book_camp:{idx}"}],
-            [{"text": "📖 Полная программа кэмпов →", "web_app": {"url": f"{MINIAPP_URL}/?tab=camps"}}],
         ]
     }
     return text, markup
@@ -538,38 +543,25 @@ async def handle_write_access(session: ClientSession, message: dict):
     inviter = waa.get("inviter") or {}
     inviter_id = inviter.get("id")
 
+    # Единое приветственное меню виджета с нужными кнопками
+    t, m = get_overview_ui()
+    await send_message(session, chat_id, t, reply_markup=m)
+
     if inviter_id == ADMIN_ID:
-        welcome_text = (
-            "👋 <b>Добро пожаловать в экосистему Abhaz Band!</b>\n\n"
-            "Ты подключился по личному приглашению организатора. Здесь собрано всё для кэмпов и выездов: "
-            "кабинет участника, треки, чек-лист сборов и памятка по Гагре.\n\n"
-            "<i>Выбери нужный раздел ниже:</i>"
-        )
-        markup = {
-            "inline_keyboard": [
-                [{"text": "🏕 Открыть «Мой кэмп»", "web_app": {"url": f"{MINIAPP_URL}/?tab=mycamp"}}],
-                [{"text": "📅 Календарь заездов", "callback_data": "nav_cal:2026:11"}],
-                [{"text": "💬 Связаться с @Piti4", "url": "https://t.me/Piti4"}],
-            ]
-        }
-        await send_message(session, chat_id, welcome_text, reply_markup=markup)
         await send_message(
             session,
             ADMIN_ID,
-            f"✅ <b>Новый участник по твоему botinvite!</b>\n• Райдер: {uname} (ID: <code>{user.get('id')}</code>)\n• Стартовый пакет Abhaz Band отправлен.",
+            f"✅ <b>Новый участник по твоему botinvite!</b>\n• Райдер: {uname} (ID: <code>{user.get('id')}</code>)\n• Приветственный виджет Abhaz Band отправлен.",
             message_thread_id=LEADS_TOPIC_ID,
         )
-    else:
-        t, m = get_overview_ui()
-        await send_message(session, chat_id, t, reply_markup=m)
-        if inviter_id:
-            inv_name = f"@{inviter['username']}" if inviter.get("username") else html.escape(inviter.get("first_name", str(inviter_id)))
-            await send_message(
-                session,
-                ADMIN_ID,
-                f"🤝 <b>Приглашение от участника клуба (botinvite)!</b>\n• Новый райдер: {uname}\n• Пригласил: {inv_name} (ID: <code>{inviter_id}</code>)",
-                message_thread_id=LEADS_TOPIC_ID,
-            )
+    elif inviter_id:
+        inv_name = f"@{inviter['username']}" if inviter.get("username") else html.escape(inviter.get("first_name", str(inviter_id)))
+        await send_message(
+            session,
+            ADMIN_ID,
+            f"🤝 <b>Приглашение от участника клуба (botinvite)!</b>\n• Новый райдер: {uname}\n• Пригласил: {inv_name} (ID: <code>{inviter_id}</code>)",
+            message_thread_id=LEADS_TOPIC_ID,
+        )
 
 
 async def handle_document(session: ClientSession, message: dict):
