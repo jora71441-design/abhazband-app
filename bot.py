@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import calendar
+import datetime
 import html
 import json
 import logging
@@ -61,20 +62,41 @@ PENDING_INPUT: Dict[int, Dict[str, Any]] = {}
 PENDING_ROLLBACK: Dict[int, str] = {}
 
 
+# ==================== ОКНО КАЛЕНДАРЯ (2 БЛИЖАЙШИХ МЕСЯЦА) ====================
+def get_allowed_months() -> List[Tuple[int, int]]:
+    """Возвращает 2 ближайших месяца: текущий и следующий."""
+    today = datetime.date.today()
+    y1, m1 = today.year, today.month
+    y2, m2 = (y1, m1 + 1) if m1 < 12 else (y1 + 1, 1)
+    return [(y1, m1), (y2, m2)]
+
+
+def clamp_calendar_month(year: int, month: int) -> Tuple[int, int]:
+    """Ограничивает выбор месяца окном из 2 ближайших месяцев."""
+    allowed = get_allowed_months()
+    if (year, month) in allowed:
+        return year, month
+    first_y, first_m = allowed[0]
+    last_y, last_m = allowed[1]
+    if (year, month) < (first_y, first_m):
+        return first_y, first_m
+    return last_y, last_m
+
+
 # ==================== ПАРСЕР ДАННЫХ ИЗ JS ====================
 def parse_js_data(js_text: str):
     new_camps = []
     new_rides = {}
 
     # 1. Парсинг Кэмпов
-    camps_match = re.search(r"const camps = \[(.*?)\];", js_text, re.DOTALL)
+    camps_match = re.search(r"const camps\s*=\s*\[(.*?)\];", js_text, re.DOTALL)
     if camps_match:
         blocks = re.findall(r"\{([^{}]*)\}", camps_match.group(1))
         for block in blocks:
-            title = re.search(r'title:\s*["\']([^"\']+)["\']', block)
-            dates = re.search(r'dates:\s*["\']([^"\']+)["\']', block)
-            desc = re.search(r'description:\s*["\'](.*?)["\']', block, re.DOTALL)
-            specs = re.search(r'specs:\s*["\'](.*?)["\']', block)
+            title = re.search(r'["\']?title["\']?\s*:\s*["\']([^"\']+)["\']', block)
+            dates = re.search(r'["\']?dates["\']?\s*:\s*["\']([^"\']+)["\']', block)
+            desc = re.search(r'["\']?description["\']?\s*:\s*["\'](.*?)["\']', block, re.DOTALL)
+            specs = re.search(r'["\']?specs["\']?\s*:\s*["\'](.*?)["\']', block)
 
             if title and dates:
                 s_str = f"{specs.group(1)} • " if specs and specs.group(1) else ""
@@ -85,34 +107,36 @@ def parse_js_data(js_text: str):
                     "desc": f"{s_str}{d_str}",
                 })
 
-    # 2. Парсинг Заездов
-    rides_match = re.search(r"const rides = \[(.*?)\];", js_text, re.DOTALL)
+    # 2. Парсинг Заездов (поддерживаем многодневные dates и оба стиля ключей в JS)
+    rides_match = re.search(r"const rides\s*=\s*\[(.*?)\];", js_text, re.DOTALL)
     if rides_match:
-        chunks = rides_match.group(1).split("id:")[1:]
+        chunks = re.split(r"(?:^|\n)\s*\{", rides_match.group(1))[1:]
         for chunk in chunks:
-            type_match = re.search(r'type:\s*["\']([^"\']+)["\']', chunk)
-            title = re.search(r'title:\s*["\']([^"\']+)["\']', chunk)
-            subtitle = re.search(r'subtitle:\s*["\'](.*?)["\']', chunk)
-            dates_match = re.search(r"dates:\s*\[(.*?)\]", chunk)
+            type_match = re.search(r'["\']?type["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            title = re.search(r'["\']?title["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            subtitle = re.search(r'["\']?subtitle["\']?\s*:\s*["\'](.*?)["\']', chunk)
+            date_disp = re.search(r'["\']?dateDisplay["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            dates_match = re.search(r'["\']?dates["\']?\s*:\s*\[(.*?)\]', chunk, re.DOTALL)
 
-            dist = re.search(r'distance:\s*["\']([^"\']+)["\']', chunk)
-            elev = re.search(r'elevation:\s*["\']([^"\']+)["\']', chunk)
-            pace = re.search(r'pace:\s*["\']([^"\']+)["\']', chunk)
+            dist = re.search(r'["\']?distance["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            elev = re.search(r'["\']?elevation["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            pace = re.search(r'["\']?pace["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
 
             if title and dates_match:
                 emoji = "🔴" if type_match and type_match.group(1) == "weekend" else "🟢"
-                date_str_match = re.search(r'["\']([^"\']+)["\']', dates_match.group(1))
-                if date_str_match:
-                    date_key = date_str_match.group(1)
-                    desc_parts = []
-                    if dist and elev:
-                        desc_parts.append(f"{dist.group(1)}, {elev.group(1)}")
-                    if pace:
-                        desc_parts.append(f"Темп {pace.group(1)}")
+                date_keys = re.findall(r'["\'](\d{4}-\d{2}-\d{2})["\']', dates_match.group(1))
+                desc_parts = []
+                if dist and elev:
+                    desc_parts.append(f"{dist.group(1)}, {elev.group(1)}")
+                if pace:
+                    desc_parts.append(f"Темп {pace.group(1)}")
+                if date_disp:
+                    desc_parts.append(date_disp.group(1))
 
-                    desc_header = " • ".join(desc_parts)
-                    desc_full = f"{desc_header}\n{subtitle.group(1) if subtitle else ''}"
+                desc_header = " • ".join(desc_parts)
+                desc_full = f"{desc_header}\n{subtitle.group(1) if subtitle else ''}".strip()
 
+                for date_key in date_keys:
                     new_rides[date_key] = {
                         "type": emoji,
                         "title": title.group(1),
@@ -414,6 +438,7 @@ async def setup_bot_settings(session: ClientSession) -> dict:
 
 # ==================== ГЕНЕРАТОРЫ ИНТЕРФЕЙСОВ ====================
 def get_overview_ui():
+    cur_y, cur_m = get_allowed_months()[0]
     text = (
         "🏠 <b>Интерактивный виджет событий Abhaz Band</b>\n\n"
         "📅 <b>Календарь заездов</b> — узнать ближайшие даты;\n"
@@ -426,7 +451,7 @@ def get_overview_ui():
     markup = {
         "inline_keyboard": [
             [
-                {"text": "📅 Календарь заездов", "callback_data": "nav_cal:2026:11"},
+                {"text": "📅 Календарь заездов", "callback_data": f"nav_cal:{cur_y}:{cur_m}"},
                 {"text": "🏕 Ближайшие кэмпы", "callback_data": "nav_camps:0"},
             ],
             [
@@ -440,17 +465,24 @@ def get_overview_ui():
 
 
 def get_calendar_ui(year: int, month: int):
-    prev_m = month - 1 if month > 1 else 12
-    prev_y = year if month > 1 else year - 1
-    next_m = month + 1 if month < 12 else 1
-    next_y = year if month < 12 else year + 1
+    year, month = clamp_calendar_month(year, month)
+    allowed = get_allowed_months()
+    first_y, first_m = allowed[0]
+    last_y, last_m = allowed[1]
+
+    if (year, month) == (first_y, first_m):
+        prev_btn = {"text": "·", "callback_data": "cal_limit"}
+        next_btn = {"text": "▶️", "callback_data": f"nav_cal:{last_y}:{last_m}"}
+    else:
+        prev_btn = {"text": "◀️", "callback_data": f"nav_cal:{first_y}:{first_m}"}
+        next_btn = {"text": "·", "callback_data": "cal_limit"}
 
     markup = {"inline_keyboard": []}
 
     markup["inline_keyboard"].append([
-        {"text": "◀️", "callback_data": f"nav_cal:{prev_y}:{prev_m}"},
+        prev_btn,
         {"text": f"{MONTH_NAMES[month].upper()} {year}", "callback_data": "ignore"},
-        {"text": "▶️", "callback_data": f"nav_cal:{next_y}:{next_m}"},
+        next_btn,
     ])
 
     markup["inline_keyboard"].append([{"text": d, "callback_data": "ignore"} for d in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]])
@@ -479,7 +511,7 @@ def get_calendar_ui(year: int, month: int):
         f"📅 <b>КАЛЕНДАРЬ ЗАЕЗДОВ ({MONTH_NAMES[month]} {year})</b>\n\n"
         "🔴 — Weekend Camp (2 дня)\n"
         "🟢 — Social Ride (1 день)\n\n"
-        "<i>Нажми на отмеченную дату, чтобы узнать маршрут и занять слот:</i>"
+        "<i>Показаны 2 ближайших месяца. Остальные даты — в полном календаре:</i>"
     )
     return text, markup
 
@@ -487,7 +519,8 @@ def get_calendar_ui(year: int, month: int):
 def get_ride_ui(date_str: str):
     ride = RIDES_DATA.get(date_str)
     if not ride:
-        return get_calendar_ui(int(date_str[:4]), int(date_str[5:7]))
+        cur_y, cur_m = get_allowed_months()[0]
+        return get_calendar_ui(cur_y, cur_m)
 
     text = (
         f"{ride['type']} <b>{ride['title']}</b>\n"
@@ -543,7 +576,6 @@ async def handle_write_access(session: ClientSession, message: dict):
     inviter = waa.get("inviter") or {}
     inviter_id = inviter.get("id")
 
-    # Единое приветственное меню виджета с нужными кнопками
     t, m = get_overview_ui()
     await send_message(session, chat_id, t, reply_markup=m)
 
@@ -730,6 +762,18 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
 
     if data == "ignore":
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+
+    if data == "cal_limit":
+        await tg_request(
+            session,
+            "answerCallbackQuery",
+            {
+                "callback_query_id": cb_id,
+                "text": "В виджете показаны 2 ближайших месяца. Остальные даты — в кнопке «Полный календарь».",
+                "show_alert": False,
+            },
+        )
         return
 
     if not msg:
