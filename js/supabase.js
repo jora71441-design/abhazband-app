@@ -193,3 +193,24 @@ async function startBroadcast() {
     btn.style.opacity = "1";
   }
 }
+
+// Получение подтверждённых слотов участника из Supabase
+async function fetchUserConfirmedSlots(telegramId) {
+  if (!supabaseClient || !telegramId) return [];
+  try {
+    const { data, error } = await supabaseClient
+      .from('user_slots')
+      .select('slot_id, slot_type, slot_title, status, created_at')
+      .eq('telegram_id', Number(telegramId))
+      .eq('status', 'confirmed')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Ошибка чтения user_slots:', error);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.warn('Ошибка fetchUserConfirmedSlots:', e);
+    return [];
+  }
+}
