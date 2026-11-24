@@ -10,6 +10,9 @@
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- Leaflet для визуализации GPX-треков -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Подключение вынесенных стилей -->
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -39,57 +42,60 @@
   <!-- ==================== ВКЛАДКА: МОЙ КЭМП ==================== -->
   <div id="my-camp-tab" class="tab-content">
     
-    <!-- 1. Экран блокировки по PIN-коду -->
+    <!-- 1. Гостевой экран (пока слот не подтверждён по Telegram ID) -->
     <div id="my-camp-locked" class="my-camp-lock-card">
       <div class="lock-header">
-        <div class="lock-badge">🔒 Закрытый раздел</div>
-        <h2 class="lock-title">Личный кабинет участника</h2>
-        <p class="lock-subtitle">Доступ только для участников кэмпов AbhazBand</p>
+        <div class="lock-badge">🔒 Личный кабинет участника</div>
+        <h2 class="lock-title">Мой кэмп & Выезды</h2>
+        <p class="lock-subtitle">Доступ открывается автоматически по твоему Telegram ID после подтверждения оплаты у @Piti4</p>
       </div>
 
       <div class="lock-features">
         <div class="feature-item">
           <span class="feature-icon">🗺️</span>
           <div>
-            <strong>GPX-маршруты и профили</strong>
-            <p>Полная выгрузка заездов по дням, высотные профили и точки отдыха</p>
+            <strong>Визуальные треки, Komoot & GPX</strong>
+            <p>Интерактивная карта маршрута, ссылка на Komoot и прямая выгрузка GPX для каждого выезда</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">⏰</span>
+          <div>
+            <strong>Тайминг & Логистика слота</strong>
+            <p>Персональный кабинет под твой формат: Social Ride, Weekend Camp или Полный кэмп</p>
           </div>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🎒</span>
           <div>
-            <strong>Интерактивный чек-лист</strong>
-            <p>Удобный список экипировки с галочками для комфортных сборов</p>
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon">📋</span>
-          <div>
-            <strong>Памятка & Инфо-гид</strong>
-            <p>Трансфер, тайминг, контакты гидов, точки встречи и правила кэмпа</p>
+            <strong>Чек-лист & Памятка Abhaz Band</strong>
+            <p>Удобный список сборов с галочками, локации, еда, связь и контакты</p>
           </div>
         </div>
       </div>
 
-      <div class="lock-action-box">
-        <label for="camp-pin-input" class="pin-label">Уже участвуешь? Введи PIN-код из чата:</label>
-        <div class="pin-input-group">
-          <input type="text" id="camp-pin-input" maxlength="10" placeholder="********" style="text-transform: uppercase;">
-          <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
-        </div>
-        <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
+      <div class="lock-cta" style="margin-bottom: 16px;">
+        <p>Уже оплатил слот или хочешь забронировать место?</p>
+        <a href="https://t.me/Piti4?text=%D0%9F%D1%80%D0%B8%D0%B2%D0%B5%D1%82!%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%B4%D1%82%D0%B2%D0%B5%D1%80%D0%B4%D0%B8%D1%82%D1%8C%20%D1%81%D0%BB%D0%BE%D1%82%20%D0%B8%20%D0%BE%D1%82%D0%BA%D1%80%D1%8B%D1%82%D1%8C%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF%20%D0%B2%20%D0%9C%D0%BE%D0%B9%20%D0%BA%D1%8D%D0%BC%D0%BF" target="_blank" class="btn-primary-camp">🚴 Подтвердить слот у @Piti4</a>
       </div>
 
-      <div class="lock-cta">
-        <p>Ещё не забронировал место?</p>
-        <a href="https://t.me/Piti4" target="_blank" class="btn-primary-camp">🚴 Забронировать участие</a>
-      </div>
+      <details style="text-align: left; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px;">
+        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer;">🔑 Есть клубный PIN-код? Войти вручную</summary>
+        <div style="margin-top: 10px;">
+          <div class="pin-input-group">
+            <input type="text" id="camp-pin-input" maxlength="10" placeholder="********" style="text-transform: uppercase;">
+            <button class="btn-unlock" onclick="unlockCamp()">Войти</button>
+          </div>
+          <div id="pin-error-msg" class="pin-error" style="display: none;">❌ Неверный PIN-код. Проверь код из чата.</div>
+        </div>
+      </details>
     </div>
 
-    <!-- 2. Кабинет участника -->
+    <!-- 2. Кабинет участника (динамический под купленные слоты) -->
     <div id="my-camp-unlocked" class="my-camp-dashboard" style="display: none;">
+      <div id="my-camp-slot-switcher" class="slot-switcher" style="display: none;"></div>
       <div class="camp-welcome-card">
-        <div class="status-pill">🔥 Активный кэмп</div>
+        <div id="camp-status-pill" class="status-pill">🔥 Активный кэмп</div>
         <h2 id="camp-title-display">Abhaz Band. Октябрь 2026</h2>
         <p id="camp-dates-display">📅 5 – 15 октября | Гагра/Сухум, Абхазия</p>
       </div>
