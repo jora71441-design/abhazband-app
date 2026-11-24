@@ -22,6 +22,8 @@ LEADS_TOPIC_ID: Optional[int] = int(os.getenv("LEADS_TOPIC_ID", "0")) or None
 MINIAPP_URL = os.getenv("MINIAPP_URL", "https://jora71441-design.github.io/abhazband-app/").strip().rstrip("/")
 DATA_JS_URL = "https://raw.githubusercontent.com/jora71441-design/abhazband-app/main/js/data.js"
 PORT = int(os.getenv("PORT", "10000"))
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 GITHUB_REPO = os.getenv("GITHUB_REPO", "jora71441-design/abhazband-app").strip()
@@ -106,10 +108,12 @@ def parse_js_data(js_text: str):
             desc = re.search(r"[\"\x27]?description[\"\x27]?\s*:\s*[\"\x27](.*?)[\"\x27]", block, re.DOTALL)
             specs = re.search(r"[\"\x27]?specs[\"\x27]?\s*:\s*[\"\x27](.*?)[\"\x27]", block)
 
+            cid = re.search(r'[\"\x27]?id[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]', block)
             if title and dates:
                 s_str = f"{specs.group(1)} • " if specs and specs.group(1) else ""
                 d_str = desc.group(1) if desc else ""
                 new_camps.append({
+                    "id": cid.group(1) if cid else f"camp_{len(new_camps)}",
                     "title": f"⛺ {title.group(1)}",
                     "dates": dates.group(1),
                     "desc": f"{s_str}{d_str}",
@@ -157,8 +161,11 @@ def parse_js_data(js_text: str):
                 desc_header = " • ".join(desc_parts)
                 desc_full = f"{desc_header}\n{subtitle.group(1) if subtitle else ''}".strip()
 
+                rid_match = re.search(r'[\"\x27]?id[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]', chunk)
+                ride_id = rid_match.group(1) if rid_match else f"ride_{date_keys[0] if date_keys else 'x'}"
                 for date_key in date_keys:
                     new_rides[date_key] = {
+                        "id": ride_id,
                         "type": marker,
                         "style": btn_style,
                         "rtype": rtype,
@@ -406,6 +413,60 @@ async def build_status_text(session: ClientSession) -> str:
     if uploader_info:
         lines.append(f"• Загрузчик: <code>{html.escape(str(uploader_info)[:120])}</code>")
     return "\n".join(lines)
+
+
+# ==================== SUPABASE: ПОДТВЕРЖДЁННЫЕ СЛОТЫ ====================
+def _sb_headers() -> Dict[str, str]:
+    return {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=representation",
+    }
+
+
+async def supabase_upsert_slot(
+    session: ClientSession,
+    telegram_id: int,
+    username: str,
+    slot_id: str,
+    slot_type: str,
+    slot_title: str,
+    status: str = "confirmed",
+) -> Tuple[bool, str]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False, "Не заданы SUPABASE_URL или SUPABASE_SERVICE_KEY на Render."
+    url = f"{SUPABASE_URL}/rest/v1/user_slots?on_conflict=telegram_id,slot_id"
+    payload = {
+        "telegram_id": int(telegram_id),
+        "username": username or "",
+        "slot_id": slot_id,
+        "slot_type": slot_type if slot_type in ("camp", "weekend", "social", "festival") else "social",
+        "slot_title": slot_title,
+        "status": status,
+    }
+    try:
+        async with session.post(url, headers=_sb_headers(), json=payload, timeout=15) as resp:
+            if resp.status in (200, 201):
+                return True, "OK"
+            txt = await resp.text()
+            return False, f"Supabase {resp.status}: {txt[:200]}"
+    except Exception as exc:
+        return False, str(exc)
+
+
+async def supabase_revoke_slot(session: ClientSession, telegram_id: int, slot_id: str) -> Tuple[bool, str]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False, "Не заданы SUPABASE_URL или SUPABASE_SERVICE_KEY на Render."
+    url = f"{SUPABASE_URL}/rest/v1/user_slots?telegram_id=eq.{int(telegram_id)}&slot_id=eq.{urllib.parse.quote(slot_id)}"
+    try:
+        async with session.patch(url, headers=_sb_headers(), json={"status": "rejected"}, timeout=15) as resp:
+            if resp.status in (200, 204):
+                return True, "OK"
+            txt = await resp.text()
+            return False, f"Supabase {resp.status}: {txt[:200]}"
+    except Exception as exc:
+        return False, str(exc)
 
 
 # ==================== TELEGRAM API HELPERS ====================
@@ -833,6 +894,63 @@ async def handle_text(session: ClientSession, message: dict):
                 )
             return
 
+        if text.startswith("/grant"):
+            parts = text.split(maxsplit=3)
+            if len(parts) < 3:
+                await send_message(
+                    session,
+                    chat_id,
+                    "Формат: <code>/grant &lt;telegram_id&gt; &lt;slot_id&gt; [camp|weekend|social]</code>\n"
+                    "Пример: <code>/grant 123456789 camp_ny_2027 camp</code>",
+                    message_thread_id=thread_id,
+                )
+                return
+            try:
+                target_uid = int(parts[1])
+            except ValueError:
+                await send_message(session, chat_id, "⚠️ telegram_id должен быть числом.", message_thread_id=thread_id)
+                return
+            slot_id = parts[2].strip()
+            slot_type = parts[3].strip().lower() if len(parts) >= 4 else (
+                "camp" if "camp" in slot_id else ("weekend" if "weekend" in slot_id or "dourtour" in slot_id else "social")
+            )
+            ok, err = await supabase_upsert_slot(session, target_uid, "", slot_id, slot_type, slot_id, "confirmed")
+            if ok:
+                await send_message(
+                    session,
+                    chat_id,
+                    f"✅ Доступ к слоту <code>{html.escape(slot_id)}</code> ({slot_type}) выдан пользователю <code>{target_uid}</code>.",
+                    message_thread_id=thread_id,
+                )
+                try:
+                    await send_message(
+                        session,
+                        target_uid,
+                        "✅ <b>Доступ в личный кабинет «Мой кэмп» открыт!</b>\nНажми кнопку ниже, чтобы открыть треки, тайминг и чек-лист:",
+                        reply_markup={"inline_keyboard": [[{"text": "🏕 Открыть Мой кэмп", "web_app": {"url": f"{MINIAPP_URL}/?tab=my-camp"}}]]},
+                    )
+                except Exception:
+                    pass
+            else:
+                await send_message(session, chat_id, f"⚠️ Ошибка Supabase: <code>{html.escape(err)}</code>", message_thread_id=thread_id)
+            return
+
+        if text.startswith("/revoke"):
+            parts = text.split(maxsplit=2)
+            if len(parts) < 3:
+                await send_message(session, chat_id, "Формат: <code>/revoke &lt;telegram_id&gt; &lt;slot_id&gt;</code>", message_thread_id=thread_id)
+                return
+            try:
+                target_uid = int(parts[1])
+            except ValueError:
+                await send_message(session, chat_id, "⚠️ telegram_id должен быть числом.", message_thread_id=thread_id)
+                return
+            slot_id = parts[2].strip()
+            ok, err = await supabase_revoke_slot(session, target_uid, slot_id)
+            msg_out = f"🚫 Доступ к <code>{html.escape(slot_id)}</code> отозван у <code>{target_uid}</code>." if ok else f"⚠️ Ошибка: <code>{html.escape(err)}</code>"
+            await send_message(session, chat_id, msg_out, message_thread_id=thread_id)
+            return
+
         if text.startswith("/panel"):
             async with ClientSession() as gh_session:
                 st_text = await build_status_text(gh_session)
@@ -911,20 +1029,72 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
     elif data.startswith("book_ride:") or data.startswith("book_camp:"):
         cat = "Заезд" if "ride" in data else "Кэмп"
         param = data.split(":")[1]
-        title = RIDES_DATA[param]["title"] if cat == "Заезд" else CAMPS_DATA[int(param)]["title"]
+        if cat == "Заезд":
+            r_obj = RIDES_DATA.get(param, {})
+            title = r_obj.get("title", param)
+            slot_id = r_obj.get("id", f"ride_{param}")
+            slot_type = r_obj.get("rtype", "social")
+        else:
+            c_obj = CAMPS_DATA[int(param)] if int(param) < len(CAMPS_DATA) else {}
+            title = c_obj.get("title", "Кэмп Abhaz Band")
+            slot_id = c_obj.get("id", f"camp_{param}")
+            slot_type = "camp"
+
+        req_uid = user.get("id")
         uname = f"@{user['username']}" if user.get("username") else html.escape(user.get("first_name", "Райдер"))
+        approve_markup = {
+            "inline_keyboard": [
+                [{"text": "✅ Подтвердить оплату (открыть доступ)", "callback_data": f"slot_ok:{req_uid}:{slot_type}:{slot_id[:28]}"}],
+                [{"text": "❌ Отклонить заявку", "callback_data": f"slot_no:{req_uid}:{slot_id[:28]}"}],
+            ]
+        }
 
         await send_message(
             session,
             ADMIN_ID,
-            f"🚴 <b>Новая заявка из пульта ({cat})!</b>\n• Программа: <b>{title}</b>\n• Участник: {uname} (ID: <code>{user.get('id')}</code>)",
+            f"🚴 <b>Новая заявка из пульта ({cat})!</b>\n"
+            f"• Программа: <b>{html.escape(title)}</b>\n"
+            f"• Слот ID: <code>{html.escape(slot_id)}</code>\n"
+            f"• Участник: {uname} (ID: <code>{req_uid}</code>)",
+            reply_markup=approve_markup,
             message_thread_id=LEADS_TOPIC_ID,
         )
         await tg_request(
             session,
             "answerCallbackQuery",
-            {"callback_query_id": cb_id, "text": "✅ Заявка отправлена! Организатор (@Piti4) свяжется с тобой.", "show_alert": True},
+            {"callback_query_id": cb_id, "text": "✅ Заявка отправлена! После подтверждения оплаты у @Piti4 откроется доступ в «Мой кэмп».", "show_alert": True},
         )
+        return
+    elif user_id == ADMIN_ID and data.startswith("slot_ok:"):
+        parts = data.split(":", 3)
+        if len(parts) == 4:
+            _, req_uid_s, s_type, s_id = parts
+            req_uid = int(req_uid_s)
+            orig_text = msg.get("text", "")
+            ok, err = await supabase_upsert_slot(session, req_uid, "", s_id, s_type, s_id, "confirmed")
+            if ok:
+                await edit_message(session, chat_id, msg_id, f"{html.escape(orig_text)}\n\n✅ <b>Оплата подтверждена — доступ в «Мой кэмп» открыт!</b>")
+                await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "✅ Доступ открыт!"})
+                try:
+                    await send_message(
+                        session,
+                        req_uid,
+                        "✅ <b>Оплата подтверждена!</b>\nДоступ в личный кабинет <b>«Мой кэмп»</b> открыт — внутри тебя ждут треки, тайминг, чек-лист и памятка.",
+                        reply_markup={"inline_keyboard": [[{"text": "🏕 Открыть Мой кэмп", "web_app": {"url": f"{MINIAPP_URL}/?tab=my-camp"}}]]},
+                    )
+                except Exception as exc:
+                    logging.warning(f"Не удалось уведомить участника {req_uid}: {exc}")
+            else:
+                await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Ошибка Supabase: {err[:100]}", "show_alert": True})
+        return
+    elif user_id == ADMIN_ID and data.startswith("slot_no:"):
+        parts = data.split(":", 2)
+        if len(parts) == 3:
+            _, req_uid_s, s_id = parts
+            await supabase_revoke_slot(session, int(req_uid_s), s_id)
+            orig_text = msg.get("text", "")
+            await edit_message(session, chat_id, msg_id, f"{html.escape(orig_text)}\n\n❌ <b>Заявка отклонена.</b>")
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Отклонено"})
         return
     elif user_id == ADMIN_ID and data == "sys_new_pv":
         PENDING_INPUT[user_id] = {"mode": "create_preview"}
