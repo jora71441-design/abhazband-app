@@ -1089,6 +1089,7 @@ function renderTracksList() {
         day: "5 ЯНВАРЯ (ХАШУПСЕ ИЛИ РИЦА)",
         title: "По Гагре в Хашупсинский каньон",
         trackKey: "khashupse_shosse",
+        gravelTrackKey: "khashupse_gravel",
         type: "Шоссе & Гравел",
         desc: "Поездка к Хашупсинскому каньону и прогулка по нему. Посещение города Цандрипш.<br>🕕 10:00 Выезд на маршрут | 🕕 15:00 Обед в Цандрипше | 🕕 18:00 Финиш.",
         stats: "🛣️ 107 км &nbsp;|&nbsp; ⛰️ +1 100 м &nbsp;|&nbsp; Асфальт 90%",
@@ -1134,6 +1135,7 @@ function renderTracksList() {
       day: "3 ЯНВАРЯ",
       title: "Пицундский маршрут",
       trackKey: "pitsunda_shosse",
+      gravelTrackKey: "pitsunda_gravel",
       type: "Шоссе & Гравел",
       desc: "Разминочная вкатка. Наслаждение красотами Пицунды, проезд через Реликтовый лес, Золотой берег, небольшие наборы.<br>🕕 11:00 Выезд на маршрут | 🕕 13:00 Кофе и перекус в ресторане Амшын | 🕕 16:00 Возвращение | 🕕 18:00 Ужин.",
       stats: "🛣️ 70 км &nbsp;|&nbsp; ⛰️ +290 м &nbsp;|&nbsp; Асфальт 100%",
@@ -1147,6 +1149,7 @@ function renderTracksList() {
       day: "4 ЯНВАРЯ",
       title: "Дорога на Лыхны/Мюссеру. Дополненный",
       trackKey: "lychny_mussera_shosse",
+      gravelTrackKey: "lychny_mussera_gravel",
       type: "Шоссе & Гравел",
       desc: "Один из любимейших маршрутов в новом исполнении. Дороги с околонулевым трафиком и отличные виды!<br>🕕 10:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
       stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ ~1 250 м &nbsp;|&nbsp; Асфальт 85%, грунты 15%",
@@ -1180,6 +1183,7 @@ function renderTracksList() {
       day: "9 ЯНВАРЯ",
       title: "Дорога к ИнгурГЭС",
       trackKey: "gal_ingur_ges_shosse",
+      gravelTrackKey: "gal_ingur_ges_gravel",
       type: "Шоссе & Гравел",
       desc: "Поездка на гидроэлектростанцию ИнгурГЭС и на границу с Грузией. Возвращение на базу в Сухум.<br>🕕 09:00 Выезд на маршрут | 🕕 15:00 Обед в кафе г. Гал | 🕕 18:00 Финиш маршрута.",
       stats: "🛣️ 140 км &nbsp;|&nbsp; ⛰️ +1 140 м &nbsp;|&nbsp; Асфальт 98%",
@@ -1222,9 +1226,10 @@ function renderTracksList() {
     const badgeId = `camp-day-badge-${idx}`;
     const hasRoute = item.km > 0;
     const meta = hasRoute ? resolveTrackMeta(item.trackKey || item.title, item.title) : null;
+    const gravelMeta = (hasRoute && item.gravelTrackKey) ? resolveTrackMeta(item.gravelTrackKey, item.title + ' гравел') : null;
     if (hasRoute) {
       window.__campDayMetas[idx] = meta;
-      mapsToInit.push({ mapId, badgeId, meta, title: item.title });
+      mapsToInit.push({ mapId, badgeId, meta, gravelMeta, title: item.title });
     }
 
     return `
@@ -1250,7 +1255,10 @@ function renderTracksList() {
             ${item.links.map(l => `
               <a href="${l.url}" target="_blank" class="btn-track-komoot">${l.label}</a>
             `).join('')}
-            ${hasRoute ? `<button class="btn-track-gpx" id="dl-gpx-${mapId}">⬇️ Скачать GPX</button>` : ''}
+            ${hasRoute ? (gravelMeta ? `
+              <button class="btn-track-gpx" id="dl-gpx-road-${mapId}">⬇️ GPX Шоссе</button>
+              <button class="btn-track-gpx" id="dl-gpx-gravel-${mapId}">⬇️ GPX Гравел</button>
+            ` : `<button class="btn-track-gpx" id="dl-gpx-${mapId}">⬇️ Скачать GPX</button>`) : ''}
           </div>
         ` : ''}
       </div>
@@ -1262,8 +1270,15 @@ function renderTracksList() {
   setTimeout(() => {
     mapsToInit.forEach(m => {
       initTrackMap(m.mapId, m.meta, m.badgeId);
-      const btn = document.getElementById('dl-gpx-' + m.mapId);
-      if (btn) btn.onclick = () => downloadDynamicGpx(m.meta.key, m.title, m.meta);
+      if (m.gravelMeta) {
+        const btnRoad = document.getElementById('dl-gpx-road-' + m.mapId);
+        if (btnRoad) btnRoad.onclick = () => downloadDynamicGpx(m.meta.key, m.title + ' (Шоссе)', m.meta);
+        const btnGravel = document.getElementById('dl-gpx-gravel-' + m.mapId);
+        if (btnGravel) btnGravel.onclick = () => downloadDynamicGpx(m.gravelMeta.key, m.title + ' (Гравел)', m.gravelMeta);
+      } else {
+        const btn = document.getElementById('dl-gpx-' + m.mapId);
+        if (btn) btn.onclick = () => downloadDynamicGpx(m.meta.key, m.title, m.meta);
+      }
     });
   }, 80);
 }
