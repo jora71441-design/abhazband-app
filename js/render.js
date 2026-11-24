@@ -561,7 +561,7 @@ const TRACKS_REGISTRY = {
   ritsa_shosse: {
     label: 'Рицинский заповедник — Шоссе',
     gpxFile: 'Gpx/ritsa_shosse.gpx',
-    status: 'check_ext',
+    status: 'ready',
     defaultKomoot: 'https://www.komoot.com/tour/2163164931?ref=aso&share_token=am16MyeqIuonAwi1Zh2WT8TyeaoCEqAbKODb5gr9ftyqcG1M5u&t_s=referral&t_cid=route_share',
     coords: [[43.2785, 40.2654], [43.2350, 40.3520], [43.3560, 40.4250], [43.4740, 40.5330], [43.3560, 40.4250], [43.2785, 40.2654]],
     keywords: ['риц', 'заповедник', 'юпшар']
@@ -700,8 +700,7 @@ async function loadTrackCoordsDynamic(meta) {
 function buildGpxXml(title, coords) {
   const pts = (coords || TRACKS_REGISTRY.pitsunda_shosse.coords)
     .map(c => `      <trkpt lat="${c[0]}" lon="${c[1]}"></trkpt>`)
-    .join('
-');
+    .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Abhaz Band Hub" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
@@ -809,7 +808,7 @@ function openFullscreenMap(title, meta) {
   const actionsEl = document.getElementById('gpx-fs-actions');
   actionsEl.innerHTML = `
     <a href="${meta.defaultKomoot}" target="_blank" class="btn-track-komoot">🗺️ Открыть в Komoot</a>
-    <button onclick="downloadDynamicGpx('${meta.key}', '${(title || '').replace(/'/g, "\'")}', currentFullscreenTrack.meta)" class="btn-track-gpx">⬇️ Скачать GPX</button>
+    <button onclick="downloadDynamicGpx('${meta.key}', '${(title || '').replace(/'/g, "\\'")}', currentFullscreenTrack.meta)" class="btn-track-gpx">⬇️ Скачать GPX</button>
   `;
 
   setTimeout(() => {
@@ -1017,7 +1016,7 @@ function renderRideSlotDashboard(container, slot) {
         <div style="font-size:11px; color:#38bdf8; font-weight:bold;">🗺️ ИНТЕРАКТИВНЫЙ ТРЕК МАРШРУТА</div>
         <div style="display:flex;gap:6px;align-items:center;">
           <span id="${badgeId}" style="font-size:9px;background:rgba(56,189,248,0.15);color:#38bdf8;padding:2px 6px;border-radius:4px;font-weight:700;">OSM</span>
-          <button onclick="openFullscreenMap('${title.replace(/'/g, "\'")}', window.__activeSlotMeta)" style="background:#0f172a;color:#fff;border:1px solid #475569;border-radius:6px;padding:2px 7px;font-size:10px;cursor:pointer;">⛶ На весь экран</button>
+          <button onclick="openFullscreenMap('${title.replace(/'/g, "\\'")}', window.__activeSlotMeta)" style="background:#0f172a;color:#fff;border:1px solid #475569;border-radius:6px;padding:2px 7px;font-size:10px;cursor:pointer;">⛶ На весь экран</button>
         </div>
       </div>
       <h4 style="margin:0 0 6px 0; color:#fff; font-size:14px;">${title}</h4>
@@ -1242,7 +1241,7 @@ function renderTracksList() {
         <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">${item.stats}</div>
         ${hasRoute ? `
           <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-            <button onclick="openFullscreenMap('${item.title.replace(/'/g, "'")}', window.__campDayMetas[${idx}])" style="background:#0f172a;color:#38bdf8;border:1px solid #334155;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;">⛶ На весь экран</button>
+            <button onclick="openFullscreenMap('${item.title.replace(/'/g, "\\'")}', window.__campDayMetas[${idx}])" style="background:#0f172a;color:#38bdf8;border:1px solid #334155;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;">⛶ На весь экран</button>
           </div>
           <div id="${mapId}" class="track-map-box"></div>
         ` : ''}
