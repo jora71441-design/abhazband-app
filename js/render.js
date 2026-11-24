@@ -483,15 +483,113 @@ function renderVelouyutUI() {
   `).join('');
 }
 
-// ==================== ЛОГИКА КАБИНЕТА «МОЙ КЭМП» ====================
-function checkCampAccessOnLoad() {
+// ==================== ЛОГИКА КАБИНЕТА «МОЙ КЭМП» (СЛОТЫ + ВИЗУАЛЬНЫЕ ТРЕКИ) ====================
+let userConfirmedSlots = [];
+let activeUserSlot = null;
+const activeLeafletMaps = {};
+
+// Базовые координаты ключевых маршрутов Абхазии для визуализации трека на карте и генерации GPX
+const ROUTE_COORDS_PRESETS = {
+  pitsunda: [[43.2785, 40.2654], [43.2250, 40.3120], [43.1610, 40.3400], [43.1530, 40.3480], [43.2250, 40.3120], [43.2785, 40.2654]],
+  mussera: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.1765, 40.5560], [43.2785, 40.2654], [43.3935, 40.0085]],
+  gagra: [[43.2785, 40.2654], [43.3260, 40.2230], [43.3320, 40.2140], [43.2950, 40.2600], [43.2785, 40.2654]],
+  ritsa: [[43.2785, 40.2654], [43.2350, 40.3520], [43.3560, 40.4250], [43.4740, 40.5330], [43.3560, 40.4250], [43.2785, 40.2654]],
+  sukhum: [[43.0015, 41.0234], [43.0580, 41.0720], [43.0850, 40.8380], [43.0015, 41.0234]],
+  transit: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0850, 40.8380], [43.0015, 41.0234]],
+  ingur: [[43.0015, 41.0234], [42.7120, 41.4680], [42.6270, 41.7380], [42.7590, 42.0320], [42.6270, 41.7380], [43.0015, 41.0234]],
+  tkuarchal: [[43.0015, 41.0234], [42.7120, 41.4680], [42.8510, 41.6820], [42.8780, 41.7550], [42.7120, 41.4680], [43.0015, 41.0234]]
+};
+
+function getCoordsForTitle(title) {
+  const t = (title || '').toLowerCase();
+  if (t.includes('ингур') || t.includes('гал') || t.includes('очамчыр')) return ROUTE_COORDS_PRESETS.ingur;
+  if (t.includes('мюссер') || t.includes('лыхн') || t.includes('форел')) return ROUTE_COORDS_PRESETS.mussera;
+  if (t.includes('риц')) return ROUTE_COORDS_PRESETS.ritsa;
+  if (t.includes('пицунд')) return ROUTE_COORDS_PRESETS.pitsunda;
+  if (t.includes('ткуарчал') || t.includes('акармар')) return ROUTE_COORDS_PRESETS.tkuarchal;
+  if (t.includes('транзит')) return ROUTE_COORDS_PRESETS.transit;
+  if (t.includes('сухум') || t.includes('афон')) return ROUTE_COORDS_PRESETS.sukhum;
+  return ROUTE_COORDS_PRESETS.gagra;
+}
+
+function downloadRouteGpx(filename, title, coords) {
+  const pts = (coords || ROUTE_COORDS_PRESETS.gagra)
+    .map(c => `      <trkpt lat="${c[0]}" lon="${c[1]}"></trkpt>`)
+    .join('\n');
+  const gpxXml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Abhaz Band Hub" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${(title || 'Abhaz Band Route').replace(/[<>&]/g, '')}</name>
+    <trkseg>
+${pts}
+    </trkseg>
+  </trk>
+</gpx>`;
+  const blob = new Blob([gpxXml], { type: 'application/gpx+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (filename || 'abhazband_route') + '.gpx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function initTrackMap(mapId, coords) {
+  if (typeof L === 'undefined') return;
+  const el = document.getElementById(mapId);
+  if (!el) return;
+  if (activeLeafletMaps[mapId]) {
+    try { activeLeafletMaps[mapId].remove(); } catch (e) {}
+  }
+  const pts = coords && coords.length > 1 ? coords : ROUTE_COORDS_PRESETS.gagra;
+  const map = L.map(mapId, { zoomControl: false, attributionControl: false, dragging: true, scrollWheelZoom: false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 16 }).addTo(map);
+  const poly = L.polyline(pts, { color: '#38bdf8', weight: 3.5, opacity: 0.95 }).addTo(map);
+  L.circleMarker(pts[0], { radius: 5, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(map);
+  L.circleMarker(pts[pts.length - 1], { radius: 5, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }).addTo(map);
+  map.fitBounds(poly.getBounds(), { padding: [18, 18] });
+  activeLeafletMaps[mapId] = map;
+}
+
+async function checkCampAccessOnLoad() {
   try {
+    const userId = (typeof tgUser !== 'undefined' && tgUser?.id)
+      ? Number(tgUser.id)
+      : Number(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0);
+
+    let slots = [];
+    if (userId && typeof fetchUserConfirmedSlots === 'function') {
+      slots = await fetchUserConfirmedSlots(userId);
+    }
+
+    // Для администратора добавляем быстрый предпросмотр всех 3 уровней доступа
+    const isAdmin = typeof BROADCAST_ADMIN_ID !== 'undefined' && userId === Number(BROADCAST_ADMIN_ID);
+    if (isAdmin && slots.length === 0) {
+      slots = [
+        { slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Новогодний кэмп Abhaz Band 2027' },
+        { slot_id: 'weekend_nov_28_29', slot_type: 'weekend', slot_title: 'Сухум — Очамчыра — Гал — ИнгурГЭС' },
+        { slot_id: 'social_dec_5', slot_type: 'social', slot_title: 'Псоу — Мюссера — Форелевое хозяйство' }
+      ];
+    }
+
+    if (slots.length > 0) {
+      userConfirmedSlots = slots;
+      activeUserSlot = slots[0];
+      showUnlockedCamp();
+      return;
+    }
+
+    // Резервный вход по клубному PIN-коду
     const savedPin = localStorage.getItem('abhaz_camp_pin');
     if (savedPin === CAMP_SECRET_PIN) {
+      userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Abhaz Band. Октябрь 2026' }];
+      activeUserSlot = userConfirmedSlots[0];
       showUnlockedCamp();
     }
-  } catch(e) {
-    console.error('Ошибка проверки PIN:', e);
+  } catch (e) {
+    console.error('Ошибка проверки доступа в Мой кэмп:', e);
   }
 }
 
@@ -505,12 +603,68 @@ function unlockCamp() {
   if (val === CAMP_SECRET_PIN) {
     localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
     if (errorMsg) errorMsg.style.display = 'none';
+    userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Abhaz Band. Октябрь 2026' }];
+    activeUserSlot = userConfirmedSlots[0];
     showUnlockedCamp();
   } else {
     if (errorMsg) errorMsg.style.display = 'block';
     if (window.Telegram?.WebApp?.HapticFeedback) {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
     }
+  }
+}
+
+function selectActiveUserSlot(slotId) {
+  const found = userConfirmedSlots.find(s => s.slot_id === slotId);
+  if (!found) return;
+  activeUserSlot = found;
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+  }
+  renderSlotSwitcher();
+  updateCampHeaderForSlot();
+  renderTracksList();
+}
+
+function renderSlotSwitcher() {
+  const box = document.getElementById('my-camp-slot-switcher');
+  if (!box) return;
+  if (userConfirmedSlots.length <= 1) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'flex';
+  const iconMap = { camp: '🏕️', weekend: '🔴', social: '🟢', festival: '🏆' };
+  box.innerHTML = userConfirmedSlots.map(s => {
+    const isAct = activeUserSlot && activeUserSlot.slot_id === s.slot_id;
+    const icon = iconMap[s.slot_type] || '🚴';
+    const shortName = (s.slot_title || s.slot_id).slice(0, 22);
+    return `<button class="slot-pill ${isAct ? 'active' : ''}" onclick="selectActiveUserSlot('${s.slot_id}')">${icon} ${shortName}</button>`;
+  }).join('');
+}
+
+function updateCampHeaderForSlot() {
+  const pill = document.getElementById('camp-status-pill');
+  const titleEl = document.getElementById('camp-title-display');
+  const datesEl = document.getElementById('camp-dates-display');
+  if (!activeUserSlot) return;
+
+  const sType = activeUserSlot.slot_type || 'camp';
+  const matchedRide = (typeof rides !== 'undefined') ? rides.find(r => r.id === activeUserSlot.slot_id) : null;
+  const matchedCamp = (typeof camps !== 'undefined') ? camps.find(c => c.id === activeUserSlot.slot_id) : null;
+
+  if (sType === 'weekend') {
+    if (pill) { pill.innerText = '🔴 Weekend Camp (2 дня)'; pill.style.background = '#ef4444'; }
+    if (titleEl) titleEl.innerText = matchedRide ? matchedRide.title : (activeUserSlot.slot_title || 'Abhaz Band Weekend');
+    if (datesEl) datesEl.innerText = matchedRide ? `📅 ${matchedRide.dateDisplay} | ${matchedRide.stats?.distance || ''}` : '📅 2 дня | Абхазия';
+  } else if (sType === 'social' || sType === 'festival') {
+    if (pill) { pill.innerText = sType === 'festival' ? '🏆 Фестиваль / Гонка' : '🟢 Social Ride (1 день)'; pill.style.background = '#10b981'; }
+    if (titleEl) titleEl.innerText = matchedRide ? matchedRide.title : (activeUserSlot.slot_title || 'Abhaz Band Social Ride');
+    if (datesEl) datesEl.innerText = matchedRide ? `📅 ${matchedRide.dateDisplay} | ${matchedRide.stats?.distance || ''}` : '📅 1 день | Абхазия';
+  } else {
+    if (pill) { pill.innerText = '🔥 Полный кэмп Abhaz Band'; pill.style.background = '#38bdf8'; pill.style.color = '#0f172a'; }
+    if (titleEl) titleEl.innerText = matchedCamp ? matchedCamp.title : (activeUserSlot.slot_title || 'Новогодний кэмп Abhaz Band 2027');
+    if (datesEl) datesEl.innerText = matchedCamp ? `📅 ${matchedCamp.dates} | ${matchedCamp.location}` : '📅 Гагра / Сухум, Абхазия';
   }
 }
 
@@ -521,6 +675,8 @@ function showUnlockedCamp() {
   if (lockCard) lockCard.style.display = 'none';
   if (unlockedDash) unlockedDash.style.display = 'block';
 
+  renderSlotSwitcher();
+  updateCampHeaderForSlot();
   renderTracksList();
   renderChecklistUI();
   renderMemoUI();
@@ -534,9 +690,65 @@ function updateCampOption(key, val) {
   renderTracksList();
 }
 
+function renderRideSlotDashboard(container, slot) {
+  const matchedRide = (typeof rides !== 'undefined') ? rides.find(r => r.id === slot.slot_id) : null;
+  const title = matchedRide ? matchedRide.title : (slot.slot_title || 'Выезд Abhaz Band');
+  const coords = getCoordsForTitle(title);
+  const mapId = 'slot-track-map-' + slot.slot_id.replace(/[^a-zA-Z0-9]/g, '_');
+  const komootUrl = matchedRide?.komootUrl || 'https://www.komoot.com/tour/2163164931';
+
+  const statsHtml = matchedRide?.stats ? `
+    <div class="sheet-metrics-grid" style="margin-bottom:14px;">
+      <div class="sheet-metric-box"><span class="sheet-metric-label">🛣️ Дистанция</span><span class="sheet-metric-val">${matchedRide.stats.distance}</span></div>
+      <div class="sheet-metric-box"><span class="sheet-metric-label">⛰️ Набор высоты</span><span class="sheet-metric-val">${matchedRide.stats.elevation}</span></div>
+      <div class="sheet-metric-box"><span class="sheet-metric-label">⚡ Темп</span><span class="sheet-metric-val">${matchedRide.stats.pace}</span></div>
+      <div class="sheet-metric-box"><span class="sheet-metric-label">🛤️ Покрытие</span><span class="sheet-metric-val">${matchedRide.stats.surface}</span></div>
+    </div>
+  ` : '';
+
+  const timingHtml = matchedRide?.timing ? `
+    <div class="card" style="background:#1e293b; padding:12px; border-radius:12px; margin-bottom:14px; border:1px solid #334155;">
+      <div class="sheet-section-title" style="margin-top:0;">⏰ Тайминг & Логистика</div>
+      ${matchedRide.timing.map(t => `
+        <div class="sheet-timing-item">
+          <span class="sheet-time-tag">${t.time}</span>
+          <span class="sheet-timing-desc">${t.text}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  container.innerHTML = `
+    ${statsHtml}
+    <div class="card" style="background:#1e293b; padding:12px; border-radius:12px; margin-bottom:14px; border-left:4px solid #38bdf8;">
+      <div style="font-size:11px; color:#38bdf8; font-weight:bold; margin-bottom:4px;">🗺️ ИНТЕРАКТИВНЫЙ ТРЕК МАРШРУТА</div>
+      <h4 style="margin:0 0 6px 0; color:#fff; font-size:14px;">${title}</h4>
+      <div id="${mapId}" class="track-map-box"></div>
+      <div class="track-actions-row">
+        <a href="${komootUrl}" target="_blank" class="btn-track-komoot">🗺️ Открыть в Komoot</a>
+        <button class="btn-track-gpx" id="dl-gpx-${mapId}">⬇️ Скачать GPX</button>
+      </div>
+    </div>
+    ${timingHtml}
+  `;
+
+  setTimeout(() => {
+    initTrackMap(mapId, coords);
+    const dlBtn = document.getElementById('dl-gpx-' + mapId);
+    if (dlBtn) {
+      dlBtn.onclick = () => downloadRouteGpx(slot.slot_id, title, coords);
+    }
+  }, 60);
+}
+
 function renderTracksList() {
   const container = document.getElementById('gpx-tracks-list');
   if (!container) return;
+
+  if (activeUserSlot && activeUserSlot.slot_type !== 'camp') {
+    renderRideSlotDashboard(container, activeUserSlot);
+    return;
+  }
 
   let html = `
     <div style="background: #0f172a; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #334155;">
@@ -566,7 +778,7 @@ function renderTracksList() {
       title: "📆 Дни приезда & Сборка велосипедов",
       type: "Оргдень",
       desc: "Встреча участников, совместная сборка байков.<br>🕕 <b>20:00</b> — Вечерний ужин команды.",
-      stats: "📍 База AbhazBand",
+      stats: "📍 База Abhaz Band",
       km: 0, gain: 0
     },
     {
@@ -728,26 +940,44 @@ function renderTracksList() {
     </div>
   `;
 
-  html += schedule.map(item => `
-    <div class="card" style="border-left: 4px solid ${item.km > 0 ? '#38bdf8' : '#64748b'}; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <div style="font-size:10px; color:#38bdf8; font-weight:bold;">${item.day}</div>
-        <span style="font-size:9px; background:rgba(255,255,255,0.1); color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">${item.type}</span>
-      </div>
-      <h4 style="margin:2px 0 6px 0; color:#fff; font-size:14px;">${item.title}</h4>
-      <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0; line-height: 1.4;">${item.desc}</p>
-      <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">${item.stats}</div>
-      ${item.links ? `
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          ${item.links.map(l => `
-            <a href="${l.url}" target="_blank" class="btn-primary-camp" style="font-size:10px; padding:5px 10px; text-decoration:none;">${l.label}</a>
-          `).join('')}
+  const mapsToInit = [];
+  html += schedule.map((item, idx) => {
+    const mapId = `camp-day-map-${idx}`;
+    const hasRoute = item.km > 0;
+    const coords = hasRoute ? getCoordsForTitle(item.title) : null;
+    if (hasRoute) mapsToInit.push({ mapId, coords, title: item.title });
+
+    return `
+      <div class="card" style="border-left: 4px solid ${hasRoute ? '#38bdf8' : '#64748b'}; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div style="font-size:10px; color:#38bdf8; font-weight:bold;">${item.day}</div>
+          <span style="font-size:9px; background:rgba(255,255,255,0.1); color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">${item.type}</span>
         </div>
-      ` : ''}
-    </div>
-  `).join('');
+        <h4 style="margin:2px 0 6px 0; color:#fff; font-size:14px;">${item.title}</h4>
+        <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0; line-height: 1.4;">${item.desc}</p>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">${item.stats}</div>
+        ${hasRoute ? `<div id="${mapId}" class="track-map-box"></div>` : ''}
+        ${item.links ? `
+          <div class="track-actions-row">
+            ${item.links.map(l => `
+              <a href="${l.url}" target="_blank" class="btn-track-komoot">${l.label}</a>
+            `).join('')}
+            ${hasRoute ? `<button class="btn-track-gpx" id="dl-gpx-${mapId}">⬇️ Скачать GPX</button>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
 
   container.innerHTML = html;
+
+  setTimeout(() => {
+    mapsToInit.forEach(m => {
+      initTrackMap(m.mapId, m.coords);
+      const btn = document.getElementById('dl-gpx-' + m.mapId);
+      if (btn) btn.onclick = () => downloadRouteGpx(m.mapId, m.title, m.coords);
+    });
+  }, 80);
 }
 
 // ==================== ЧЕК-ЛИСТ УЧАСТНИКА ====================
