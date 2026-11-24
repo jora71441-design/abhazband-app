@@ -546,7 +546,7 @@ const TRACKS_REGISTRY = {
     label: 'Хашупсинский каньон — Шоссе',
     gpxFile: 'Gpx/khashupse_shosse.gpx',
     status: 'ready',
-    defaultKomoot: 'https://www.komoot.com',
+    defaultKomoot: 'https://www.komoot.com/tour/2007571282?ref=aso&share_token=aj8F9wH1K5myg1aMjSzHpuKfilaUzAmfAP5Wb2H5nj0dnHYLNG&t_s=referral&t_cid=route_share',
     coords: [[43.2785, 40.2654], [43.3680, 40.1650], [43.4020, 40.1280], [43.3680, 40.1650], [43.2785, 40.2654]],
     keywords: ['хашупс', 'цандрипш', 'каньон']
   },
@@ -554,7 +554,7 @@ const TRACKS_REGISTRY = {
     label: 'Хашупсинский каньон — Гравел',
     gpxFile: 'Gpx/khashupse_gravel.gpx',
     status: 'ready',
-    defaultKomoot: 'https://www.komoot.com',
+    defaultKomoot: 'https://www.komoot.com/tour/3405384462?ref=aso&share_token=av8P6Fv1yfh4SIUnZFQCoAl2qTlpK53bRqmML6l35Mz4Q0qQq6&t_s=referral&t_cid=route_share',
     coords: [[43.2785, 40.2654], [43.3680, 40.1650], [43.4020, 40.1280], [43.3680, 40.1650], [43.2785, 40.2654]],
     keywords: ['хашупс гравел', 'каньон гравел']
   },
@@ -570,7 +570,7 @@ const TRACKS_REGISTRY = {
     label: 'На Сухум через Тёщин язык',
     gpxFile: 'Gpx/sukhum_teschin_yazyk.gpx',
     status: 'ready',
-    defaultKomoot: 'https://www.komoot.com',
+    defaultKomoot: 'https://www.komoot.com/tour/1547984937?ref=aso&share_token=azdhzg0HqYqn8zn5dJE8cDYbAbq41EddkEu82Xzbp1RCHL0bje&t_s=referral&t_cid=route_share',
     coords: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0850, 40.8380], [43.0015, 41.0234]],
     keywords: ['тёщин', 'тещин', 'ачандар', 'афон']
   },
@@ -578,7 +578,7 @@ const TRACKS_REGISTRY = {
     label: 'На Сухум через Эшеру',
     gpxFile: 'Gpx/sukhum_eshera.gpx',
     status: 'ready',
-    defaultKomoot: 'https://www.komoot.com',
+    defaultKomoot: 'https://www.komoot.com/tour/2937858989?ref=aso&share_token=ayAUkQ0SCYWdcB3s4g4TLrTXBTYo1v47mSENkGy1h7pQWPnr2d&t_s=referral&t_cid=route_share',
     coords: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0280, 40.9620], [43.0015, 41.0234]],
     keywords: ['эшер', 'нижне-эшер', 'сухум']
   },
@@ -602,7 +602,7 @@ const TRACKS_REGISTRY = {
     label: 'Дорога к ИнгурГЭС — Гравел',
     gpxFile: 'Gpx/Gal_ingur_ges_gravel.gpx',
     status: 'ready',
-    defaultKomoot: 'https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share',
+    defaultKomoot: 'https://www.komoot.com/tour/3405405743?ref=aso&share_token=a9haR61gQ8Qjv6ftVyqGotZHCpXc52I88kWgMDhvUugXRLkkGJ&t_s=referral&t_cid=route_share',
     coords: [[43.0015, 41.0234], [42.6270, 41.7380], [42.7590, 42.0320], [42.6270, 41.7380], [43.0015, 41.0234]],
     keywords: ['ингур гравел', 'гравел ингур']
   }
@@ -713,13 +713,46 @@ ${pts}
 }
 
 function downloadDynamicGpx(filename, title, meta) {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.HapticFeedback) {
+    try { tg.HapticFeedback.impactOccurred('light'); } catch (e) {}
+  }
+
+  const rawFileName = (meta && meta.gpxFile)
+    ? meta.gpxFile.split('/').pop()
+    : ((filename || (meta && meta.key) || 'abhazband_route') + '.gpx');
+  const safeFileName = rawFileName.endsWith('.gpx') ? rawFileName : (rawFileName + '.gpx');
+
+  if (meta && meta.gpxFile) {
+    const fileUrl = new URL(meta.gpxFile, window.location.href).href;
+
+    // 1. Нативное скачивание в Telegram Mini App (Bot API 8.0+)
+    if (tg && typeof tg.downloadFile === 'function') {
+      try {
+        tg.downloadFile({ url: fileUrl, file_name: safeFileName }, (accepted) => {
+          if (accepted === false) return;
+        });
+        return;
+      } catch (e) {
+        console.warn('tg.downloadFile fallback:', e);
+      }
+    }
+
+    // 2. Резервный вариант для старых клиентов Telegram — открыть прямую ссылку в системном браузере
+    if (tg && typeof tg.openLink === 'function') {
+      tg.openLink(fileUrl);
+      return;
+    }
+  }
+
+  // 3. Обычный браузер (вне Telegram)
   loadTrackCoordsDynamic(meta).then(trackData => {
     const xmlStr = trackData.rawGpx || buildGpxXml(title, trackData.coords);
     const blob = new Blob([xmlStr], { type: 'application/gpx+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (filename || meta.key || 'abhazband_route') + '.gpx';
+    a.download = safeFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1116,8 +1149,8 @@ function renderTracksList() {
         stats: "🛣️ 107 км &nbsp;|&nbsp; ⛰️ +1 100 м &nbsp;|&nbsp; Асфальт 90%",
         km: 107, gain: 1100,
         links: [
-          { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com", variant: "шоссе" },
-          { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com", variant: "гравел" }
+          { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/2007571282?ref=aso&share_token=aj8F9wH1K5myg1aMjSzHpuKfilaUzAmfAP5Wb2H5nj0dnHYLNG&t_s=referral&t_cid=route_share", variant: "шоссе" },
+          { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/3405384462?ref=aso&share_token=av8P6Fv1yfh4SIUnZFQCoAl2qTlpK53bRqmML6l35Mz4Q0qQq6&t_s=referral&t_cid=route_share", variant: "гравел" }
         ]
       };
 
@@ -1130,7 +1163,7 @@ function renderTracksList() {
         desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
         stats: "🛣️ 110 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 90%",
         km: 110, gain: 800,
-        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
+        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2937858989?ref=aso&share_token=ayAUkQ0SCYWdcB3s4g4TLrTXBTYo1v47mSENkGy1h7pQWPnr2d&t_s=referral&t_cid=route_share" }]
       }
     : {
         day: "7 ЯНВАРЯ • ЧЕРЕЗ ТЁЩИН ЯЗЫК",
@@ -1140,7 +1173,7 @@ function renderTracksList() {
         desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и перевал Тёщин язык.<br>🕕 09:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
         stats: "🛣️ 110 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 90%",
         km: 110, gain: 800,
-        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
+        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/1547984937?ref=aso&share_token=azdhzg0HqYqn8zn5dJE8cDYbAbq41EddkEu82Xzbp1RCHL0bje&t_s=referral&t_cid=route_share" }]
       };
 
   const schedule = [
@@ -1211,7 +1244,7 @@ function renderTracksList() {
       km: 140, gain: 1140,
       links: [
         { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share", variant: "шоссе" },
-        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share", variant: "гравел" }
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/3405405743?ref=aso&share_token=a9haR61gQ8Qjv6ftVyqGotZHCpXc52I88kWgMDhvUugXRLkkGJ&t_s=referral&t_cid=route_share", variant: "гравел" }
       ]
     },
     {
