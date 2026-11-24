@@ -483,40 +483,226 @@ function renderVelouyutUI() {
   `).join('');
 }
 
-// ==================== ЛОГИКА КАБИНЕТА «МОЙ КЭМП» (СЛОТЫ + ВИЗУАЛЬНЫЕ ТРЕКИ) ====================
+// ==================== ЛОГИКА КАБИНЕТА «МОЙ КЭМП» (СЛОТЫ + СИНХРОНИЗИРОВАННАЯ БАЗА GPX 2027) ====================
 let userConfirmedSlots = [];
 let activeUserSlot = null;
 const activeLeafletMaps = {};
+const gpxFileCache = {};
 
-// Базовые координаты ключевых маршрутов Абхазии для визуализации трека на карте и генерации GPX
-const ROUTE_COORDS_PRESETS = {
-  pitsunda: [[43.2785, 40.2654], [43.2250, 40.3120], [43.1610, 40.3400], [43.1530, 40.3480], [43.2250, 40.3120], [43.2785, 40.2654]],
-  mussera: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.1765, 40.5560], [43.2785, 40.2654], [43.3935, 40.0085]],
-  gagra: [[43.2785, 40.2654], [43.3260, 40.2230], [43.3320, 40.2140], [43.2950, 40.2600], [43.2785, 40.2654]],
-  ritsa: [[43.2785, 40.2654], [43.2350, 40.3520], [43.3560, 40.4250], [43.4740, 40.5330], [43.3560, 40.4250], [43.2785, 40.2654]],
-  sukhum: [[43.0015, 41.0234], [43.0580, 41.0720], [43.0850, 40.8380], [43.0015, 41.0234]],
-  transit: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0850, 40.8380], [43.0015, 41.0234]],
-  ingur: [[43.0015, 41.0234], [42.7120, 41.4680], [42.6270, 41.7380], [42.7590, 42.0320], [42.6270, 41.7380], [43.0015, 41.0234]],
-  tkuarchal: [[43.0015, 41.0234], [42.7120, 41.4680], [42.8510, 41.6820], [42.8780, 41.7550], [42.7120, 41.4680], [43.0015, 41.0234]]
+let fullscreenMapInstance = null;
+let currentFullscreenTrack = null;
+
+// Синхронизированная база треков Новогоднего кэмпа 2027 по актуальному списку файлов в Gpx/
+const TRACKS_REGISTRY = {
+  pitsunda_shosse: {
+    label: 'Пицунда — Шоссе',
+    gpxFile: 'Gpx/Pitsunda_shosse.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/1321206568?ref=aso&share_token=aWG49MO64K7t5GSiGNmAO1VJh65xzwAj6ZUwJvUiWkaopf7otl&t_s=referral&t_cid=route_share',
+    coords: [[43.2785, 40.2654], [43.2250, 40.3120], [43.1610, 40.3400], [43.1530, 40.3480], [43.2250, 40.3120], [43.2785, 40.2654]],
+    keywords: ['пицунд', 'амшын', 'реликтовый']
+  },
+  pitsunda_gravel: {
+    label: 'Пицунда — Гравел',
+    gpxFile: 'Gpx/Pitsunda_gravel.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2920620509?ref=aso&share_token=aTotm7kS6lV8x1pozOTdf6P2gedqgBybX6Gpf6NE1f5rRHTT59&t_s=referral&t_cid=route_share',
+    coords: [[43.2785, 40.2654], [43.2250, 40.3120], [43.1610, 40.3400], [43.1530, 40.3480], [43.2250, 40.3120], [43.2785, 40.2654]],
+    keywords: ['пицунда гравел', 'гравел пицунд']
+  },
+  lychny_mussera_shosse: {
+    label: 'Лыхны / Мюссера — Шоссе',
+    gpxFile: 'Gpx/Lychny_Mussera_shosse.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/3229725192?ref=aso&share_token=a5dp3vGaOcX5tgL0cilnYV8zEH57L34BeFNf0MOvoFGjqvRzzX&t_s=referral&t_cid=route_share',
+    coords: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.1765, 40.5560], [43.2785, 40.2654], [43.3935, 40.0085]],
+    keywords: ['лыхн']
+  },
+  lychny_mussera_gravel: {
+    label: 'Лыхны / Мюссера — Гравел',
+    gpxFile: 'Gpx/Lychny_Mussera_gravel.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2666494537?ref=aso&share_token=aVXqttvbkrJIxZkkeeT73LtG1Ly4BilW0gCo6c0BxgokxrRnlT&t_s=referral&t_cid=route_share',
+    coords: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.1765, 40.5560], [43.2785, 40.2654], [43.3935, 40.0085]],
+    keywords: ['лыхны гравел']
+  },
+  mussera_shosse: {
+    label: 'Мюссера — Шоссе',
+    gpxFile: 'Gpx/Mussera_shosse.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/3229725192?ref=aso&share_token=a5dp3vGaOcX5tgL0cilnYV8zEH57L34BeFNf0MOvoFGjqvRzzX&t_s=referral&t_cid=route_share',
+    coords: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.3935, 40.0085]],
+    keywords: ['мюссер', 'форел', 'псоу']
+  },
+  mussera_gravel: {
+    label: 'Мюссера — Гравел',
+    gpxFile: 'Gpx/Mussera_gravel.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2666494537?ref=aso&share_token=aVXqttvbkrJIxZkkeeT73LtG1Ly4BilW0gCo6c0BxgokxrRnlT&t_s=referral&t_cid=route_share',
+    coords: [[43.3935, 40.0085], [43.2785, 40.2654], [43.1680, 40.4710], [43.3935, 40.0085]],
+    keywords: ['мюссера гравел', 'гравел мюссер']
+  },
+  khashupse_shosse: {
+    label: 'Хашупсинский каньон — Шоссе',
+    gpxFile: 'Gpx/khashupse_shosse.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com',
+    coords: [[43.2785, 40.2654], [43.3680, 40.1650], [43.4020, 40.1280], [43.3680, 40.1650], [43.2785, 40.2654]],
+    keywords: ['хашупс', 'цандрипш', 'каньон']
+  },
+  khashupse_gravel: {
+    label: 'Хашупсинский каньон — Гравел',
+    gpxFile: 'Gpx/khashupse_gravel.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com',
+    coords: [[43.2785, 40.2654], [43.3680, 40.1650], [43.4020, 40.1280], [43.3680, 40.1650], [43.2785, 40.2654]],
+    keywords: ['хашупс гравел', 'каньон гравел']
+  },
+  ritsa_shosse: {
+    label: 'Рицинский заповедник — Шоссе',
+    gpxFile: 'Gpx/ritsa_shosse.gpx',
+    status: 'check_ext',
+    defaultKomoot: 'https://www.komoot.com/tour/2163164931?ref=aso&share_token=am16MyeqIuonAwi1Zh2WT8TyeaoCEqAbKODb5gr9ftyqcG1M5u&t_s=referral&t_cid=route_share',
+    coords: [[43.2785, 40.2654], [43.2350, 40.3520], [43.3560, 40.4250], [43.4740, 40.5330], [43.3560, 40.4250], [43.2785, 40.2654]],
+    keywords: ['риц', 'заповедник', 'юпшар']
+  },
+  sukhum_teschin_yazyk: {
+    label: 'На Сухум через Тёщин язык',
+    gpxFile: 'Gpx/sukhum_teschin_yazyk.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com',
+    coords: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0850, 40.8380], [43.0015, 41.0234]],
+    keywords: ['тёщин', 'тещин', 'ачандар', 'афон']
+  },
+  sukhum_eshera: {
+    label: 'На Сухум через Эшеру',
+    gpxFile: 'Gpx/sukhum_eshera.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com',
+    coords: [[43.2785, 40.2654], [43.1050, 40.6200], [43.0280, 40.9620], [43.0015, 41.0234]],
+    keywords: ['эшер', 'нижне-эшер', 'сухум']
+  },
+  gal_city: {
+    label: 'Дорога на Гал',
+    gpxFile: 'Gpx/gal_city.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2188906729?ref=aso&share_token=axKRfsfjKifyn6Q5M3Q6G83ptb0Fdga1qggsvNoXKpsaVxPQjC&t_s=referral&t_cid=route_share',
+    coords: [[43.0015, 41.0234], [42.7120, 41.4680], [42.6270, 41.7380], [43.0015, 41.0234]],
+    keywords: ['дорога на гал', 'г. гал', 'гал']
+  },
+  gal_ingur_ges_shosse: {
+    label: 'Дорога к ИнгурГЭС — Шоссе',
+    gpxFile: 'Gpx/Gal_ingur_ges_shosse.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share',
+    coords: [[43.0015, 41.0234], [42.6270, 41.7380], [42.7590, 42.0320], [42.6270, 41.7380], [43.0015, 41.0234]],
+    keywords: ['ингур', 'границ']
+  },
+  gal_ingur_ges_gravel: {
+    label: 'Дорога к ИнгурГЭС — Гравел',
+    gpxFile: 'Gpx/Gal_ingur_ges_gravel.gpx',
+    status: 'ready',
+    defaultKomoot: 'https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share',
+    coords: [[43.0015, 41.0234], [42.6270, 41.7380], [42.7590, 42.0320], [42.6270, 41.7380], [43.0015, 41.0234]],
+    keywords: ['ингур гравел', 'гравел ингур']
+  }
 };
 
-function getCoordsForTitle(title) {
-  const t = (title || '').toLowerCase();
-  if (t.includes('ингур') || t.includes('гал') || t.includes('очамчыр')) return ROUTE_COORDS_PRESETS.ingur;
-  if (t.includes('мюссер') || t.includes('лыхн') || t.includes('форел')) return ROUTE_COORDS_PRESETS.mussera;
-  if (t.includes('риц')) return ROUTE_COORDS_PRESETS.ritsa;
-  if (t.includes('пицунд')) return ROUTE_COORDS_PRESETS.pitsunda;
-  if (t.includes('ткуарчал') || t.includes('акармар')) return ROUTE_COORDS_PRESETS.tkuarchal;
-  if (t.includes('транзит')) return ROUTE_COORDS_PRESETS.transit;
-  if (t.includes('сухум') || t.includes('афон')) return ROUTE_COORDS_PRESETS.sukhum;
-  return ROUTE_COORDS_PRESETS.gagra;
+// Состояние новогоднего кэмпа 2027
+if (typeof campState === 'undefined' || !campState) {
+  window.campState = {};
+}
+if (!campState.jan5Mode) campState.jan5Mode = 'khashupse'; // 'khashupse' | 'ritsa'
+if (!campState.jan7Mode) campState.jan7Mode = 'teschin';   // 'teschin' | 'eshera'
+
+function resolveTrackMeta(titleOrKey, variantHint) {
+  const raw = (titleOrKey || '').trim();
+  const norm = raw.toLowerCase();
+  const hint = (variantHint || '').toLowerCase();
+
+  if (TRACKS_REGISTRY[norm]) {
+    const entry = TRACKS_REGISTRY[norm];
+    return { key: norm, title: raw, ...entry };
+  }
+
+  if (norm.includes('пицунд') && (norm.includes('гравел') || hint.includes('гравел'))) {
+    return { key: 'pitsunda_gravel', title: raw, ...TRACKS_REGISTRY.pitsunda_gravel };
+  }
+  if ((norm.includes('мюссер') || norm.includes('лыхн')) && (norm.includes('гравел') || hint.includes('гравел'))) {
+    return { key: norm.includes('лыхн') ? 'lychny_mussera_gravel' : 'mussera_gravel', title: raw, ...(norm.includes('лыхн') ? TRACKS_REGISTRY.lychny_mussera_gravel : TRACKS_REGISTRY.mussera_gravel) };
+  }
+  if ((norm.includes('хашупс') || norm.includes('каньон')) && (norm.includes('гравел') || hint.includes('гравел'))) {
+    return { key: 'khashupse_gravel', title: raw, ...TRACKS_REGISTRY.khashupse_gravel };
+  }
+  if (norm.includes('ингур') && (norm.includes('гравел') || hint.includes('гравел'))) {
+    return { key: 'gal_ingur_ges_gravel', title: raw, ...TRACKS_REGISTRY.gal_ingur_ges_gravel };
+  }
+
+  for (const [key, entry] of Object.entries(TRACKS_REGISTRY)) {
+    if (entry.keywords.some(kw => norm.includes(kw))) {
+      return { key, title: raw, ...entry };
+    }
+  }
+
+  return {
+    key: 'pitsunda_shosse',
+    title: raw || 'Маршрут Abhaz Band',
+    ...TRACKS_REGISTRY.pitsunda_shosse
+  };
 }
 
-function downloadRouteGpx(filename, title, coords) {
-  const pts = (coords || ROUTE_COORDS_PRESETS.gagra)
+function parseGpxCoordsFromXml(xmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'application/xml');
+    const trkpts = Array.from(doc.getElementsByTagName('trkpt'));
+    const pts = trkpts.length > 0 ? trkpts : Array.from(doc.getElementsByTagName('rtept'));
+    const coords = [];
+    for (const pt of pts) {
+      const lat = parseFloat(pt.getAttribute('lat'));
+      const lon = parseFloat(pt.getAttribute('lon'));
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        coords.push([lat, lon]);
+      }
+    }
+    return coords;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadTrackCoordsDynamic(meta) {
+  const cacheKey = meta.gpxFile || meta.key;
+  if (gpxFileCache[cacheKey]) {
+    return gpxFileCache[cacheKey];
+  }
+  if (meta.gpxFile) {
+    try {
+      const resp = await fetch(`${meta.gpxFile}?v=${Date.now()}`, { cache: 'no-store' });
+      if (resp.ok) {
+        const txt = await resp.text();
+        const parsed = parseGpxCoordsFromXml(txt);
+        if (parsed && parsed.length >= 2) {
+          const res = { coords: parsed, rawGpx: txt, source: 'gpx' };
+          gpxFileCache[cacheKey] = res;
+          return res;
+        }
+      }
+    } catch (e) {
+      // Файл в Gpx/ ещё не загружен или без расширения .gpx — используем опорную нитку маршрута
+    }
+  }
+  const fallback = { coords: meta.coords || TRACKS_REGISTRY.pitsunda_shosse.coords, rawGpx: null, source: 'preset' };
+  gpxFileCache[cacheKey] = fallback;
+  return fallback;
+}
+
+function buildGpxXml(title, coords) {
+  const pts = (coords || TRACKS_REGISTRY.pitsunda_shosse.coords)
     .map(c => `      <trkpt lat="${c[0]}" lon="${c[1]}"></trkpt>`)
-    .join('\n');
-  const gpxXml = `<?xml version="1.0" encoding="UTF-8"?>
+    .join('
+');
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Abhaz Band Hub" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
     <name>${(title || 'Abhaz Band Route').replace(/[<>&]/g, '')}</name>
@@ -525,32 +711,136 @@ ${pts}
     </trkseg>
   </trk>
 </gpx>`;
-  const blob = new Blob([gpxXml], { type: 'application/gpx+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (filename || 'abhazband_route') + '.gpx';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function initTrackMap(mapId, coords) {
+function downloadDynamicGpx(filename, title, meta) {
+  loadTrackCoordsDynamic(meta).then(trackData => {
+    const xmlStr = trackData.rawGpx || buildGpxXml(title, trackData.coords);
+    const blob = new Blob([xmlStr], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (filename || meta.key || 'abhazband_route') + '.gpx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+
+function createOsmDarkTileLayer(map) {
+  const layer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18
+  });
+  layer.on('tileload', (e) => {
+    if (e.tile && e.tile.style) {
+      e.tile.style.filter = 'invert(100%) hue-rotate(180deg) brightness(88%) contrast(108%)';
+    }
+  });
+  layer.addTo(map);
+  return layer;
+}
+
+function initTrackMap(mapId, meta, customBadgeId) {
   if (typeof L === 'undefined') return;
   const el = document.getElementById(mapId);
   if (!el) return;
+
   if (activeLeafletMaps[mapId]) {
     try { activeLeafletMaps[mapId].remove(); } catch (e) {}
   }
-  const pts = coords && coords.length > 1 ? coords : ROUTE_COORDS_PRESETS.gagra;
-  const map = L.map(mapId, { zoomControl: false, attributionControl: false, dragging: true, scrollWheelZoom: false });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 16 }).addTo(map);
-  const poly = L.polyline(pts, { color: '#38bdf8', weight: 3.5, opacity: 0.95 }).addTo(map);
-  L.circleMarker(pts[0], { radius: 5, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(map);
-  L.circleMarker(pts[pts.length - 1], { radius: 5, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }).addTo(map);
+
+  const map = L.map(mapId, {
+    zoomControl: false,
+    attributionControl: false,
+    dragging: true,
+    scrollWheelZoom: false
+  });
+  createOsmDarkTileLayer(map);
+
+  const initialPts = (meta.coords && meta.coords.length > 1) ? meta.coords : TRACKS_REGISTRY.pitsunda_shosse.coords;
+  const poly = L.polyline(initialPts, { color: '#38bdf8', weight: 3.5, opacity: 0.95 }).addTo(map);
+  const startMarker = L.circleMarker(initialPts[0], { radius: 5, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(map);
+  const endMarker = L.circleMarker(initialPts[initialPts.length - 1], { radius: 5, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }).addTo(map);
   map.fitBounds(poly.getBounds(), { padding: [18, 18] });
+
   activeLeafletMaps[mapId] = map;
+
+  loadTrackCoordsDynamic(meta).then(trackData => {
+    if (!activeLeafletMaps[mapId]) return;
+    if (trackData.coords && trackData.coords.length >= 2) {
+      poly.setLatLngs(trackData.coords);
+      startMarker.setLatLng(trackData.coords[0]);
+      endMarker.setLatLng(trackData.coords[trackData.coords.length - 1]);
+      map.fitBounds(poly.getBounds(), { padding: [18, 18] });
+    }
+    if (customBadgeId) {
+      const bEl = document.getElementById(customBadgeId);
+      if (bEl) {
+        bEl.innerText = trackData.source === 'gpx' ? 'GPX загружен' : (meta.status === 'check_ext' ? 'Проверить .gpx' : 'GPX в очереди');
+      }
+    }
+  });
+}
+
+function openFullscreenMap(title, meta) {
+  if (typeof L === 'undefined') return;
+  currentFullscreenTrack = { title, meta };
+
+  let modal = document.getElementById('gpx-fullscreen-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'gpx-fullscreen-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:#0f172a;z-index:20000;display:flex;flex-direction:column;';
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#1e293b;border-bottom:1px solid #334155;">
+        <div id="gpx-fs-title" style="font-size:14px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;"></div>
+        <button onclick="closeFullscreenMap()" style="background:#0f172a;color:#38bdf8;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0;">✕ Закрыть</button>
+      </div>
+      <div id="gpx-fs-canvas" style="flex:1;width:100%;"></div>
+      <div id="gpx-fs-actions" style="padding:12px 14px;background:#1e293b;border-top:1px solid #334155;display:flex;gap:8px;"></div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  modal.style.display = 'flex';
+  document.getElementById('gpx-fs-title').innerText = title || 'Карта маршрута';
+
+  const actionsEl = document.getElementById('gpx-fs-actions');
+  actionsEl.innerHTML = `
+    <a href="${meta.defaultKomoot}" target="_blank" class="btn-track-komoot">🗺️ Открыть в Komoot</a>
+    <button onclick="downloadDynamicGpx('${meta.key}', '${(title || '').replace(/'/g, "\'")}', currentFullscreenTrack.meta)" class="btn-track-gpx">⬇️ Скачать GPX</button>
+  `;
+
+  setTimeout(() => {
+    if (fullscreenMapInstance) {
+      try { fullscreenMapInstance.remove(); } catch (e) {}
+    }
+    const fsMap = L.map('gpx-fs-canvas', { zoomControl: true, attributionControl: false });
+    createOsmDarkTileLayer(fsMap);
+    const pts = (meta.coords && meta.coords.length > 1) ? meta.coords : TRACKS_REGISTRY.pitsunda_shosse.coords;
+    const poly = L.polyline(pts, { color: '#38bdf8', weight: 4, opacity: 0.95 }).addTo(fsMap);
+    L.circleMarker(pts[0], { radius: 6, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(fsMap);
+    L.circleMarker(pts[pts.length - 1], { radius: 6, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }).addTo(fsMap);
+    fsMap.fitBounds(poly.getBounds(), { padding: [24, 24] });
+    fullscreenMapInstance = fsMap;
+
+    loadTrackCoordsDynamic(meta).then(trackData => {
+      if (fullscreenMapInstance && trackData.coords && trackData.coords.length >= 2) {
+        poly.setLatLngs(trackData.coords);
+        fullscreenMapInstance.fitBounds(poly.getBounds(), { padding: [24, 24] });
+      }
+    });
+  }, 50);
+}
+
+function closeFullscreenMap() {
+  const modal = document.getElementById('gpx-fullscreen-modal');
+  if (modal) modal.style.display = 'none';
+  if (fullscreenMapInstance) {
+    try { fullscreenMapInstance.remove(); } catch (e) {}
+    fullscreenMapInstance = null;
+  }
 }
 
 async function checkCampAccessOnLoad() {
@@ -564,7 +854,6 @@ async function checkCampAccessOnLoad() {
       slots = await fetchUserConfirmedSlots(userId);
     }
 
-    // Для администратора добавляем быстрый предпросмотр всех 3 уровней доступа
     const isAdmin = typeof BROADCAST_ADMIN_ID !== 'undefined' && userId === Number(BROADCAST_ADMIN_ID);
     if (isAdmin && slots.length === 0) {
       slots = [
@@ -581,10 +870,9 @@ async function checkCampAccessOnLoad() {
       return;
     }
 
-    // Резервный вход по клубному PIN-коду
     const savedPin = localStorage.getItem('abhaz_camp_pin');
     if (savedPin === CAMP_SECRET_PIN) {
-      userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Abhaz Band. Октябрь 2026' }];
+      userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Новогодний кэмп Abhaz Band 2027' }];
       activeUserSlot = userConfirmedSlots[0];
       showUnlockedCamp();
     }
@@ -603,7 +891,7 @@ function unlockCamp() {
   if (val === CAMP_SECRET_PIN) {
     localStorage.setItem('abhaz_camp_pin', CAMP_SECRET_PIN);
     if (errorMsg) errorMsg.style.display = 'none';
-    userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Abhaz Band. Октябрь 2026' }];
+    userConfirmedSlots = [{ slot_id: 'camp_ny_2027', slot_type: 'camp', slot_title: 'Новогодний кэмп Abhaz Band 2027' }];
     activeUserSlot = userConfirmedSlots[0];
     showUnlockedCamp();
   } else {
@@ -662,9 +950,11 @@ function updateCampHeaderForSlot() {
     if (titleEl) titleEl.innerText = matchedRide ? matchedRide.title : (activeUserSlot.slot_title || 'Abhaz Band Social Ride');
     if (datesEl) datesEl.innerText = matchedRide ? `📅 ${matchedRide.dateDisplay} | ${matchedRide.stats?.distance || ''}` : '📅 1 день | Абхазия';
   } else {
-    if (pill) { pill.innerText = '🔥 Полный кэмп Abhaz Band'; pill.style.background = '#38bdf8'; pill.style.color = '#0f172a'; }
+    const isRitsa = campState.jan5Mode === 'ritsa';
+    const summaryText = isRitsa ? '🛣️ 615 км | ⛰️ +5 170 м' : '🛣️ 617 км | ⛰️ +4 900 м';
+    if (pill) { pill.innerText = '🎄 Новогодний кэмп 2027'; pill.style.background = '#38bdf8'; pill.style.color = '#0f172a'; }
     if (titleEl) titleEl.innerText = matchedCamp ? matchedCamp.title : (activeUserSlot.slot_title || 'Новогодний кэмп Abhaz Band 2027');
-    if (datesEl) datesEl.innerText = matchedCamp ? `📅 ${matchedCamp.dates} | ${matchedCamp.location}` : '📅 Гагра / Сухум, Абхазия';
+    if (datesEl) datesEl.innerText = `📅 1 – 10 января 2027 | ${summaryText}`;
   }
 }
 
@@ -687,15 +977,17 @@ function updateCampOption(key, val) {
   if (window.Telegram?.WebApp?.HapticFeedback) {
     window.Telegram.WebApp.HapticFeedback.selectionChanged();
   }
+  updateCampHeaderForSlot();
   renderTracksList();
 }
 
 function renderRideSlotDashboard(container, slot) {
   const matchedRide = (typeof rides !== 'undefined') ? rides.find(r => r.id === slot.slot_id) : null;
   const title = matchedRide ? matchedRide.title : (slot.slot_title || 'Выезд Abhaz Band');
-  const coords = getCoordsForTitle(title);
+  const meta = resolveTrackMeta(matchedRide?.trackKey || slot.slot_id || title, title);
   const mapId = 'slot-track-map-' + slot.slot_id.replace(/[^a-zA-Z0-9]/g, '_');
-  const komootUrl = matchedRide?.komootUrl || 'https://www.komoot.com/tour/2163164931';
+  const badgeId = 'slot-track-badge-' + slot.slot_id.replace(/[^a-zA-Z0-9]/g, '_');
+  const komootUrl = matchedRide?.komootUrl || meta.defaultKomoot;
 
   const statsHtml = matchedRide?.stats ? `
     <div class="sheet-metrics-grid" style="margin-bottom:14px;">
@@ -721,7 +1013,13 @@ function renderRideSlotDashboard(container, slot) {
   container.innerHTML = `
     ${statsHtml}
     <div class="card" style="background:#1e293b; padding:12px; border-radius:12px; margin-bottom:14px; border-left:4px solid #38bdf8;">
-      <div style="font-size:11px; color:#38bdf8; font-weight:bold; margin-bottom:4px;">🗺️ ИНТЕРАКТИВНЫЙ ТРЕК МАРШРУТА</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:11px; color:#38bdf8; font-weight:bold;">🗺️ ИНТЕРАКТИВНЫЙ ТРЕК МАРШРУТА</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span id="${badgeId}" style="font-size:9px;background:rgba(56,189,248,0.15);color:#38bdf8;padding:2px 6px;border-radius:4px;font-weight:700;">OSM</span>
+          <button onclick="openFullscreenMap('${title.replace(/'/g, "\'")}', window.__activeSlotMeta)" style="background:#0f172a;color:#fff;border:1px solid #475569;border-radius:6px;padding:2px 7px;font-size:10px;cursor:pointer;">⛶ На весь экран</button>
+        </div>
+      </div>
       <h4 style="margin:0 0 6px 0; color:#fff; font-size:14px;">${title}</h4>
       <div id="${mapId}" class="track-map-box"></div>
       <div class="track-actions-row">
@@ -732,11 +1030,13 @@ function renderRideSlotDashboard(container, slot) {
     ${timingHtml}
   `;
 
+  window.__activeSlotMeta = meta;
+
   setTimeout(() => {
-    initTrackMap(mapId, coords);
+    initTrackMap(mapId, meta, badgeId);
     const dlBtn = document.getElementById('dl-gpx-' + mapId);
     if (dlBtn) {
-      dlBtn.onclick = () => downloadRouteGpx(slot.slot_id, title, coords);
+      dlBtn.onclick = () => downloadDynamicGpx(slot.slot_id, title, meta);
     }
   }, 60);
 }
@@ -750,213 +1050,202 @@ function renderTracksList() {
     return;
   }
 
+  const isRitsa = campState.jan5Mode === 'ritsa';
+  const isEshera = campState.jan7Mode === 'eshera';
+
   let html = `
     <div style="background: #0f172a; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #334155;">
-      <div style="font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">⚙️ Настройка маршрутной программы</div>
+      <div style="font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">⚙️ Настройка маршрутной программы (1–10 января 2027)</div>
       
       <div style="margin-bottom: 10px;">
-        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🛋️ День отдыха (восстановление):</span>
+        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🏔️ Вариант 5 января:</span>
         <div style="display: flex; gap: 6px;">
-          <button onclick="updateCampOption('restDay', 10)" class="sub-tab-btn ${campState.restDay === 10 ? 'active' : ''}" style="flex:1; padding:6px;">10 Октября</button>
-          <button onclick="updateCampOption('restDay', 12)" class="sub-tab-btn ${campState.restDay === 12 ? 'active' : ''}" style="flex:1; padding:6px;">12 Октября</button>
+          <button onclick="updateCampOption('jan5Mode', 'khashupse')" class="sub-tab-btn ${!isRitsa ? 'active' : ''}" style="flex:1; padding:6px;">Хашупсинский каньон</button>
+          <button onclick="updateCampOption('jan5Mode', 'ritsa')" class="sub-tab-btn ${isRitsa ? 'active' : ''}" style="flex:1; padding:6px;">Рицинский заповедник</button>
         </div>
       </div>
 
       <div>
-        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🔀 Ветка 13–14 октября:</span>
+        <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">🔀 Вариант 7 января (Дорога на Сухум):</span>
         <div style="display: flex; gap: 6px;">
-          <button onclick="updateCampOption('branch', 'gal')" class="sub-tab-btn ${campState.branch === 'gal' ? 'active' : ''}" style="flex:1; padding:6px;">📍 Ветка Гал (ИнгурГЭС)</button>
-          <button onclick="updateCampOption('branch', 'tkuarchal')" class="sub-tab-btn ${campState.branch === 'tkuarchal' ? 'active' : ''}" style="flex:1; padding:6px;">🏔️ Ветка Ткуарчал</button>
+          <button onclick="updateCampOption('jan7Mode', 'teschin')" class="sub-tab-btn ${!isEshera ? 'active' : ''}" style="flex:1; padding:6px;">Через Тёщин язык</button>
+          <button onclick="updateCampOption('jan7Mode', 'eshera')" class="sub-tab-btn ${isEshera ? 'active' : ''}" style="flex:1; padding:6px;">Через Эшеру</button>
         </div>
       </div>
     </div>
   `;
 
+  const jan5Item = isRitsa
+    ? {
+        day: "5 ЯНВАРЯ",
+        title: "Рицинский заповедник (шоссе)",
+        trackKey: "ritsa_shosse",
+        type: "Шоссе",
+        desc: "Один из самых красивых маршрутов в мире. Пролегает через ущелье с множеством запоминающихся видов.<br>🕕 10:30 Выезд на маршрут | 🕕 15:30 Обед в классическом охотничьем балагане | 🕕 18:00 Возвращение с маршрута.",
+        stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1 370 м &nbsp;|&nbsp; Асфальт 100%",
+        km: 105, gain: 1370,
+        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2163164931?ref=aso&share_token=am16MyeqIuonAwi1Zh2WT8TyeaoCEqAbKODb5gr9ftyqcG1M5u&t_s=referral&t_cid=route_share" }]
+      }
+    : {
+        day: "5 ЯНВАРЯ (ХАШУПСЕ ИЛИ РИЦА)",
+        title: "По Гагре в Хашупсинский каньон",
+        trackKey: "khashupse_shosse",
+        type: "Шоссе & Гравел",
+        desc: "Поездка к Хашупсинскому каньону и прогулка по нему. Посещение города Цандрипш.<br>🕕 10:00 Выезд на маршрут | 🕕 15:00 Обед в Цандрипше | 🕕 18:00 Финиш.",
+        stats: "🛣️ 107 км &nbsp;|&nbsp; ⛰️ +1 100 м &nbsp;|&nbsp; Асфальт 90%",
+        km: 107, gain: 1100,
+        links: [
+          { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com", variant: "шоссе" },
+          { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com", variant: "гравел" }
+        ]
+      };
+
+  const jan7Item = isEshera
+    ? {
+        day: "7 ЯНВАРЯ • ЧЕРЕЗ ЭШЕРУ",
+        title: "Дорога на Сухум (через Эшеру)",
+        trackKey: "sukhum_eshera",
+        type: "Шоссе / Переезд",
+        desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
+        stats: "🛣️ 110 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 90%",
+        km: 110, gain: 800,
+        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
+      }
+    : {
+        day: "7 ЯНВАРЯ • ЧЕРЕЗ ТЁЩИН ЯЗЫК",
+        title: "Дорога на Сухум (через Тёщин язык)",
+        trackKey: "sukhum_teschin_yazyk",
+        type: "Шоссе / Переезд",
+        desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и перевал Тёщин язык.<br>🕕 09:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
+        stats: "🛣️ 110 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 90%",
+        km: 110, gain: 800,
+        links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
+      };
+
   const schedule = [
     {
-      day: "4-5 ОКТЯБРЯ",
-      title: "📆 Дни приезда & Сборка велосипедов",
+      day: "1–2 ЯНВАРЯ",
+      title: "День приезда",
       type: "Оргдень",
-      desc: "Встреча участников, совместная сборка байков.<br>🕕 <b>20:00</b> — Вечерний ужин команды.",
+      desc: "Встреча катальцев. Совместная сборка велосипедов.<br>‼️ Для ребят, прибывших 1-го января, 2-го по желанию вкаточный маршрут.<br>🕕 <b>20:00</b> Вечерний ужин.",
       stats: "📍 База Abhaz Band",
       km: 0, gain: 0
     },
     {
-      day: "6 ОКТЯБРЯ",
+      day: "3 ЯНВАРЯ",
       title: "Пицундский маршрут",
+      trackKey: "pitsunda_shosse",
       type: "Шоссе & Гравел",
-      desc: "Разминочная вкатка. Наслаждение красотами Пицунды, проезд через Реликтовый лес, Золотой берег, небольшие наборы.<br>🕕 11:00 Выезд | 13:00 Кофе в «Амшын» | 16:00 Финиш",
-      stats: "🛣️ 70 км &nbsp;|&nbsp; ⛰️ +600 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 70, gain: 600,
+      desc: "Разминочная вкатка. Наслаждение красотами Пицунды, проезд через Реликтовый лес, Золотой берег, небольшие наборы.<br>🕕 11:00 Выезд на маршрут | 🕕 13:00 Кофе и перекус в ресторане Амшын | 🕕 16:00 Возвращение | 🕕 18:00 Ужин.",
+      stats: "🛣️ 70 км &nbsp;|&nbsp; ⛰️ +290 м &nbsp;|&nbsp; Асфальт 100%",
+      km: 70, gain: 290,
       links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/1321206568?ref=aso&share_token=aWG49MO64K7t5GSiGNmAO1VJh65xzwAj6ZUwJvUiWkaopf7otl&t_s=referral&t_cid=route_share" },
-        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2920620509?ref=aso&share_token=aTotm7kS6lV8x1pozOTdf6P2gedqgBybX6Gpf6NE1f5rRHTT59&t_s=referral&t_cid=route_share" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/1321206568?ref=aso&share_token=aWG49MO64K7t5GSiGNmAO1VJh65xzwAj6ZUwJvUiWkaopf7otl&t_s=referral&t_cid=route_share", variant: "шоссе" },
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2920620509?ref=aso&share_token=aTotm7kS6lV8x1pozOTdf6P2gedqgBybX6Gpf6NE1f5rRHTT59&t_s=referral&t_cid=route_share", variant: "гравел" }
       ]
     },
     {
-      day: "7 ОКТЯБРЯ",
-      title: "Дорога на Лыхны / Мюссеру (Дополненный)",
+      day: "4 ЯНВАРЯ",
+      title: "Дорога на Лыхны/Мюссеру. Дополненный",
+      trackKey: "lychny_mussera_shosse",
       type: "Шоссе & Гравел",
-      desc: "Один из любимейших маршрутов в новом исполнении. Дороги с околонулевым трафиком и отличные виды!<br>🕕 10:30 Выезд | 15:00 Обед | 18:00 Финиш",
-      stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1300 м &nbsp;|&nbsp; Асфальт 85%, Грунты 15%",
-      km: 105, gain: 1300,
+      desc: "Один из любимейших маршрутов в новом исполнении. Дороги с околонулевым трафиком и отличные виды!<br>🕕 10:00 Выезд на маршрут | 🕕 14:00 Обед | 🕕 18:00 Возвращение с маршрута.",
+      stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ ~1 250 м &nbsp;|&nbsp; Асфальт 85%, грунты 15%",
+      km: 105, gain: 1250,
       links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/3229725192?ref=aso&share_token=a5dp3vGaOcX5tgL0cilnYV8zEH57L34BeFNf0MOvoFGjqvRzzX&t_s=referral&t_cid=route_share" },
-        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2666494537?ref=aso&share_token=aVXqttvbkrJIxZkkeeT73LtG1Ly4BilW0gCo6c0BxgokxrRnlT&t_s=referral&t_cid=route_share" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/3229725192?ref=aso&share_token=a5dp3vGaOcX5tgL0cilnYV8zEH57L34BeFNf0MOvoFGjqvRzzX&t_s=referral&t_cid=route_share", variant: "шоссе" },
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2666494537?ref=aso&share_token=aVXqttvbkrJIxZkkeeT73LtG1Ly4BilW0gCo6c0BxgokxrRnlT&t_s=referral&t_cid=route_share", variant: "гравел" }
       ]
     },
+    jan5Item,
     {
-      day: "8 ОКТЯБРЯ",
-      title: "Ознакомительная по Гагре",
-      type: "Шоссе & Гравел",
-      desc: "День восстановления. Достопримечательности Гагр, посещение дачи Сталина и знаковых мест.<br>🕕 11:00 Выезд на маршрут.",
-      stats: "🛣️ 83 км &nbsp;|&nbsp; ⛰️ +970 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 83, gain: 970,
-      links: [
-        { label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2163197173?ref=aso&share_token=a9qpVaqv8hgLSIz40ny0xV3tBKUTth6E8C6uCFmqwhciQBOTAE&t_s=referral&t_cid=route_share" }
-      ]
+      day: "6 ЯНВАРЯ",
+      title: "Выходной. День отдыха",
+      type: "Rest Day",
+      desc: "Восстановление. Посещение термальных источников/бани, возможность самостоятельного планирования и отдыха, хайкинг.",
+      stats: "♨️ День восстановления",
+      km: 0, gain: 0
     },
+    jan7Item,
     {
-      day: "9 ОКТЯБРЯ",
-      title: "Рицинский заповедник",
+      day: "8 ЯНВАРЯ",
+      title: "Дорога на Гал",
+      trackKey: "gal_city",
       type: "Шоссе",
-      desc: "Один из самых красивых маршрутов в мире. Пролегает через ущелье с множеством запоминающихся видов.<br>🕕 10:30 Выезд | 15:30 Обед в балагане | 18:00 Финиш",
-      stats: "🛣️ 105 км &nbsp;|&nbsp; ⛰️ +1 370 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 105, gain: 1370,
+      desc: "Посещение и ночёвка в самом удалённом городе Абхазии — г. Гал.<br>🕕 11:00 Выезд на маршрут | 🕕 15:00 Обед в кафе г. Гал | 🕕 17:00 Финиш маршрута.",
+      stats: "🛣️ 85 км &nbsp;|&nbsp; ⛰️ +320 м &nbsp;|&nbsp; Асфальт 100%",
+      km: 85, gain: 320,
+      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2188906729?ref=aso&share_token=axKRfsfjKifyn6Q5M3Q6G83ptb0Fdga1qggsvNoXKpsaVxPQjC&t_s=referral&t_cid=route_share" }]
+    },
+    {
+      day: "9 ЯНВАРЯ",
+      title: "Дорога к ИнгурГЭС",
+      trackKey: "gal_ingur_ges_shosse",
+      type: "Шоссе & Гравел",
+      desc: "Поездка на гидроэлектростанцию ИнгурГЭС и на границу с Грузией. Возвращение на базу в Сухум.<br>🕕 09:00 Выезд на маршрут | 🕕 15:00 Обед в кафе г. Гал | 🕕 18:00 Финиш маршрута.",
+      stats: "🛣️ 140 км &nbsp;|&nbsp; ⛰️ +1 140 м &nbsp;|&nbsp; Асфальт 98%",
+      km: 140, gain: 1140,
       links: [
-        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/2163164931?ref=aso&share_token=am16MyeqIuonAwi1Zh2WT8TyeaoCEqAbKODb5gr9ftyqcG1M5u&t_s=referral&t_cid=route_share" }
+        { label: "🗺️ Шоссе Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share", variant: "шоссе" },
+        { label: "🗺️ Гравел Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share", variant: "гравел" }
       ]
+    },
+    {
+      day: "10 ЯНВАРЯ",
+      title: "День отъезда. Сборка и упаковка велов",
+      type: "Финал",
+      desc: "Утренняя заминка, сборка и упаковка велосипедов, трансфер и отъезд.",
+      stats: "👋 До новых встреч!",
+      km: 0, gain: 0
     }
   ];
 
-  const is90 = campState.distSukhum === 90;
-  const sukhumRouteObj = {
-    title: "Окрестности Сухума и Новый Афон",
-    type: "Шоссе & Гравел",
-    desc: `Маршрут по окрестностям Сухума. Заезд в Черниговку, Беслетку, Каманы.<br>
-      <div style="margin-top:6px;">
-        Выбор дистанции: 
-        <button onclick="updateCampOption('distSukhum', 65)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${!is90 ? '#38bdf8' : '#334155'}; color:${!is90 ? '#0f172a' : '#fff'}; font-weight:bold;">65 км</button>
-        <button onclick="updateCampOption('distSukhum', 90)" style="padding:2px 8px; font-size:10px; border-radius:4px; border:none; background:${is90 ? '#38bdf8' : '#334155'}; color:${is90 ? '#0f172a' : '#fff'}; font-weight:bold;">90 км</button>
-      </div><br>
-      🕕 11:00 Выезд | 15:00 Обед | 17:00 Финиш`,
-    stats: is90 ? "🛣️ 90 км &nbsp;|&nbsp; ⛰️ +1 200 м &nbsp;|&nbsp; Асфальт 98%" : "🛣️ 65 км &nbsp;|&nbsp; ⛰️ +800 м &nbsp;|&nbsp; Асфальт 98%",
-    km: is90 ? 90 : 65,
-    gain: is90 ? 1200 : 800,
-    links: [
-      { label: "🗺️ Komoot 65 км", url: "https://www.komoot.com/tour/2745236293?ref=aso&share_token=afaOF3FwMBq5f4KjNbFpc6OWZQJLjYFaodzeEWwiL0C2lkq22u&t_s=referral&t_cid=route_share" },
-      { label: "🗺️ Komoot 90 км", url: "https://www.komoot.com/tour/2941874319?ref=aso&share_token=aTE6ufoRqr9OFvK6bygBTQ7L9d7nUbbagDJCWNmYU76CXqBYUA&t_s=referral&t_cid=route_share" }
-    ]
-  };
-
-  const transitRouteObj = {
-    title: "Транзит: Дорога на Сухум",
-    type: "Шоссе / Переезд",
-    desc: "День переезда на восточную базу в Сухум. Заезд в Ачандару, Новый Афон и Нижне-Эшерскую дорогу.<br>🕕 09:00 Выезд | 14:00 Обед | 18:00 Финиш",
-    stats: "🛣️ 112 км &nbsp;|&nbsp; ⛰️ +1 400 м &nbsp;|&nbsp; Асфальт 80%",
-    km: 112, gain: 1400,
-    links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com" }]
-  };
-
-  const restDayObj = {
-    title: "🛋️ Выходной & Восстановление",
-    type: "Rest Day",
-    desc: "День отдыха. Посещение термальных источников / бани, самостоятельное планирование, прогулки и хайкинг.",
-    stats: "♨️ Режим восстановления",
-    km: 0, gain: 0
-  };
-
-  if (campState.restDay === 10) {
-    schedule.push({ day: "10 ОКТЯБРЯ", ...restDayObj });
-    schedule.push({ day: "11 ОКТЯБРЯ", ...transitRouteObj });
-    schedule.push({ day: "12 ОКТЯБРЯ", ...sukhumRouteObj });
-  } else {
-    schedule.push({ day: "10 ОКТЯБРЯ", ...transitRouteObj });
-    schedule.push({ day: "11 ОКТЯБРЯ", ...sukhumRouteObj });
-    schedule.push({ day: "12 ОКТЯБРЯ", ...restDayObj });
-  }
-
-  if (campState.branch === 'gal') {
-    schedule.push({
-      day: "13 ОКТЯБРЯ • ВЕТКА ГАЛ",
-      title: "Дорога на Гал",
-      type: "Шоссе",
-      desc: "Посещение и ночёвка в самом удалённом городе Абхазии — г. Гал.<br>🕕 11:00 Выезд | 15:00 Обед в Гал | 17:00 Финиш",
-      stats: "🛣 85 км &nbsp;|&nbsp; ⛰️ +320 м &nbsp;|&nbsp; Асфальт 100%",
-      km: 85, gain: 320,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2188906729?ref=aso&share_token=axKRfsfjKifyn6Q5M3Q6G83ptb0Fdga1qggsvNoXKpsaVxPQjC&t_s=referral&t_cid=route_share" }]
-    });
-    schedule.push({
-      day: "14 ОКТЯБРЯ • ВЕТКА ГАЛ",
-      title: "Дорога к ИнгурГЭС & Граница",
-      type: "Шоссе",
-      desc: "Поездка на гидроэлектростанцию ИнгурГЭС и к границе. Возвращение на базу в Сухум.<br>🕕 09:00 Выезд | 15:00 Обед в Гал | 18:00 Финиш",
-      stats: "🛣️ 140 км &nbsp;|&nbsp; ⛰️ +1 140 м &nbsp;|&nbsp; Асфальт 98%",
-      km: 140, gain: 1140,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2212290644?ref=aso&share_token=ayB4F6gE56jhOjZ0oKxo5v4SbBecoxVl3f9q6RLZnPz5R2LGv3&t_s=referral&t_cid=route_share" }]
-    });
-  } else {
-    schedule.push({
-      day: "13 ОКТЯБРЯ • ВЕТКА ТКУАРЧАЛ",
-      title: "Шахтерский Ткуарчал & Водопады",
-      type: "Шоссе",
-      desc: "Заезд в город-призрак Акармару, посещение водопада Золотоносец.",
-      stats: "🛣️ 193 км &nbsp;|&nbsp; ⛰️ +1 300 м",
-      km: 193, gain: 1300,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/2944745402?ref=aso&share_token=aDEgMYQN5gSehzvu9MXrsX73uwIgd2bMr5CTW14zi3R53z237T&t_s=referral&t_cid=route_share" }]
-    });
-    schedule.push({
-      day: "14 ОКТЯБРЯ • ВЕТКА ТКУАРЧАЛ",
-      title: "Дорога на Гал",
-      type: "Шоссе",
-      desc: "Посещение города Гал и возвращение на сухумскую базу.",
-      stats: "🛣 160 км &nbsp;|&nbsp; ⛰️ +600 м",
-      km: 160, gain: 600,
-      links: [{ label: "🗺️ Маршрут Komoot", url: "https://www.komoot.com/tour/3322902922?ref=aso&share_token=aJ9YzF0LA27jXUrfKjYfQJAXWH51XLjXjg09YSW00hApxXWMvn&t_s=referral&t_cid=route_share" }]
-    });
-  }
-
-  schedule.push({
-    day: "15 ОКТЯБРЯ",
-    title: "🛫 День отъезда & Сборка велосипедов",
-    type: "Финал",
-    desc: "Утренняя заминка, упаковка велосипедов в чехлы, трансфер и отъезд участников.",
-    stats: "👋 До новых встреч!",
-    km: 0, gain: 0
-  });
-
-  const totalKm = schedule.reduce((sum, item) => sum + item.km, 0);
-  const totalGain = schedule.reduce((sum, item) => sum + item.gain, 0);
+  const totalKm = isRitsa ? 615 : 617;
+  const totalGain = isRitsa ? 5170 : 4900;
 
   html += `
     <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 12px 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed #38bdf8; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <div style="font-size: 11px; color: #94a3b8;">Итоговый суммарный план:</div>
+        <div style="font-size: 11px; color: #94a3b8;">Итого по программе (${isRitsa ? '5 января — Рица' : '5 января — Хашупсинский каньон'}):</div>
         <div style="font-size: 15px; font-weight: bold; color: #fff; margin-top: 2px;">
           🛣️ ${totalKm} км &nbsp;|&nbsp; ⛰️ +${totalGain.toLocaleString()} м
         </div>
       </div>
-      <span style="font-size: 20px;">🔥</span>
+      <span style="font-size: 20px;">🎄</span>
     </div>
   `;
 
   const mapsToInit = [];
+  window.__campDayMetas = {};
+
   html += schedule.map((item, idx) => {
     const mapId = `camp-day-map-${idx}`;
+    const badgeId = `camp-day-badge-${idx}`;
     const hasRoute = item.km > 0;
-    const coords = hasRoute ? getCoordsForTitle(item.title) : null;
-    if (hasRoute) mapsToInit.push({ mapId, coords, title: item.title });
+    const meta = hasRoute ? resolveTrackMeta(item.trackKey || item.title, item.title) : null;
+    if (hasRoute) {
+      window.__campDayMetas[idx] = meta;
+      mapsToInit.push({ mapId, badgeId, meta, title: item.title });
+    }
 
     return `
       <div class="card" style="border-left: 4px solid ${hasRoute ? '#38bdf8' : '#64748b'}; margin-bottom: 12px; background:#1e293b; padding:12px; border-radius:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <div style="font-size:10px; color:#38bdf8; font-weight:bold;">${item.day}</div>
-          <span style="font-size:9px; background:rgba(255,255,255,0.1); color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">${item.type}</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${hasRoute ? `<span id="${badgeId}" style="font-size:9px;background:rgba(56,189,248,0.15);color:#38bdf8;padding:2px 6px;border-radius:4px;font-weight:700;">${meta.status === 'ready' ? 'GPX готов' : 'Проверить .gpx'}</span>` : ''}
+            <span style="font-size:9px; background:rgba(255,255,255,0.1); color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">${item.type}</span>
+          </div>
         </div>
         <h4 style="margin:2px 0 6px 0; color:#fff; font-size:14px;">${item.title}</h4>
         <p style="font-size:11px; color:#94a3b8; margin:0 0 8px 0; line-height: 1.4;">${item.desc}</p>
         <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">${item.stats}</div>
-        ${hasRoute ? `<div id="${mapId}" class="track-map-box"></div>` : ''}
+        ${hasRoute ? `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+            <button onclick="openFullscreenMap('${item.title.replace(/'/g, "'")}', window.__campDayMetas[${idx}])" style="background:#0f172a;color:#38bdf8;border:1px solid #334155;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;">⛶ На весь экран</button>
+          </div>
+          <div id="${mapId}" class="track-map-box"></div>
+        ` : ''}
         ${item.links ? `
           <div class="track-actions-row">
             ${item.links.map(l => `
@@ -973,9 +1262,9 @@ function renderTracksList() {
 
   setTimeout(() => {
     mapsToInit.forEach(m => {
-      initTrackMap(m.mapId, m.coords);
+      initTrackMap(m.mapId, m.meta, m.badgeId);
       const btn = document.getElementById('dl-gpx-' + m.mapId);
-      if (btn) btn.onclick = () => downloadRouteGpx(m.mapId, m.title, m.coords);
+      if (btn) btn.onclick = () => downloadDynamicGpx(m.meta.key, m.title, m.meta);
     });
   }, 80);
 }
