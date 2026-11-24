@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 from aiohttp import web, ClientSession
 from github_uploader import process_uploaded_file, get_uploader_status
@@ -100,10 +101,10 @@ def parse_js_data(js_text: str):
     if camps_match:
         blocks = re.findall(r"\{([^{}]*)\}", camps_match.group(1))
         for block in blocks:
-            title = re.search(r'["\']?title["\']?\s*:\s*["\']([^"\']+)["\']', block)
-            dates = re.search(r'["\']?dates["\']?\s*:\s*["\']([^"\']+)["\']', block)
-            desc = re.search(r'["\']?description["\']?\s*:\s*["\'](.*?)["\']', block, re.DOTALL)
-            specs = re.search(r'["\']?specs["\']?\s*:\s*["\'](.*?)["\']', block)
+            title = re.search(r"[\"\x27]?title[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", block)
+            dates = re.search(r"[\"\x27]?dates[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", block)
+            desc = re.search(r"[\"\x27]?description[\"\x27]?\s*:\s*[\"\x27](.*?)[\"\x27]", block, re.DOTALL)
+            specs = re.search(r"[\"\x27]?specs[\"\x27]?\s*:\s*[\"\x27](.*?)[\"\x27]", block)
 
             if title and dates:
                 s_str = f"{specs.group(1)} • " if specs and specs.group(1) else ""
@@ -122,15 +123,15 @@ def parse_js_data(js_text: str):
     if rides_match:
         chunks = re.split(r"(?:^|\n)\s*\{", rides_match.group(1))[1:]
         for chunk in chunks:
-            type_match = re.search(r'["\']?type["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
-            title = re.search(r'["\']?title["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
-            subtitle = re.search(r'["\']?subtitle["\']?\s*:\s*["\'](.*?)["\']', chunk)
-            date_disp = re.search(r'["\']?dateDisplay["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
-            dates_match = re.search(r'["\']?dates["\']?\s*:\s*\[(.*?)\]', chunk, re.DOTALL)
+            type_match = re.search(r"[\"\x27]?type[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
+            title = re.search(r"[\"\x27]?title[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
+            subtitle = re.search(r"[\"\x27]?subtitle[\"\x27]?\s*:\s*[\"\x27](.*?)[\"\x27]", chunk)
+            date_disp = re.search(r"[\"\x27]?dateDisplay[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
+            dates_match = re.search(r"[\"\x27]?dates[\"\x27]?\s*:\s*\[(.*?)\]", chunk, re.DOTALL)
 
-            dist = re.search(r'["\']?distance["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
-            elev = re.search(r'["\']?elevation["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
-            pace = re.search(r'["\']?pace["\']?\s*:\s*["\']([^"\']+)["\']', chunk)
+            dist = re.search(r"[\"\x27]?distance[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
+            elev = re.search(r"[\"\x27]?elevation[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
+            pace = re.search(r"[\"\x27]?pace[\"\x27]?\s*:\s*[\"\x27]([^\"\x27]+)[\"\x27]", chunk)
 
             if title and dates_match:
                 rtype = type_match.group(1) if type_match else "social"
@@ -144,7 +145,7 @@ def parse_js_data(js_text: str):
                     marker = "🔴"
                     btn_style = "danger"
 
-                date_keys = re.findall(r'["\'](\d{4}-\d{2}-\d{2})["\']', dates_match.group(1))
+                date_keys = re.findall(r"[\"\x27](\d{4}-\d{2}-\d{2})[\"\x27]", dates_match.group(1))
                 desc_parts = []
                 if dist and elev:
                     desc_parts.append(f"{dist.group(1)}, {elev.group(1)}")
@@ -460,6 +461,36 @@ async def setup_bot_settings(session: ClientSession) -> dict:
 
 
 # ==================== ГЕНЕРАТОРЫ ИНТЕРФЕЙСОВ ====================
+def get_invite_friend_ui():
+    """Экран «Позвать друга» с готовым шаблоном пересылки, ссылкой на бота и нативным botinvite."""
+    bot_link = f"https://t.me/{BOT_USERNAME}"
+    botinvite_link = f"https://t.me/botinvite/{BOT_USERNAME}"
+    share_text = (
+        "Привет! Залетай в экосистему велоклуба Abhaz Band — кэмпы, выезды по Абхазии, "
+        "календарь заездов и полезные фичи для райдеров: "
+    )
+    share_url = (
+        "https://t.me/share/url?"
+        + urllib.parse.urlencode({"url": bot_link, "text": share_text})
+    )
+    text = (
+        "🤝 <b>Позвать друга в Abhaz Band</b>\n\n"
+        "<b>Как быстро пригласить:</b>\n"
+        "1. Нажми <b>«📤 Переслать приглашение другу»</b> — откроется выбор чатов с готовым текстом.\n"
+        "2. Или нажми <b>«⚡ Пригласить контакты (botinvite)»</b> — Telegram откроет твой список контактов (до 10 человек за раз) и отправит прямое приглашение в чат с ботом.\n\n"
+        "<b>Текст для пересылки:</b>\n"
+        f"<i>«{html.escape(share_text.strip())} {html.escape(bot_link)}»</i>"
+    )
+    markup = {
+        "inline_keyboard": [
+            [{"text": "📤 Переслать приглашение другу", "url": share_url}],
+            [{"text": "⚡ Пригласить контакты (botinvite)", "url": botinvite_link}],
+            [{"text": "🏠 Назад в меню", "callback_data": "nav_overview"}],
+        ]
+    }
+    return text, markup
+
+
 def get_overview_ui():
     cur_y, cur_m = get_allowed_months()[0]
     text = (
@@ -481,7 +512,10 @@ def get_overview_ui():
                 {"text": "🛠 Полезные фичи", "web_app": {"url": f"{MINIAPP_URL}/?tab=features"}},
                 {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
             ],
-            [{"text": "💬 Вопрос организатору (@Piti4)", "url": "https://t.me/Piti4"}],
+            [
+                {"text": "🤝 Позвать друга", "callback_data": "nav_invite"},
+                {"text": "💬 Вопрос (@Piti4)", "url": "https://t.me/Piti4"},
+            ],
         ]
     }
     return text, markup
@@ -621,7 +655,7 @@ def get_camps_ui(idx: int):
 
 # ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
 async def handle_write_access(session: ClientSession, message: dict):
-    """Обработка массового приглашения (Bot API 10.5: botinvite / write_access_allowed)"""
+    """Обработка приглашения (Bot API 10.5: botinvite / write_access_allowed) в связке с реферальным учётом."""
     chat_id = message["chat"]["id"]
     user = message.get("from", {})
     uname = f"@{user['username']}" if user.get("username") else html.escape(user.get("first_name", "Райдер"))
@@ -645,7 +679,26 @@ async def handle_write_access(session: ClientSession, message: dict):
         await send_message(
             session,
             ADMIN_ID,
-            f"🤝 <b>Приглашение от участника клуба (botinvite)!</b>\n• Новый райдер: {uname}\n• Пригласил: {inv_name} (ID: <code>{inviter_id}</code>)",
+            (
+                f"🤝 <b>Клубное приглашение от участника (botinvite)!</b>\n"
+                f"• Новый райдер: {uname} (ID: <code>{user.get('id')}</code>)\n"
+                f"• Пригласил: {inv_name} (ID: <code>{inviter_id}</code>)"
+            ),
+            message_thread_id=LEADS_TOPIC_ID,
+        )
+        try:
+            await send_message(
+                session,
+                int(inviter_id),
+                f"🚴‍♂️ Спасибо, что позвал в <b>Abhaz Band</b>! Райдер {uname} принял приглашение и открыл виджет клуба.",
+            )
+        except Exception as exc:
+            logging.debug(f"Не удалось отправить отметку пригласившему {inviter_id}: {exc}")
+    else:
+        await send_message(
+            session,
+            ADMIN_ID,
+            f"📥 <b>Принят доступ через botinvite (без указания inviter)</b>\n• Райдер: {uname} (ID: <code>{user.get('id')}</code>)",
             message_thread_id=LEADS_TOPIC_ID,
         )
 
@@ -839,6 +892,9 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
 
     if data == "nav_overview":
         t, m = get_overview_ui()
+        await edit_message(session, chat_id, msg_id, t, m)
+    elif data == "nav_invite":
+        t, m = get_invite_friend_ui()
         await edit_message(session, chat_id, msg_id, t, m)
     elif data.startswith("nav_cal:"):
         _, y, m = data.split(":")
