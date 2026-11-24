@@ -12,7 +12,8 @@ function openInitialTabFromUrl() {
     const candidateMap = {
       rides: ['rides', 'rides-tab', 'calendar', 'calendar-tab'],
       calendar: ['calendar', 'calendar-tab', 'rides', 'rides-tab'],
-      camps: ['camps', 'camps-tab']
+      camps: ['camps', 'camps-tab'],
+      features: ['tools-tab', 'tools', 'features', 'features-tab', 'fitchi', 'fitchi-tab']
     };
 
     const candidates = candidateMap[rawTab] || [rawTab, `${rawTab}-tab`];
@@ -25,8 +26,6 @@ function openInitialTabFromUrl() {
       }
     }
 
-    if (!targetId) return;
-
     const navItems = Array.from(document.querySelectorAll('.tab-item'));
     let matchedNav = navItems.find((el) => {
       const handler = el.getAttribute('onclick') || '';
@@ -37,7 +36,17 @@ function openInitialTabFromUrl() {
       matchedNav = navItems.find((el) => /календар|заезд/i.test(el.textContent || ''));
     } else if (!matchedNav && rawTab === 'camps') {
       matchedNav = navItems.find((el) => /кэмп/i.test(el.textContent || ''));
+    } else if (!matchedNav && rawTab === 'features') {
+      matchedNav = navItems.find((el) => /фитч|фич|полезн/i.test(el.textContent || ''));
     }
+
+    if (!targetId && matchedNav) {
+      const handler = matchedNav.getAttribute('onclick') || '';
+      const m = handler.match(/switchTab\(\s*['"]([^'"]+)['"]/);
+      if (m && m[1]) targetId = m[1];
+    }
+
+    if (!targetId) return;
 
     if (typeof switchTab === 'function') {
       switchTab(targetId, matchedNav || null);
