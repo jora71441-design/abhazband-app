@@ -761,9 +761,30 @@ function initTrackMap(mapId, meta, customBadgeId) {
   const poly = L.polyline(initialPts, { color: '#38bdf8', weight: 3.5, opacity: 0.95 }).addTo(map);
   const startMarker = L.circleMarker(initialPts[0], { radius: 5, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(map);
   const endMarker = L.circleMarker(initialPts[initialPts.length - 1], { radius: 5, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 }).addTo(map);
-  map.fitBounds(poly.getBounds(), { padding: [18, 18] });
 
+  const syncMapView = () => {
+    if (!activeLeafletMaps[mapId]) return;
+    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+      map.invalidateSize({ animate: false });
+      try {
+        map.fitBounds(poly.getBounds(), { padding: [18, 18] });
+      } catch (e) {}
+    }
+  };
+
+  syncMapView();
   activeLeafletMaps[mapId] = map;
+
+  // Автопересчёт размера карты при открытии вкладки «Мой кэмп» (убирает баг с 1 плиткой)
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+        syncMapView();
+      }
+    });
+    ro.observe(el);
+    map.once('unload', () => ro.disconnect());
+  }
 
   loadTrackCoordsDynamic(meta).then(trackData => {
     if (!activeLeafletMaps[mapId]) return;
@@ -771,7 +792,7 @@ function initTrackMap(mapId, meta, customBadgeId) {
       poly.setLatLngs(trackData.coords);
       startMarker.setLatLng(trackData.coords[0]);
       endMarker.setLatLng(trackData.coords[trackData.coords.length - 1]);
-      map.fitBounds(poly.getBounds(), { padding: [18, 18] });
+      syncMapView();
     }
     if (customBadgeId) {
       const bEl = document.getElementById(customBadgeId);
