@@ -46,6 +46,7 @@ DIGEST_HOURS = [8, 10, 12, 18, 21]
 DIGEST_RETENTION_DAYS = 4
 MSK_TZ = datetime.timezone(datetime.timedelta(hours=3))
 PENDING_DIGEST: Dict[int, str] = {}
+PENDING_BROADCAST: Dict[int, str] = {}
 
 MONTH_NAMES = [
     "",
@@ -399,6 +400,10 @@ def admin_panel_keyboard() -> Dict[str, Any]:
                 {"text": "⏪ Откатить main", "callback_data": "sys_rb_ask"},
             ],
             [{"text": "📰 Загрузить дайджест", "callback_data": "dg_adm_start"}],
+            [
+                {"text": "📣 Общая рассылка", "callback_data": "bc_start"},
+                {"text": "📣 Анонс дайджеста", "callback_data": "dg_ann_preview"},
+            ],
             [{"text": "🏠 Виджет событий", "callback_data": "nav_overview"}],
         ]
     }
@@ -639,6 +644,21 @@ async def sb_get_pending_subscribers(
     return []
 
 
+async def sb_get_all_active_subscribers(session: ClientSession) -> List[dict]:
+    """Возвращает всех активных (не заблокировавших бота) подписчиков из subscribers."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return []
+    url = f"{SUPABASE_URL}/rest/v1/subscribers?is_blocked=eq.false&select=user_id"
+    try:
+        async with session.get(url, headers=_sb_headers(), timeout=20) as resp:
+            if resp.status == 200:
+                rows = await resp.json()
+                return rows if isinstance(rows, list) else []
+    except Exception as exc:
+        logging.warning(f"sb_get_all_active_subscribers error: {exc}")
+    return []
+
+
 # ==================== TELEGRAM API HELPERS ====================
 async def tg_request(session: ClientSession, method: str, payload: dict) -> dict:
     async with session.post(f"{API_URL}/{method}", json=payload) as resp:
@@ -829,6 +849,92 @@ async def deliver_digest_batch(
             await sb_update_subscriber(session, uid, {sent_col: digest_id})
             sent += 1
         elif is_blk:
+            await sb_update_subscriber(session, uid, {"is_blocked": True})
+            blocked += 1
+        await asyncio.sleep(0.05)
+    return sent, blocked
+
+
+def get_digest_announce_ui() -> Tuple[str, Dict[str, Any]]:
+    text = (
+        "📰 <b>Запускаем еженедельный велодайджест Abhaz Band</b>\n\n"
+        "Раз в неделю будем присылать короткую выжимку главных новостей веломира — без воды и только по твоим интересам:\n"
+        "• <b>Шоссе</b> — гонки, трансферы, календарь и железо;\n"
+        "• <b>Гравел</b> — новинки, маршруты, приключения и экипировка.\n\n"
+        "<i>Выбери прямо сейчас, что хочешь получать (настройки и удобное время доставки можно изменить в любой момент):</i>"
+    )
+    markup = {
+        "inline_keyboard": [
+            [
+                {"text": "🛣️ Только Шоссе", "callback_data": "dg_quick:road"},
+                {"text": "🪨 Только Гравел", "callback_data": "dg_quick:gravel"},
+            ],
+            [{"text": "🔥 Шоссе + Гравел", "callback_data": "dg_quick:both"}],
+            [{"text": "⏰ Выбрать время доставки", "callback_data": "dg_hours"}],
+            [{"text": "🔕 Не присылать дайджест", "callback_data": "dg_quick:off"}],
+        ]
+    }
+    return text, markup
+
+
+def general_broadcast_keyboard() -> Dict[str, Any]:
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
+                {"text": "📰 Велодайджест", "callback_data": "dg_menu"},
+            ]
+        ]
+    }
+
+
+async def send_general_broadcast_to_user(
+    session: ClientSession,
+    chat_id: int,
+    raw_text: str,
+) -> Tuple[bool, bool]:
+    """Отправляет общее сообщение пользователю с разбивкой на части. Возвращает (ok, is_blocked)."""
+    safe_text = html.escape(raw_text.strip())
+    chunks = _split_text_chunks(safe_text)
+    kb = general_broadcast_keyboard()
+    for idx, chunk in enumerate(chunks):
+        markup = kb if idx == len(chunks) - 1 else None
+        res = await send_message(session, chat_id, chunk, reply_markup=markup)
+        if not res.get("ok"):
+            if res.get("error_code") == 403:
+                return False, True
+            logging.warning(f"Ошибка общей рассылки {chat_id}: {res}")
+            return False, False
+    return True, False
+
+
+async def broadcast_general_all(session: ClientSession, raw_text: str) -> Tuple[int, int]:
+    users = await sb_get_all_active_subscribers(session)
+    sent = 0
+    blocked = 0
+    for u in users:
+        uid = int(u["user_id"])
+        ok, is_blk = await send_general_broadcast_to_user(session, uid, raw_text)
+        if ok:
+            sent += 1
+        elif is_blk:
+            await sb_update_subscriber(session, uid, {"is_blocked": True})
+            blocked += 1
+        await asyncio.sleep(0.05)
+    return sent, blocked
+
+
+async def broadcast_digest_announce_all(session: ClientSession) -> Tuple[int, int]:
+    users = await sb_get_all_active_subscribers(session)
+    ann_text, ann_kb = get_digest_announce_ui()
+    sent = 0
+    blocked = 0
+    for u in users:
+        uid = int(u["user_id"])
+        res = await send_message(session, uid, ann_text, reply_markup=ann_kb)
+        if res.get("ok"):
+            sent += 1
+        elif res.get("error_code") == 403:
             await sb_update_subscriber(session, uid, {"is_blocked": True})
             blocked += 1
         await asyncio.sleep(0.05)
@@ -1291,6 +1397,7 @@ async def handle_text(session: ClientSession, message: dict):
                             {"text": "🛣️ Сохранить как Шоссе", "callback_data": "dg_save:road"},
                             {"text": "🪨 Сохранить как Гравел", "callback_data": "dg_save:gravel"},
                         ],
+                        [{"text": "📣 Разослать всем (общее)", "callback_data": "dg_as_bc"}],
                         [{"text": "❌ Отмена", "callback_data": "dg_cancel"}],
                     ]
                 }
@@ -1298,6 +1405,25 @@ async def handle_text(session: ClientSession, message: dict):
                     session,
                     chat_id,
                     f"📰 <b>Предпросмотр дайджеста</b> ({len(text)} симв.)\n\n{preview_snip}\n\n<i>Выбери дисциплину для сохранения:</i>",
+                    reply_markup=kb,
+                    message_thread_id=thread_id,
+                )
+                return
+            if mode == "broadcast_general":
+                PENDING_BROADCAST[user_id] = text
+                users = await sb_get_all_active_subscribers(session)
+                preview_snip = html.escape(text[:600]) + ("…" if len(text) > 600 else "")
+                kb = {
+                    "inline_keyboard": [
+                        [{"text": "🧪 Тест себе (Админу)", "callback_data": "bc_test"}],
+                        [{"text": f"🚀 Отправить всем ({len(users)} чел.)", "callback_data": "bc_send_ask"}],
+                        [{"text": "❌ Отмена", "callback_data": "bc_cancel"}],
+                    ]
+                }
+                await send_message(
+                    session,
+                    chat_id,
+                    f"📣 <b>Предпросмотр общей рассылки</b> ({len(text)} симв.)\n\n{preview_snip}\n\n<i>Выбери действие:</i>",
                     reply_markup=kb,
                     message_thread_id=thread_id,
                 )
@@ -1829,6 +1955,165 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
             chat_id,
             msg_id,
             f"✅ <b>Рассылка завершена!</b>\n• Доставлено: <b>{sent}</b>\n• Заблокировали бота: <b>{blocked}</b>",
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Готово!"})
+        return
+    elif data.startswith("dg_quick:"):
+        choice = data.split(":", 1)[1]
+        await sb_ensure_subscriber(session, user)
+        if choice == "road":
+            await sb_update_subscriber(session, user_id, {"digest_enabled": True, "digest_topics": ["road"]})
+            toast = "Выбрано: только Шоссе!"
+        elif choice == "gravel":
+            await sb_update_subscriber(session, user_id, {"digest_enabled": True, "digest_topics": ["gravel"]})
+            toast = "Выбрано: только Гравел!"
+        elif choice == "both":
+            await sb_update_subscriber(session, user_id, {"digest_enabled": True, "digest_topics": ["road", "gravel"]})
+            toast = "Выбрано: Шоссе + Гравел!"
+        else:
+            await sb_update_subscriber(session, user_id, {"digest_enabled": False})
+            toast = "Дайджест отключён."
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": toast})
+        return
+    elif user_id == ADMIN_ID and data == "dg_as_bc":
+        raw_text = PENDING_DIGEST.pop(user_id, None)
+        if not raw_text:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Текст не найден, отправь заново.", "show_alert": True})
+            return
+        PENDING_BROADCAST[user_id] = raw_text
+        users = await sb_get_all_active_subscribers(session)
+        preview_snip = html.escape(raw_text[:600]) + ("…" if len(raw_text) > 600 else "")
+        kb = {
+            "inline_keyboard": [
+                [{"text": "🧪 Тест себе (Админу)", "callback_data": "bc_test"}],
+                [{"text": f"🚀 Отправить всем ({len(users)} чел.)", "callback_data": "bc_send_ask"}],
+                [{"text": "❌ Отмена", "callback_data": "bc_cancel"}],
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"📣 <b>Общая рассылка всем</b> ({len(raw_text)} симв.)\n\n{preview_snip}\n\n<i>Выбери действие:</i>",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data == "bc_start":
+        PENDING_INPUT[user_id] = {"mode": "broadcast_general"}
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Жду текст рассылки"})
+        await send_message(
+            session,
+            chat_id,
+            "📣 <b>Общая рассылка пользователям бота</b>\n\nОтправь текст сообщения следующим сообщением:",
+            message_thread_id=thread_id,
+        )
+        return
+    elif user_id == ADMIN_ID and data == "bc_cancel":
+        PENDING_BROADCAST.pop(user_id, None)
+        await edit_message(session, chat_id, msg_id, "❌ Общая рассылка отменена.")
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data == "bc_test":
+        raw_text = PENDING_BROADCAST.get(user_id)
+        if not raw_text:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Текст не найден.", "show_alert": True})
+            return
+        ok, _ = await send_general_broadcast_to_user(session, ADMIN_ID, raw_text)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Тест отправлен!" if ok else "Ошибка отправки"})
+        return
+    elif user_id == ADMIN_ID and data == "bc_send_ask":
+        raw_text = PENDING_BROADCAST.get(user_id)
+        if not raw_text:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Текст не найден.", "show_alert": True})
+            return
+        users = await sb_get_all_active_subscribers(session)
+        kb = {
+            "inline_keyboard": [
+                [
+                    {"text": f"✅ Да, отправить ({len(users)})", "callback_data": "bc_send_go"},
+                    {"text": "❌ Отмена", "callback_data": "bc_cancel"},
+                ]
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"🚀 Подтверди общую рассылку.\nПолучателей в базе: <b>{len(users)}</b>",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data == "bc_send_go":
+        raw_text = PENDING_BROADCAST.pop(user_id, None)
+        if not raw_text:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Текст не найден.", "show_alert": True})
+            return
+        await edit_message(session, chat_id, msg_id, "⏳ Запускаю общую рассылку…")
+        sent, blocked = await broadcast_general_all(session, raw_text)
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"✅ <b>Общая рассылка завершена!</b>\n• Доставлено: <b>{sent}</b>\n• Недоступны / заблокировали: <b>{blocked}</b>",
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Готово!"})
+        return
+    elif user_id == ADMIN_ID and data == "dg_ann_preview":
+        users = await sb_get_all_active_subscribers(session)
+        ann_text, _ = get_digest_announce_ui()
+        kb = {
+            "inline_keyboard": [
+                [{"text": "🧪 Тест себе (Админу)", "callback_data": "dg_ann_test"}],
+                [{"text": f"🚀 Отправить всем ({len(users)} чел.)", "callback_data": "dg_ann_ask"}],
+                [{"text": "⬅️ Назад в панель", "callback_data": "sys_status"}],
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"📣 <b>Предпросмотр анонса дайджеста</b>\n\n{ann_text}",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data == "dg_ann_test":
+        ann_text, ann_kb = get_digest_announce_ui()
+        res = await send_message(session, ADMIN_ID, ann_text, reply_markup=ann_kb)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Тест отправлен!" if res.get("ok") else "Ошибка отправки"})
+        return
+    elif user_id == ADMIN_ID and data == "dg_ann_ask":
+        users = await sb_get_all_active_subscribers(session)
+        kb = {
+            "inline_keyboard": [
+                [
+                    {"text": f"✅ Да, разослать ({len(users)})", "callback_data": "dg_ann_go"},
+                    {"text": "❌ Отмена", "callback_data": "sys_status"},
+                ]
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"🚀 Подтверди рассылку анонса велодайджеста с кнопками выбора тем.\nПолучателей: <b>{len(users)}</b>",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data == "dg_ann_go":
+        await edit_message(session, chat_id, msg_id, "⏳ Рассылаю анонс дайджеста…")
+        sent, blocked = await broadcast_digest_announce_all(session)
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"✅ <b>Анонс дайджеста разослан!</b>\n• Доставлено: <b>{sent}</b>\n• Недоступны / заблокировали: <b>{blocked}</b>",
         )
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Готово!"})
         return
