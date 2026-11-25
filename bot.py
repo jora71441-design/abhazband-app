@@ -40,6 +40,13 @@ FILE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 GH_API = f"https://api.github.com/repos/{GITHUB_REPO}"
 THUMB_ICON_URL = f"{MINIAPP_URL}/Klubnie-compressed.jpeg"
 
+# ==================== НАСТРОЙКИ ДАЙДЖЕСТА ====================
+ENABLE_CHANNEL_POST = False  # Включить публикацию дайджеста в ветку/канал при необходимости
+DIGEST_HOURS = [8, 10, 12, 18, 21]
+DIGEST_RETENTION_DAYS = 4
+MSK_TZ = datetime.timezone(datetime.timedelta(hours=3))
+PENDING_DIGEST: Dict[int, str] = {}
+
 MONTH_NAMES = [
     "",
     "Январь",
@@ -391,6 +398,7 @@ def admin_panel_keyboard() -> Dict[str, Any]:
                 {"text": "📊 Статус", "callback_data": "sys_status"},
                 {"text": "⏪ Откатить main", "callback_data": "sys_rb_ask"},
             ],
+            [{"text": "📰 Загрузить дайджест", "callback_data": "dg_adm_start"}],
             [{"text": "🏠 Виджет событий", "callback_data": "nav_overview"}],
         ]
     }
@@ -469,6 +477,168 @@ async def supabase_revoke_slot(session: ClientSession, telegram_id: int, slot_id
         return False, str(exc)
 
 
+# ==================== SUPABASE: ДАЙДЖЕСТЫ И ПОДПИСЧИКИ ====================
+def _parse_topics(raw_topics: Any) -> List[str]:
+    if isinstance(raw_topics, list):
+        return [t for t in raw_topics if t in ("road", "gravel")]
+    if isinstance(raw_topics, str):
+        try:
+            parsed = json.loads(raw_topics)
+            if isinstance(parsed, list):
+                return [t for t in parsed if t in ("road", "gravel")]
+        except Exception:
+            pass
+    return ["road", "gravel"]
+
+
+async def sb_ensure_subscriber(session: ClientSession, user: dict) -> Optional[dict]:
+    """Регистрирует пользователя в subscribers (если его ещё нет) без перезаписи настроек."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY or not user or not user.get("id"):
+        return None
+    uid = int(user["id"])
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    url = f"{SUPABASE_URL}/rest/v1/subscribers?on_conflict=user_id"
+    payload = {
+        "user_id": uid,
+        "username": user.get("username") or "",
+        "first_name": user.get("first_name") or "",
+        "is_blocked": False,
+        "updated_at": now_iso,
+    }
+    try:
+        async with session.post(url, headers=_sb_headers(), json=payload, timeout=15) as resp:
+            if resp.status in (200, 201):
+                data = await resp.json()
+                return data[0] if isinstance(data, list) and data else None
+    except Exception as exc:
+        logging.warning(f"sb_ensure_subscriber error: {exc}")
+    return None
+
+
+async def sb_get_subscriber(session: ClientSession, user_id: int) -> Optional[dict]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/subscribers?user_id=eq.{int(user_id)}&select=*"
+    try:
+        async with session.get(url, headers=_sb_headers(), timeout=15) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data[0] if isinstance(data, list) and data else None
+    except Exception as exc:
+        logging.warning(f"sb_get_subscriber error: {exc}")
+    return None
+
+
+async def sb_update_subscriber(session: ClientSession, user_id: int, fields: Dict[str, Any]) -> bool:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False
+    fields = dict(fields)
+    fields["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    url = f"{SUPABASE_URL}/rest/v1/subscribers?user_id=eq.{int(user_id)}"
+    try:
+        async with session.patch(url, headers=_sb_headers(), json=fields, timeout=15) as resp:
+            return resp.status in (200, 204)
+    except Exception as exc:
+        logging.warning(f"sb_update_subscriber error: {exc}")
+        return False
+
+
+async def sb_save_digest(session: ClientSession, topic: str, content: str) -> Tuple[Optional[dict], str]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None, "Не заданы SUPABASE_URL или SUPABASE_SERVICE_KEY."
+    url = f"{SUPABASE_URL}/rest/v1/digests"
+    payload = {"topic": topic, "content": content}
+    try:
+        async with session.post(url, headers=_sb_headers(), json=payload, timeout=15) as resp:
+            if resp.status in (200, 201):
+                data = await resp.json()
+                row = data[0] if isinstance(data, list) and data else None
+                return row, "OK"
+            txt = await resp.text()
+            return None, f"Supabase {resp.status}: {txt[:200]}"
+    except Exception as exc:
+        return None, str(exc)
+
+
+async def sb_get_latest_digest(session: ClientSession, topic: str) -> Optional[dict]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/digests?topic=eq.{topic}&order=id.desc&limit=1"
+    try:
+        async with session.get(url, headers=_sb_headers(), timeout=15) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data[0] if isinstance(data, list) and data else None
+    except Exception as exc:
+        logging.warning(f"sb_get_latest_digest({topic}) error: {exc}")
+    return None
+
+
+async def sb_get_digest_by_id(session: ClientSession, digest_id: int) -> Optional[dict]:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/digests?id=eq.{int(digest_id)}&limit=1"
+    try:
+        async with session.get(url, headers=_sb_headers(), timeout=15) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data[0] if isinstance(data, list) and data else None
+    except Exception as exc:
+        logging.warning(f"sb_get_digest_by_id error: {exc}")
+    return None
+
+
+async def sb_cleanup_old_digests(session: ClientSession):
+    """Удаляет дайджесты старше DIGEST_RETENTION_DAYS дней, сохраняя самый свежий по каждой теме."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return
+    cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=DIGEST_RETENTION_DAYS)).isoformat()
+    for topic in ("road", "gravel"):
+        latest = await sb_get_latest_digest(session, topic)
+        if not latest:
+            continue
+        latest_id = int(latest["id"])
+        url = (
+            f"{SUPABASE_URL}/rest/v1/digests"
+            f"?topic=eq.{topic}&id=neq.{latest_id}&created_at=lt.{urllib.parse.quote(cutoff)}"
+        )
+        try:
+            async with session.delete(url, headers=_sb_headers(), timeout=15) as resp:
+                if resp.status in (200, 204):
+                    logging.info(f"🧹 Автоочистка дайджестов ({topic}): старые выпуски проверены/удалены")
+        except Exception as exc:
+            logging.warning(f"sb_cleanup_old_digests({topic}) error: {exc}")
+
+
+async def sb_get_pending_subscribers(
+    session: ClientSession,
+    topic: str,
+    digest_id: int,
+    max_hour: Optional[int] = None,
+) -> List[dict]:
+    """Возвращает подписчиков, которым пора доставить выпуск digest_id по теме topic."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return []
+    sent_col = "last_sent_road_id" if topic == "road" else "last_sent_gravel_id"
+    url = (
+        f"{SUPABASE_URL}/rest/v1/subscribers"
+        f"?digest_enabled=eq.true&is_blocked=eq.false&{sent_col}=lt.{int(digest_id)}"
+        f"&select=user_id,digest_topics,digest_hour,{sent_col}"
+    )
+    if max_hour is not None:
+        url += f"&digest_hour=lte.{int(max_hour)}"
+    try:
+        async with session.get(url, headers=_sb_headers(), timeout=20) as resp:
+            if resp.status == 200:
+                rows = await resp.json()
+                if not isinstance(rows, list):
+                    return []
+                return [r for r in rows if topic in _parse_topics(r.get("digest_topics"))]
+    except Exception as exc:
+        logging.warning(f"sb_get_pending_subscribers error: {exc}")
+    return []
+
+
 # ==================== TELEGRAM API HELPERS ====================
 async def tg_request(session: ClientSession, method: str, payload: dict) -> dict:
     async with session.post(f"{API_URL}/{method}", json=payload) as resp:
@@ -500,6 +670,120 @@ async def edit_message(session: ClientSession, chat_id: int, message_id: int, te
     if reply_markup:
         payload["reply_markup"] = reply_markup
     return await tg_request(session, "editMessageText", payload)
+
+
+def format_digest_text(topic: str, raw_content: str) -> str:
+    header = (
+        "🛣️ <b>Велодайджест Abhaz Band • Шоссе</b>"
+        if topic == "road"
+        else "🪨 <b>Велодайджест Abhaz Band • Гравел</b>"
+    )
+    safe_body = html.escape(raw_content.strip())
+    return (
+        f"{header}\n\n"
+        f"{safe_body}\n\n"
+        "<i>⚙️ Темы (Шоссе / Гравел) и удобное время доставки можно переключить кнопкой ниже.</i>"
+    )
+
+
+def digest_footer_keyboard() -> Dict[str, Any]:
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "⚙️ Настроить темы и время", "callback_data": "dg_menu"},
+                {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
+            ]
+        ]
+    }
+
+
+def _split_text_chunks(text: str, max_len: int = 3900) -> List[str]:
+    if len(text) <= max_len:
+        return [text]
+    chunks: List[str] = []
+    rest = text
+    while len(rest) > max_len:
+        cut = rest.rfind("\n\n", 0, max_len)
+        if cut < max_len // 2:
+            cut = rest.rfind("\n", 0, max_len)
+        if cut < max_len // 2:
+            cut = max_len
+        chunks.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    if rest:
+        chunks.append(rest)
+    return chunks
+
+
+async def send_digest_to_user(
+    session: ClientSession,
+    chat_id: int,
+    topic: str,
+    raw_content: str,
+) -> Tuple[bool, bool]:
+    """Отправляет дайджест с разбивкой на части. Возвращает (ok, is_blocked)."""
+    full_text = format_digest_text(topic, raw_content)
+    chunks = _split_text_chunks(full_text)
+    kb = digest_footer_keyboard()
+    for idx, chunk in enumerate(chunks):
+        markup = kb if idx == len(chunks) - 1 else None
+        res = await send_message(session, chat_id, chunk, reply_markup=markup)
+        if not res.get("ok"):
+            err_code = res.get("error_code")
+            if err_code == 403:
+                return False, True
+            logging.warning(f"Ошибка отправки дайджеста {chat_id}: {res}")
+            return False, False
+    return True, False
+
+
+async def deliver_digest_batch(
+    session: ClientSession,
+    topic: str,
+    digest_row: dict,
+    max_hour: Optional[int] = None,
+) -> Tuple[int, int]:
+    """Рассылает выпуск подходящим подписчикам. Возвращает (sent_count, blocked_count)."""
+    digest_id = int(digest_row["id"])
+    content = digest_row["content"]
+    sent_col = "last_sent_road_id" if topic == "road" else "last_sent_gravel_id"
+    users = await sb_get_pending_subscribers(session, topic, digest_id, max_hour=max_hour)
+    sent = 0
+    blocked = 0
+    for u in users:
+        uid = int(u["user_id"])
+        ok, is_blk = await send_digest_to_user(session, uid, topic, content)
+        if ok:
+            await sb_update_subscriber(session, uid, {sent_col: digest_id})
+            sent += 1
+        elif is_blk:
+            await sb_update_subscriber(session, uid, {"is_blocked": True})
+            blocked += 1
+        await asyncio.sleep(0.05)
+    return sent, blocked
+
+
+async def digest_scheduler_loop():
+    """Фоновый цикл доставки дайджестов по выбранному часу МСК + автоочистка архива."""
+    await asyncio.sleep(15)
+    last_cleanup_day = None
+    while True:
+        try:
+            now_msk = datetime.datetime.now(MSK_TZ)
+            async with ClientSession() as session:
+                for topic in ("road", "gravel"):
+                    latest = await sb_get_latest_digest(session, topic)
+                    if not latest:
+                        continue
+                    sent, blocked = await deliver_digest_batch(session, topic, latest, max_hour=now_msk.hour)
+                    if sent or blocked:
+                        logging.info(f"📰 Дайджест ({topic} #{latest['id']}): доставлено={sent}, заблокировали={blocked}")
+                if last_cleanup_day != now_msk.date():
+                    await sb_cleanup_old_digests(session)
+                    last_cleanup_day = now_msk.date()
+        except Exception as exc:
+            logging.error(f"Ошибка digest_scheduler_loop: {exc}")
+        await asyncio.sleep(300)
 
 
 async def setup_bot_settings(session: ClientSession) -> dict:
@@ -574,9 +858,76 @@ def get_overview_ui():
                 {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
             ],
             [
+                {"text": "📰 Велодайджест", "callback_data": "dg_menu"},
                 {"text": "🤝 Позвать друга", "callback_data": "nav_invite"},
-                {"text": "💬 Вопрос (@Piti4)", "url": "https://t.me/Piti4"},
             ],
+            [
+                {"text": "💬 Вопрос организатору (@Piti4)", "url": "https://t.me/Piti4"},
+            ],
+        ]
+    }
+    return text, markup
+
+
+def get_digest_settings_ui(sub: Optional[dict]) -> Tuple[str, Dict[str, Any]]:
+    enabled = True if not sub else bool(sub.get("digest_enabled", True))
+    topics = _parse_topics(sub.get("digest_topics") if sub else None)
+    hour = int(sub.get("digest_hour", 10)) if sub else 10
+
+    has_road = "road" in topics
+    has_gravel = "gravel" in topics
+    status_str = "🔔 Включён" if enabled else "🔕 Отключён"
+    topics_list = []
+    if has_road:
+        topics_list.append("Шоссе")
+    if has_gravel:
+        topics_list.append("Гравел")
+    topics_str = ", ".join(topics_list) if topics_list else "не выбраны"
+
+    text = (
+        "📰 <b>Велодайджест Abhaz Band</b>\n\n"
+        f"• Статус: <b>{status_str}</b>\n"
+        f"• Темы: <b>{topics_str}</b>\n"
+        f"• Время доставки: <b>{hour:02d}:00 МСК</b>\n\n"
+        "<i>Переключай дисциплины и время в один тап или запроси последний выпуск прямо сейчас:</i>"
+    )
+    markup = {
+        "inline_keyboard": [
+            [
+                {"text": f"{'✅' if has_road else '⬜'} 🛣️ Шоссе", "callback_data": "dg_toggle:road"},
+                {"text": f"{'✅' if has_gravel else '⬜'} 🪨 Гравел", "callback_data": "dg_toggle:gravel"},
+            ],
+            [{"text": f"⏰ Время доставки: {hour:02d}:00 МСК", "callback_data": "dg_hours"}],
+            [{"text": "📰 Получить последний дайджест", "callback_data": "dg_latest"}],
+            [
+                {
+                    "text": "🔕 Отключить дайджест" if enabled else "🔔 Включить дайджест",
+                    "callback_data": "dg_toggle_en",
+                }
+            ],
+            [{"text": "🏠 В главное меню", "callback_data": "nav_overview"}],
+        ]
+    }
+    return text, markup
+
+
+def get_digest_hours_ui(current_hour: int) -> Tuple[str, Dict[str, Any]]:
+    text = (
+        "⏰ <b>Выбор времени доставки (МСК)</b>\n\n"
+        "Выбери удобный час, когда бот будет присылать новые выпуски велодайджеста <b>Abhaz Band</b>:"
+    )
+    row = [
+        {
+            "text": f"{'✅ ' if h == current_hour else ''}{h:02d}:00",
+            "callback_data": f"dg_set_h:{h}",
+        }
+        for h in DIGEST_HOURS
+    ]
+    markup = {
+        "inline_keyboard": [
+            row[:3],
+            row[3:],
+            [{"text": "⬅️ Назад к настройкам", "callback_data": "dg_menu"}],
         ]
     }
     return text, markup
@@ -725,6 +1076,7 @@ async def handle_write_access(session: ClientSession, message: dict):
     inviter = waa.get("inviter") or {}
     inviter_id = inviter.get("id")
 
+    await sb_ensure_subscriber(session, user)
     t, m = get_overview_ui()
     await send_message(session, chat_id, t, reply_markup=m)
 
@@ -858,6 +1210,26 @@ async def handle_text(session: ClientSession, message: dict):
                     message_thread_id=thread_id,
                 )
                 return
+            if mode == "upload_digest":
+                PENDING_DIGEST[user_id] = text
+                preview_snip = html.escape(text[:600]) + ("…" if len(text) > 600 else "")
+                kb = {
+                    "inline_keyboard": [
+                        [
+                            {"text": "🛣️ Сохранить как Шоссе", "callback_data": "dg_save:road"},
+                            {"text": "🪨 Сохранить как Гравел", "callback_data": "dg_save:gravel"},
+                        ],
+                        [{"text": "❌ Отмена", "callback_data": "dg_cancel"}],
+                    ]
+                }
+                await send_message(
+                    session,
+                    chat_id,
+                    f"📰 <b>Предпросмотр дайджеста</b> ({len(text)} симв.)\n\n{preview_snip}\n\n<i>Выбери дисциплину для сохранения:</i>",
+                    reply_markup=kb,
+                    message_thread_id=thread_id,
+                )
+                return
 
         if text.startswith("/test_105"):
             set_res = await setup_bot_settings(session)
@@ -973,7 +1345,24 @@ async def handle_text(session: ClientSession, message: dict):
             await send_message(session, chat_id, st_text, reply_markup=admin_panel_keyboard(), message_thread_id=thread_id)
             return
 
+    if text.startswith("/digest"):
+        await sb_ensure_subscriber(session, user)
+        if user_id == ADMIN_ID:
+            PENDING_INPUT[user_id] = {"mode": "upload_digest"}
+            await send_message(
+                session,
+                chat_id,
+                "📰 <b>Режим загрузки дайджеста</b>\n\nОтправь или перешли готовый текст дайджеста следующим сообщением (Шоссе или Гравел).",
+                message_thread_id=thread_id,
+            )
+            return
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await send_message(session, chat_id, t_ui, reply_markup=m_ui, message_thread_id=thread_id)
+        return
+
     if text.startswith("/start") or text.startswith("/widget") or text.startswith("/test"):
+        await sb_ensure_subscriber(session, user)
         text_ui, markup = get_overview_ui()
         await send_message(session, chat_id, text_ui, reply_markup=markup, message_thread_id=thread_id)
 
@@ -1193,6 +1582,184 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Закрыта" if ok else "Ошибка"})
         await edit_message(session, chat_id, msg_id, f"{msg_txt}\n\n{st_text}", admin_panel_keyboard())
         return
+    elif data == "dg_menu":
+        await sb_ensure_subscriber(session, user)
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif data.startswith("dg_toggle:"):
+        topic = data.split(":", 1)[1]
+        await sb_ensure_subscriber(session, user)
+        sub = await sb_get_subscriber(session, user_id)
+        topics = _parse_topics(sub.get("digest_topics") if sub else None)
+        if topic in topics:
+            topics = [t for t in topics if t != topic]
+        else:
+            topics.append(topic)
+        await sb_update_subscriber(session, user_id, {"digest_topics": topics})
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Темы обновлены"})
+        return
+    elif data == "dg_toggle_en":
+        await sb_ensure_subscriber(session, user)
+        sub = await sb_get_subscriber(session, user_id)
+        cur_en = True if not sub else bool(sub.get("digest_enabled", True))
+        await sb_update_subscriber(session, user_id, {"digest_enabled": not cur_en})
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Статус обновлён"})
+        return
+    elif data == "dg_hours":
+        sub = await sb_get_subscriber(session, user_id)
+        cur_h = int(sub.get("digest_hour", 10)) if sub else 10
+        t_ui, m_ui = get_digest_hours_ui(cur_h)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif data.startswith("dg_set_h:"):
+        new_h = int(data.split(":", 1)[1])
+        if new_h in DIGEST_HOURS:
+            await sb_ensure_subscriber(session, user)
+            await sb_update_subscriber(session, user_id, {"digest_hour": new_h})
+        sub = await sb_get_subscriber(session, user_id)
+        t_ui, m_ui = get_digest_settings_ui(sub)
+        await edit_message(session, chat_id, msg_id, t_ui, m_ui)
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": f"Время: {new_h:02d}:00 МСК"})
+        return
+    elif data == "dg_latest":
+        await sb_ensure_subscriber(session, user)
+        sub = await sb_get_subscriber(session, user_id)
+        topics = _parse_topics(sub.get("digest_topics") if sub else None)
+        if not topics:
+            await tg_request(
+                session,
+                "answerCallbackQuery",
+                {"callback_query_id": cb_id, "text": "Сначала выбери хотя бы одну тему (Шоссе или Гравел).", "show_alert": True},
+            )
+            return
+        sent_any = False
+        for topic in topics:
+            latest = await sb_get_latest_digest(session, topic)
+            if latest:
+                ok, _ = await send_digest_to_user(session, chat_id, topic, latest["content"])
+                if ok:
+                    sent_any = True
+        await tg_request(
+            session,
+            "answerCallbackQuery",
+            {
+                "callback_query_id": cb_id,
+                "text": "Свежий дайджест отправлен!" if sent_any else "Свежих выпусков по выбранным темам пока нет.",
+                "show_alert": not sent_any,
+            },
+        )
+        return
+    elif user_id == ADMIN_ID and data == "dg_adm_start":
+        PENDING_INPUT[user_id] = {"mode": "upload_digest"}
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Жду текст дайджеста"})
+        await send_message(
+            session,
+            chat_id,
+            "📰 <b>Загрузка велодайджеста</b>\n\nОтправь или перешли готовый текст дайджеста следующим сообщением:",
+            message_thread_id=thread_id,
+        )
+        return
+    elif user_id == ADMIN_ID and data == "dg_cancel":
+        PENDING_DIGEST.pop(user_id, None)
+        await edit_message(session, chat_id, msg_id, "❌ Загрузка дайджеста отменена.")
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data.startswith("dg_save:"):
+        topic = data.split(":", 1)[1]
+        raw_text = PENDING_DIGEST.pop(user_id, None)
+        if not raw_text:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Текст не найден, отправь заново.", "show_alert": True})
+            return
+        row, err = await sb_save_digest(session, topic, raw_text)
+        if not row:
+            await edit_message(session, chat_id, msg_id, f"⚠️ Ошибка сохранения в Supabase:\n<code>{html.escape(err)}</code>")
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Ошибка"})
+            return
+        await sb_cleanup_old_digests(session)
+        d_id = int(row["id"])
+        t_label = "Шоссе" if topic == "road" else "Гравел"
+        kb = {
+            "inline_keyboard": [
+                [{"text": "⏰ Доставить по расписанию пользователей", "callback_data": "dg_mode_sched"}],
+                [{"text": "🧪 Тест себе (Админу)", "callback_data": f"dg_send_test:{topic}:{d_id}"}],
+                [{"text": "🚀 Отправить сейчас всем", "callback_data": f"dg_send_now_ask:{topic}:{d_id}"}],
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"✅ Дайджест <b>{t_label}</b> (#<code>{d_id}</code>) сохранён в Supabase.\n\nВыбери способ доставки:",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Сохранено!"})
+        return
+    elif user_id == ADMIN_ID and data == "dg_mode_sched":
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            "⏰ <b>Поставлено в очередь!</b>\nБот доставит выпуск каждому подписчику в выбранный им час по МСК.",
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data.startswith("dg_send_test:"):
+        _, topic, d_id_s = data.split(":", 2)
+        row = await sb_get_digest_by_id(session, int(d_id_s))
+        if not row:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Выпуск не найден", "show_alert": True})
+            return
+        ok, _ = await send_digest_to_user(session, ADMIN_ID, topic, row["content"])
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Тест отправлен!" if ok else "Ошибка отправки"})
+        return
+    elif user_id == ADMIN_ID and data.startswith("dg_send_now_ask:"):
+        _, topic, d_id_s = data.split(":", 2)
+        d_id = int(d_id_s)
+        users = await sb_get_pending_subscribers(session, topic, d_id, max_hour=None)
+        t_label = "Шоссе" if topic == "road" else "Гравел"
+        kb = {
+            "inline_keyboard": [
+                [
+                    {"text": f"✅ Да, отправить ({len(users)})", "callback_data": f"dg_send_now_go:{topic}:{d_id}"},
+                    {"text": "⏰ Оставить по расписанию", "callback_data": "dg_mode_sched"},
+                ]
+            ]
+        }
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"🚀 Подтверди мгновенную рассылку <b>{t_label}</b> (#<code>{d_id}</code>).\nПолучателей: <b>{len(users)}</b>",
+            kb,
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        return
+    elif user_id == ADMIN_ID and data.startswith("dg_send_now_go:"):
+        _, topic, d_id_s = data.split(":", 2)
+        row = await sb_get_digest_by_id(session, int(d_id_s))
+        if not row:
+            await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Выпуск не найден", "show_alert": True})
+            return
+        await edit_message(session, chat_id, msg_id, "⏳ Запускаю рассылку дайджеста…")
+        sent, blocked = await deliver_digest_batch(session, topic, row, max_hour=None)
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            f"✅ <b>Рассылка завершена!</b>\n• Доставлено: <b>{sent}</b>\n• Заблокировали бота: <b>{blocked}</b>",
+        )
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Готово!"})
+        return
 
     await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
 
@@ -1256,11 +1823,12 @@ async def healthcheck(request: web.Request):
 
 async def on_startup(app: web.Application):
     app["data_task"] = asyncio.create_task(data_sync_loop())
+    app["digest_task"] = asyncio.create_task(digest_scheduler_loop())
     app["polling_task"] = asyncio.create_task(polling_loop(app))
 
 
 async def on_cleanup(app: web.Application):
-    for task_name in ["data_task", "polling_task"]:
+    for task_name in ["data_task", "digest_task", "polling_task"]:
         task = app.get(task_name)
         if task:
             task.cancel()
