@@ -672,16 +672,88 @@ async def edit_message(session: ClientSession, chat_id: int, message_id: int, te
     return await tg_request(session, "editMessageText", payload)
 
 
+_DIGEST_EMOJI_RULES = [
+    (("контракт", "продлен", "подписан", "трансфер", "переход", "ростер", "состав"), "✍️"),
+    (("отмен", "перенос", "отложен", "сворачива", "приостанов", "закрыт"), "❌"),
+    (("санкц", "допинг", "дисквал", "решени", "суд", "штраф", "нарушен"), "⚖️"),
+    (("график", "календар", "расписан", "сезон", "старт", "даты", "маршрут"), "📅"),
+    (("форм", "джерси", "экип", "дизайн", "цвет", "шлем"), "👕"),
+    (("велосипед", "рам", "дебют", "новинк", "презентац", "колес", "покрыш", "трансмисс", "групсет", "компьютер", "навигац"), "🚲"),
+    (("побед", "чемпион", "рекорд", "титул", "подиум", "триумф", "выиграл"), "🏆"),
+    (("травм", "паден", "перелом", "болезн", "восстановлен"), "🩹"),
+    (("финанс", "долг", "спонсор", "бюджет", "инвестиц", "банкрот"), "💼"),
+]
+
+
+def _starts_with_emoji(text: str) -> bool:
+    if not text:
+        return False
+    ch = text[0]
+    code = ord(ch)
+    return (
+        0x2600 <= code <= 0x27BF
+        or 0x1F300 <= code <= 0x1FAFF
+        or ch in ("•", "▪", "▫", "▸", "—", "-")
+    )
+
+
+def _pick_digest_emoji(line_text: str, topic: str) -> str:
+    low = line_text.lower()
+    for keywords, emoji in _DIGEST_EMOJI_RULES:
+        if any(kw in low for kw in keywords):
+            return emoji
+    return "🚴" if topic == "road" else "🧭"
+
+
+def _beautify_digest_body(raw_content: str, topic: str) -> str:
+    rubric_emoji = "🏁" if topic == "road" else "⛰"
+    lines = [ln.strip() for ln in raw_content.strip().splitlines() if ln.strip()]
+    formatted_blocks: List[str] = []
+
+    for ln in lines:
+        # Убираем ведущие маркеры списка, чтобы не дублировать со смайлом
+        clean_ln = re.sub(r"^[\-\*•▪▫]+\s+", "", ln).strip()
+        if not clean_ln:
+            continue
+
+        already_has_emoji = _starts_with_emoji(clean_ln)
+
+        # Короткая строка без двоеточия и без точки в конце — считаем заголовком рубрики
+        if ":" not in clean_ln and len(clean_ln) <= 90 and not clean_ln.endswith((".", "!", "?")):
+            safe_rubric = html.escape(clean_ln)
+            prefix = "" if already_has_emoji else f"{rubric_emoji} "
+            formatted_blocks.append(f"{prefix}<b>{safe_rubric}</b>")
+            continue
+
+        # Новость в формате «Заголовок: текст»
+        colon_idx = clean_ln.find(":")
+        if 0 < colon_idx <= 140:
+            title_part = clean_ln[: colon_idx + 1].strip()
+            body_part = clean_ln[colon_idx + 1 :].strip()
+            emoji = "" if already_has_emoji else f"{_pick_digest_emoji(title_part, topic)} "
+            if body_part:
+                formatted_blocks.append(
+                    f"{emoji}<b>{html.escape(title_part)}</b> {html.escape(body_part)}"
+                )
+            else:
+                formatted_blocks.append(f"{emoji}<b>{html.escape(title_part)}</b>")
+        else:
+            emoji = "" if already_has_emoji else f"{_pick_digest_emoji(clean_ln, topic)} "
+            formatted_blocks.append(f"{emoji}{html.escape(clean_ln)}")
+
+    return "\n\n".join(formatted_blocks)
+
+
 def format_digest_text(topic: str, raw_content: str) -> str:
     header = (
         "🛣️ <b>Велодайджест Abhaz Band • Шоссе</b>"
         if topic == "road"
         else "🪨 <b>Велодайджест Abhaz Band • Гравел</b>"
     )
-    safe_body = html.escape(raw_content.strip())
+    pretty_body = _beautify_digest_body(raw_content, topic)
     return (
         f"{header}\n\n"
-        f"{safe_body}\n\n"
+        f"{pretty_body}\n\n"
         "<i>⚙️ Темы (Шоссе / Гравел) и удобное время доставки можно переключить кнопкой ниже.</i>"
     )
 
