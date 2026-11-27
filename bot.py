@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from aiohttp import web, ClientSession
 from github_uploader import process_uploaded_file, get_uploader_status
 import moderation
+import chat_assistant
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -1591,6 +1592,18 @@ async def handle_text(session: ClientSession, message: dict):
         await tg_request(session, "deleteMessage", {"chat_id": chat_id, "message_id": message["message_id"]})
         text_ui, markup = get_overview_ui()
         await send_message(session, chat_id, text_ui, reply_markup=markup)
+        return
+
+    if chat_type in ("group", "supergroup"):
+        await chat_assistant.handle_group_message(
+            tg_request,
+            session,
+            message,
+            ADMIN_ID,
+            RIDES_DATA,
+            CAMPS_DATA,
+            BOT_USERNAME,
+        )
         return
 
     if chat_type != "private":
