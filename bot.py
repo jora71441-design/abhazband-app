@@ -934,7 +934,8 @@ def _build_digest_share_url(topic: str, raw_content: str) -> str:
     )
     bot_deep_link = f"https://t.me/{BOT_USERNAME}?start=digest_{topic}"
     return "https://t.me/share/url?" + urllib.parse.urlencode(
-        {"url": bot_deep_link, "text": share_text[:320]}
+        {"url": bot_deep_link, "text": share_text[:320]},
+        quote_via=urllib.parse.quote,
     )
 
 
@@ -1171,7 +1172,7 @@ def get_invite_friend_ui():
     )
     share_url = (
         "https://t.me/share/url?"
-        + urllib.parse.urlencode({"url": bot_link, "text": share_text})
+        + urllib.parse.urlencode({"url": bot_link, "text": share_text}, quote_via=urllib.parse.quote)
     )
     text = (
         "🤝 <b>Позвать друга в Abhaz Band</b>\n\n"
