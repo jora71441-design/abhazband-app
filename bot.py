@@ -404,7 +404,10 @@ def admin_panel_keyboard() -> Dict[str, Any]:
                 {"text": "📣 Общая рассылка", "callback_data": "bc_start"},
                 {"text": "📣 Анонс дайджеста", "callback_data": "dg_ann_preview"},
             ],
-            [{"text": "🏠 Виджет событий", "callback_data": "nav_overview"}],
+            [
+                {"text": "📖 Команды админа", "callback_data": "sys_cmds"},
+                {"text": "🏠 Виджет событий", "callback_data": "nav_overview"},
+            ],
         ]
     }
 
@@ -426,6 +429,27 @@ async def build_status_text(session: ClientSession) -> str:
     if uploader_info:
         lines.append(f"• Загрузчик: <code>{html.escape(str(uploader_info)[:120])}</code>")
     return "\n".join(lines)
+
+
+def build_admin_commands_text() -> str:
+    return (
+        "📖 <b>Команды управления Abhaz Band</b>\n\n"
+        "<b>Панель и деплой:</b>\n"
+        "• <code>/panel</code> — главная панель управления\n"
+        "• <code>/status</code> — статус веток и загрузчика\n"
+        "• <code>/preview имя</code> — создать preview-ветку\n\n"
+        "<b>Ветки и заявки:</b>\n"
+        "• <code>/new_topic Название</code> — создать ветку в чате с ботом\n"
+        "• <code>/set_leads</code> — назначить текущую ветку для заявок\n"
+        "• <code>/test_105</code> — диагностика Bot API 10.5 и веток\n\n"
+        "<b>Слоты («Мой кэмп»):</b>\n"
+        "• <code>/grant ID slot_id [тип]</code> — выдать доступ к слоту\n"
+        "• <code>/revoke ID slot_id</code> — отозвать доступ к слоту\n\n"
+        "<b>Контент и чаты:</b>\n"
+        "• <code>/digest</code> — загрузить новый выпуск дайджеста\n"
+        "• <code>/group_menu</code> — отправить виджет в групповой чат\n"
+        "• <code>/start</code> — открыть пользовательский виджет"
+    )
 
 
 # ==================== SUPABASE: ПОДТВЕРЖДЁННЫЕ СЛОТЫ ====================
@@ -692,6 +716,86 @@ async def edit_message(session: ClientSession, chat_id: int, message_id: int, te
     return await tg_request(session, "editMessageText", payload)
 
 
+_USER_TOPIC_CONFIG = {
+    "digest": ("digest_topic_id", "📰 Велодайджест"),
+    "slots": ("slots_topic_id", "🏕 Мои слоты и кэмпы"),
+}
+
+
+async def create_chat_topic(session: ClientSession, chat_id: int, name: str) -> Optional[int]:
+    """Создаёт форум-ветку в чате и возвращает её message_thread_id (или None)."""
+    try:
+        res = await tg_request(session, "createForumTopic", {"chat_id": int(chat_id), "name": name[:128]})
+        if res.get("ok") and isinstance(res.get("result"), dict):
+            tid = res["result"].get("message_thread_id")
+            if tid:
+                return int(tid)
+        logging.debug(f"createForumTopic({chat_id}, {name}) -> {res}")
+    except Exception as exc:
+        logging.warning(f"create_chat_topic error: {exc}")
+    return None
+
+
+async def ensure_user_topic(
+    session: ClientSession,
+    user_id: int,
+    kind: str,
+    force_recreate: bool = False,
+) -> Optional[int]:
+    """Возвращает ID принудительной ветки пользователя (создаёт лениво при первом обращении)."""
+    cfg = _USER_TOPIC_CONFIG.get(kind)
+    if not cfg:
+        return None
+    col_name, topic_title = cfg
+
+    if not force_recreate:
+        sub = await sb_get_subscriber(session, user_id)
+        if sub and sub.get(col_name):
+            try:
+                return int(sub[col_name])
+            except (TypeError, ValueError):
+                pass
+
+    new_tid = await create_chat_topic(session, user_id, topic_title)
+    if new_tid:
+        await sb_update_subscriber(session, user_id, {col_name: new_tid})
+    return new_tid
+
+
+def _is_thread_missing_error(res: dict) -> bool:
+    if not isinstance(res, dict) or res.get("ok"):
+        return False
+    desc = str(res.get("description") or "").lower()
+    return (
+        "thread not found" in desc
+        or "topic_deleted" in desc
+        or "topic_closed" in desc
+        or "message_thread_id" in desc
+    )
+
+
+async def send_message_to_user_topic(
+    session: ClientSession,
+    user_id: int,
+    kind: str,
+    text: str,
+    reply_markup: dict | None = None,
+) -> dict:
+    """Отправляет сообщение в принудительную ветку пользователя с автопересозданием и фоллбэком в общий чат."""
+    tid = await ensure_user_topic(session, user_id, kind, force_recreate=False)
+    res = await send_message(session, user_id, text, reply_markup=reply_markup, message_thread_id=tid)
+    if res.get("ok") or res.get("error_code") == 403:
+        return res
+    if tid and _is_thread_missing_error(res):
+        new_tid = await ensure_user_topic(session, user_id, kind, force_recreate=True)
+        if new_tid:
+            res2 = await send_message(session, user_id, text, reply_markup=reply_markup, message_thread_id=new_tid)
+            if res2.get("ok") or res2.get("error_code") == 403:
+                return res2
+        return await send_message(session, user_id, text, reply_markup=reply_markup, message_thread_id=None)
+    return res
+
+
 _DIGEST_EMOJI_RULES = [
     (("контракт", "продлен", "подписан", "трансфер", "переход", "ростер", "состав"), "✍️"),
     (("отмен", "перенос", "отложен", "сворачива", "приостанов", "закрыт"), "❌"),
@@ -855,13 +959,13 @@ async def send_digest_to_user(
     raw_content: str,
     published_at: Optional[datetime.datetime] = None,
 ) -> Tuple[bool, bool]:
-    """Отправляет дайджест с разбивкой на части. Возвращает (ok, is_blocked)."""
+    """Отправляет дайджест в ветку «📰 Велодайджест» с разбивкой на части. Возвращает (ok, is_blocked)."""
     full_text = format_digest_text(topic, raw_content, published_at=published_at)
     chunks = _split_text_chunks(full_text)
     kb = digest_footer_keyboard()
     for idx, chunk in enumerate(chunks):
         markup = kb if idx == len(chunks) - 1 else None
-        res = await send_message(session, chat_id, chunk, reply_markup=markup)
+        res = await send_message_to_user_topic(session, chat_id, "digest", chunk, reply_markup=markup)
         if not res.get("ok"):
             err_code = res.get("error_code")
             if err_code == 403:
@@ -1544,6 +1648,28 @@ async def handle_text(session: ClientSession, message: dict):
             )
             return
 
+        if text.startswith("/new_topic"):
+            parts = text.split(maxsplit=1)
+            t_name = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "🚴 Заявки"
+            new_tid = await create_chat_topic(session, chat_id, t_name)
+            if new_tid:
+                await send_message(
+                    session,
+                    chat_id,
+                    f"✅ <b>Ветка «{html.escape(t_name)}» создана!</b>\n"
+                    f"• ID темы: <code>{new_tid}</code>\n\n"
+                    f"Если это ветка для заявок, зайди в неё и отправь <code>/set_leads</code> (или добавь <code>LEADS_TOPIC_ID={new_tid}</code> в Render).",
+                    message_thread_id=new_tid,
+                )
+            else:
+                await send_message(
+                    session,
+                    chat_id,
+                    "⚠️ Не удалось создать ветку через <code>createForumTopic</code>. Проверь <code>/test_105</code>.",
+                    message_thread_id=thread_id,
+                )
+            return
+
         if text.startswith("/set_leads"):
             LEADS_TOPIC_ID = thread_id
             if thread_id:
@@ -1593,9 +1719,10 @@ async def handle_text(session: ClientSession, message: dict):
                     message_thread_id=thread_id,
                 )
                 try:
-                    await send_message(
+                    await send_message_to_user_topic(
                         session,
                         target_uid,
+                        "slots",
                         "✅ <b>Доступ в личный кабинет «Мой кэмп» открыт!</b>\nНажми кнопку ниже, чтобы открыть треки, тайминг и чек-лист:",
                         reply_markup={"inline_keyboard": [[{"text": "🏕 Открыть Мой кэмп", "web_app": {"url": f"{MINIAPP_URL}/?tab=my-camp"}}]]},
                     )
@@ -1683,15 +1810,15 @@ async def handle_text(session: ClientSession, message: dict):
                     [{"text": "🏠 Главное меню", "callback_data": "nav_overview"}],
                 ]
             }
-            await send_message(
+            await send_message_to_user_topic(
                 session,
                 chat_id,
+                "slots",
                 f"✅ <b>Заявка отправлена!</b>\n\n"
                 f"• Программа: <b>{html.escape(title)}</b>\n"
                 f"• Слот: <code>{html.escape(slot_id)}</code>\n\n"
                 f"После подтверждения оплаты у @Piti4 откроется доступ во вкладку <b>«Мой кэмп»</b> с треками, таймингом и чек-листом.",
                 reply_markup=user_kb,
-                message_thread_id=thread_id,
             )
             return
         text_ui, markup = get_overview_ui()
@@ -1809,9 +1936,10 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
                 await edit_message(session, chat_id, msg_id, f"{html.escape(orig_text)}\n\n✅ <b>Оплата подтверждена — доступ в «Мой кэмп» открыт!</b>")
                 await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "✅ Доступ открыт!"})
                 try:
-                    await send_message(
+                    await send_message_to_user_topic(
                         session,
                         req_uid,
+                        "slots",
                         "✅ <b>Оплата подтверждена!</b>\nДоступ в личный кабинет <b>«Мой кэмп»</b> открыт — внутри тебя ждут треки, тайминг, чек-лист и памятка.",
                         reply_markup={"inline_keyboard": [[{"text": "🏕 Открыть Мой кэмп", "web_app": {"url": f"{MINIAPP_URL}/?tab=my-camp"}}]]},
                     )
@@ -1864,6 +1992,16 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
             st_text = await build_status_text(gh_session)
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
         await edit_message(session, chat_id, msg_id, st_text, admin_panel_keyboard())
+        return
+    elif user_id == ADMIN_ID and data == "sys_cmds":
+        await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
+        await edit_message(
+            session,
+            chat_id,
+            msg_id,
+            build_admin_commands_text(),
+            {"inline_keyboard": [[{"text": "⬅️ Назад в панель", "callback_data": "sys_status"}]]},
+        )
         return
     elif user_id == ADMIN_ID and data == "sys_rb_ask":
         async with ClientSession() as gh_session:
