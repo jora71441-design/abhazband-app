@@ -53,10 +53,11 @@ function openFititi() {
   }
 }
 
-// Шеринг заезда
-function shareRide(title, date) {
-  const botAppUrl = 'https://t.me/abhazband_bot';
-  const text = `🚴 Поедешь со мной на заезд?\n\n"${title}"\n📅 ${date}`;
+// Шеринг заезда (прямой переход на карточку события в Abhaz Band Hub)
+function shareRide(title, date, rideId) {
+  const startParam = rideId ? `ride_${encodeURIComponent(String(rideId).trim())}` : 'calendar';
+  const botAppUrl = `https://t.me/AbhazBand_bot?startapp=${startParam}`;
+  const text = `🚴 Поедешь со мной на заезд?\n\n"${title}"\n📅 ${date}\n\n👉 Открыть детали и занять слот в Abhaz Band Hub:`;
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botAppUrl)}&text=${encodeURIComponent(text)}`;
   
   if (window.Telegram?.WebApp?.openTelegramLink) {
@@ -68,7 +69,7 @@ function shareRide(title, date) {
 
 // Шеринг товара Велоуют
 function shareProduct(title, price) {
-  const botAppUrl = 'https://t.me/abhazband_bot';
+  const botAppUrl = 'https://t.me/AbhazBand_bot?startapp=shop';
   const text = `🔥 Смотри, классная вещь для велоуюта: ${title} (${price.toLocaleString()} ₽)`;
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botAppUrl)}&text=${encodeURIComponent(text)}`;
   
@@ -129,10 +130,11 @@ function calcPressure() {
   if (rearRes) rearRes.innerText = `${rearBar} Bar (${rearPsi} PSI)`;
 }
 
-// --- ШЕРИНГ КЭМПА ---
-function shareCamp(title, dates, location, price) {
-  const textToShare = `⛺ **${title}**\n📆 ${dates}\n📍 ${location}\n💰 ${price}\n\n👉 Открыть программу и забронировать слот в экосистеме AbhazBand:`;
-  const urlToShare = 'https://t.me/AbhazBand_bot?start=w_camps';
+// --- ШЕРИНГ КЭМПА (прямой переход на карточку кэмпа в Abhaz Band Hub) ---
+function shareCamp(title, dates, location, price, campId) {
+  const startParam = campId ? `camp_${encodeURIComponent(String(campId).trim())}` : 'camps';
+  const textToShare = `⛺ ${title}\n📆 ${dates}\n📍 ${location}\n💰 ${price}\n\n👉 Открыть программу и забронировать слот в экосистеме Abhaz Band:`;
+  const urlToShare = `https://t.me/AbhazBand_bot?startapp=${startParam}`;
   
   if (window.Telegram?.WebApp?.openTelegramLink) {
     window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(urlToShare)}&text=${encodeURIComponent(textToShare)}`);
