@@ -151,7 +151,7 @@ function openCampModal(campId) {
          style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center;">
         ⛺ Занять слот в кэмп
       </button>
-      <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.split('(')[0].trim().replace(/'/g, "\\'")}')" 
+      <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.split('(')[0].trim().replace(/'/g, "\\'")}', '${camp.id}')" 
               class="btn btn-secondary" 
               style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
         <span>✈️</span> Поделиться
@@ -420,7 +420,7 @@ function openRideModal(rideId) {
          style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center;">
         🚴 Занять слот на этот выезд
       </button>
-      <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.dateDisplay.replace(/'/g, "\\'")}')" 
+      <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.dateDisplay.replace(/'/g, "\\'")}', '${ride.id}')" 
               class="btn btn-secondary" 
               style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
         <span>🔗</span> Поделиться
