@@ -11,6 +11,7 @@ import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 from aiohttp import web, ClientSession
 from github_uploader import process_uploaded_file, get_uploader_status
+import moderation
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -1874,6 +1875,12 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
     user = callback_query.get("from", {})
     user_id = user.get("id")
 
+    if data.startswith("cap_ok:"):
+        await moderation.handle_captcha_callback(
+            tg_request, edit_message, session, callback_query, MINIAPP_URL
+        )
+        return
+
     if data == "ignore":
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id})
         return
@@ -2486,7 +2493,15 @@ async def polling_loop(app: web.Application):
                         offset = update["update_id"] + 1
                         if "message" in update:
                             msg = update["message"]
-                            if "write_access_allowed" in msg:
+                            if "new_chat_members" in msg:
+                                asyncio.create_task(
+                                    moderation.handle_new_chat_members(tg_request, send_message, session, msg)
+                                )
+                            elif "left_chat_member" in msg:
+                                asyncio.create_task(
+                                    moderation.handle_left_chat_member(tg_request, session, msg)
+                                )
+                            elif "write_access_allowed" in msg:
                                 asyncio.create_task(handle_write_access(session, msg))
                             elif "document" in msg:
                                 asyncio.create_task(handle_document(session, msg))
