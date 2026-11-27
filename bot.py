@@ -910,13 +910,43 @@ def format_digest_text(
     )
 
 
-def digest_footer_keyboard() -> Dict[str, Any]:
+def _build_digest_share_url(topic: str, raw_content: str) -> str:
+    topic_label = "Шоссе" if topic == "road" else "Гравел"
+    emoji = "🛣️" if topic == "road" else "🪨"
+    # Берём 1–2 первых заголовка как тизер (коротко, чтобы URL гарантированно уложился в лимит Telegram)
+    lines = [ln.strip() for ln in (raw_content or "").splitlines() if ln.strip()]
+    teasers: List[str] = []
+    for ln in lines:
+        clean = re.sub(r"^[\-\*•▪▫]+\s+", "", ln).strip()
+        if not clean:
+            continue
+        colon_idx = clean.find(":")
+        headline = clean[:colon_idx].strip() if 0 < colon_idx <= 95 else clean[:95].strip()
+        if headline:
+            teasers.append(headline)
+        if len(teasers) >= 2:
+            break
+    teaser_block = ("\n• " + "\n• ".join(teasers)) if teasers else ""
+    share_text = (
+        f"{emoji} Свежий велодайджест Abhaz Band • {topic_label}"
+        f"{teaser_block}\n\n"
+        "Читать выпуск полностью и настроить доставку по своим темам:"
+    )
+    bot_deep_link = f"https://t.me/{BOT_USERNAME}?start=digest_{topic}"
+    return "https://t.me/share/url?" + urllib.parse.urlencode(
+        {"url": bot_deep_link, "text": share_text[:320]}
+    )
+
+
+def digest_footer_keyboard(topic: str = "road", raw_content: str = "") -> Dict[str, Any]:
+    share_url = _build_digest_share_url(topic, raw_content)
     return {
         "inline_keyboard": [
+            [{"text": "📤 Поделиться дайджестом", "url": share_url}],
             [
                 {"text": "⚙️ Настроить темы и время", "callback_data": "dg_menu"},
                 {"text": "🚀 Abhaz Band Hub", "web_app": {"url": f"{MINIAPP_URL}/"}},
-            ]
+            ],
         ]
     }
 
@@ -962,7 +992,7 @@ async def send_digest_to_user(
     """Отправляет дайджест в ветку «📰 Велодайджест» с разбивкой на части. Возвращает (ok, is_blocked)."""
     full_text = format_digest_text(topic, raw_content, published_at=published_at)
     chunks = _split_text_chunks(full_text)
-    kb = digest_footer_keyboard()
+    kb = digest_footer_keyboard(topic=topic, raw_content=raw_content)
     for idx, chunk in enumerate(chunks):
         markup = kb if idx == len(chunks) - 1 else None
         res = await send_message_to_user_topic(session, chat_id, "digest", chunk, reply_markup=markup)
@@ -1820,6 +1850,17 @@ async def handle_text(session: ClientSession, message: dict):
                 f"После подтверждения оплаты у @Piti4 откроется доступ во вкладку <b>«Мой кэмп»</b> с треками, таймингом и чек-листом.",
                 reply_markup=user_kb,
             )
+            return
+        if text.startswith("/start") and payload in ("digest_road", "digest_gravel"):
+            dg_topic = "road" if payload == "digest_road" else "gravel"
+            latest = await sb_get_latest_digest(session, dg_topic)
+            if latest:
+                pub_dt = _parse_iso_dt(latest.get("created_at"))
+                await send_digest_to_user(session, chat_id, dg_topic, latest["content"], published_at=pub_dt)
+            else:
+                sub = await sb_get_subscriber(session, user_id)
+                t_ui, m_ui = get_digest_settings_ui(sub)
+                await send_message(session, chat_id, t_ui, reply_markup=m_ui, message_thread_id=thread_id)
             return
         text_ui, markup = get_overview_ui()
         await send_message(session, chat_id, text_ui, reply_markup=markup, message_thread_id=thread_id)
