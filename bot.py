@@ -69,7 +69,7 @@ RIDES_DATA = {}
 CAMPS_DATA = []
 
 # Состояние ожидающих действий владельца
-PENDING_INPUT: Dict[int, Dict[str, Any]] = {}
+PENDING_INPUT: Dict[Any, Dict[str, Any]] = {}
 PENDING_ROLLBACK: Dict[int, str] = {}
 
 
@@ -764,15 +764,43 @@ def _beautify_digest_body(raw_content: str, topic: str) -> str:
     return "\n\n".join(formatted_blocks)
 
 
-def format_digest_text(topic: str, raw_content: str) -> str:
+_RU_MONTHS_GEN = [
+    "",
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+]
+
+
+def _format_msk_date_label(dt: Optional[datetime.datetime] = None) -> str:
+    now = dt.astimezone(MSK_TZ) if dt else datetime.datetime.now(MSK_TZ)
+    return f"{now.day} {_RU_MONTHS_GEN[now.month]} {now.year}"
+
+
+def format_digest_text(
+    topic: str,
+    raw_content: str,
+    published_at: Optional[datetime.datetime] = None,
+) -> str:
     header = (
         "🛣️ <b>Велодайджест Abhaz Band • Шоссе</b>"
         if topic == "road"
         else "🪨 <b>Велодайджест Abhaz Band • Гравел</b>"
     )
+    date_label = _format_msk_date_label(published_at)
     pretty_body = _beautify_digest_body(raw_content, topic)
     return (
-        f"{header}\n\n"
+        f"{header}\n"
+        f"📅 <i>{html.escape(date_label)} • МСК</i>\n\n"
         f"{pretty_body}\n\n"
         "<i>⚙️ Темы (Шоссе / Гравел) и удобное время доставки можно переключить кнопкой ниже.</i>"
     )
@@ -807,14 +835,28 @@ def _split_text_chunks(text: str, max_len: int = 3900) -> List[str]:
     return chunks
 
 
+def _parse_iso_dt(raw_ts: Any) -> Optional[datetime.datetime]:
+    if not raw_ts or not isinstance(raw_ts, str):
+        return None
+    try:
+        cleaned = raw_ts.replace("Z", "+00:00")
+        dt = datetime.datetime.fromisoformat(cleaned)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt.astimezone(MSK_TZ)
+    except Exception:
+        return None
+
+
 async def send_digest_to_user(
     session: ClientSession,
     chat_id: int,
     topic: str,
     raw_content: str,
+    published_at: Optional[datetime.datetime] = None,
 ) -> Tuple[bool, bool]:
     """Отправляет дайджест с разбивкой на части. Возвращает (ok, is_blocked)."""
-    full_text = format_digest_text(topic, raw_content)
+    full_text = format_digest_text(topic, raw_content, published_at=published_at)
     chunks = _split_text_chunks(full_text)
     kb = digest_footer_keyboard()
     for idx, chunk in enumerate(chunks):
@@ -844,7 +886,8 @@ async def deliver_digest_batch(
     blocked = 0
     for u in users:
         uid = int(u["user_id"])
-        ok, is_blk = await send_digest_to_user(session, uid, topic, content)
+        pub_dt = _parse_iso_dt(digest_row.get("created_at"))
+        ok, is_blk = await send_digest_to_user(session, uid, topic, content, published_at=pub_dt)
         if ok:
             await sb_update_subscriber(session, uid, {sent_col: digest_id})
             sent += 1
@@ -1244,6 +1287,63 @@ def get_camps_ui(idx: int):
 
 
 # ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
+def _find_slot_by_id(slot_id: str) -> Tuple[str, str, str, str]:
+    """Ищет слот по id среди CAMPS_DATA и RIDES_DATA. Возвращает (cat_label, slot_id, slot_type, title)."""
+    sid = (slot_id or "").strip()
+    for c in CAMPS_DATA:
+        if c.get("id") == sid:
+            return "Кэмп", sid, "camp", c.get("title", sid)
+    for r in RIDES_DATA.values():
+        if r.get("id") == sid:
+            rtype = r.get("rtype", "social")
+            cat = "Кэмп" if rtype == "camp" else "Заезд"
+            return cat, sid, rtype, r.get("title", sid)
+    # Фоллбэк, если id не найден в кэше
+    inferred_type = (
+        "camp" if "camp" in sid else
+        ("festival" if "festival" in sid else
+         ("weekend" if "weekend" in sid or "dourtour" in sid else "social"))
+    )
+    cat = "Кэмп" if inferred_type == "camp" else "Заезд"
+    return cat, sid, inferred_type, sid
+
+
+async def _dispatch_booking_lead(
+    session: ClientSession,
+    user: dict,
+    slot_id: str,
+    slot_type: str,
+    title: str,
+    cat_label: str,
+    source_label: str = "пульта",
+):
+    req_uid = user.get("id")
+    uname = f"@{user['username']}" if user.get("username") else html.escape(user.get("first_name", "Райдер"))
+    if req_uid:
+        PENDING_INPUT[f"slot_meta:{req_uid}:{slot_id[:28]}"] = {
+            "slot_id": slot_id,
+            "slot_type": slot_type,
+            "slot_title": title,
+            "username": user.get("username") or "",
+        }
+    approve_markup = {
+        "inline_keyboard": [
+            [{"text": "✅ Подтвердить оплату (открыть доступ)", "callback_data": f"slot_ok:{req_uid}:{slot_type}:{slot_id[:28]}"}],
+            [{"text": "❌ Отклонить заявку", "callback_data": f"slot_no:{req_uid}:{slot_id[:28]}"}],
+        ]
+    }
+    await send_message(
+        session,
+        ADMIN_ID,
+        f"🚴 <b>Новая заявка из {html.escape(source_label)} ({html.escape(cat_label)})!</b>\n"
+        f"• Программа: <b>{html.escape(title)}</b>\n"
+        f"• Слот ID: <code>{html.escape(slot_id)}</code>\n"
+        f"• Участник: {uname} (ID: <code>{req_uid}</code>)",
+        reply_markup=approve_markup,
+        message_thread_id=LEADS_TOPIC_ID,
+    )
+
+
 async def handle_write_access(session: ClientSession, message: dict):
     """Обработка приглашения (Bot API 10.5: botinvite / write_access_allowed) в связке с реферальным учётом."""
     chat_id = message["chat"]["id"]
@@ -1561,6 +1661,39 @@ async def handle_text(session: ClientSession, message: dict):
 
     if text.startswith("/start") or text.startswith("/widget") or text.startswith("/test"):
         await sb_ensure_subscriber(session, user)
+        parts = text.split(maxsplit=1)
+        payload = parts[1].strip() if len(parts) > 1 else ""
+        if text.startswith("/start") and payload.startswith("book_"):
+            raw_slot_id = urllib.parse.unquote(payload[len("book_"):]).strip()
+            if not RIDES_DATA and not CAMPS_DATA:
+                await load_remote_data()
+            cat_label, slot_id, slot_type, title = _find_slot_by_id(raw_slot_id)
+            await _dispatch_booking_lead(
+                session,
+                user,
+                slot_id,
+                slot_type,
+                title,
+                cat_label,
+                source_label="Abhaz Band Hub",
+            )
+            user_kb = {
+                "inline_keyboard": [
+                    [{"text": "💬 Написать организатору (@Piti4)", "url": "https://t.me/Piti4"}],
+                    [{"text": "🏠 Главное меню", "callback_data": "nav_overview"}],
+                ]
+            }
+            await send_message(
+                session,
+                chat_id,
+                f"✅ <b>Заявка отправлена!</b>\n\n"
+                f"• Программа: <b>{html.escape(title)}</b>\n"
+                f"• Слот: <code>{html.escape(slot_id)}</code>\n\n"
+                f"После подтверждения оплаты у @Piti4 откроется доступ во вкладку <b>«Мой кэмп»</b> с треками, таймингом и чек-листом.",
+                reply_markup=user_kb,
+                message_thread_id=thread_id,
+            )
+            return
         text_ui, markup = get_overview_ui()
         await send_message(session, chat_id, text_ui, reply_markup=markup, message_thread_id=thread_id)
 
@@ -1615,20 +1748,29 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         await edit_message(session, chat_id, msg_id, t, markup)
     elif data.startswith("book_ride:") or data.startswith("book_camp:"):
         cat = "Заезд" if "ride" in data else "Кэмп"
-        param = data.split(":")[1]
+        param = data.split(":", 1)[1]
         if cat == "Заезд":
             r_obj = RIDES_DATA.get(param, {})
             title = r_obj.get("title", param)
             slot_id = r_obj.get("id", f"ride_{param}")
             slot_type = r_obj.get("rtype", "social")
         else:
-            c_obj = CAMPS_DATA[int(param)] if int(param) < len(CAMPS_DATA) else {}
+            c_idx = int(param) if param.isdigit() else 0
+            c_obj = CAMPS_DATA[c_idx] if c_idx < len(CAMPS_DATA) else {}
             title = c_obj.get("title", "Кэмп Abhaz Band")
             slot_id = c_obj.get("id", f"camp_{param}")
             slot_type = "camp"
 
         req_uid = user.get("id")
         uname = f"@{user['username']}" if user.get("username") else html.escape(user.get("first_name", "Райдер"))
+        # Храним title в PENDING_INPUT для админа, чтобы при подтверждении записать в user_slots реальное slot_title
+        if req_uid:
+            PENDING_INPUT[f"slot_meta:{req_uid}:{slot_id[:28]}"] = {
+                "slot_id": slot_id,
+                "slot_type": slot_type,
+                "slot_title": title,
+                "username": user.get("username") or "",
+            }
         approve_markup = {
             "inline_keyboard": [
                 [{"text": "✅ Подтвердить оплату (открыть доступ)", "callback_data": f"slot_ok:{req_uid}:{slot_type}:{slot_id[:28]}"}],
@@ -1658,7 +1800,11 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
             _, req_uid_s, s_type, s_id = parts
             req_uid = int(req_uid_s)
             orig_text = msg.get("text", "")
-            ok, err = await supabase_upsert_slot(session, req_uid, "", s_id, s_type, s_id, "confirmed")
+            meta = PENDING_INPUT.pop(f"slot_meta:{req_uid}:{s_id}", None) or {}
+            full_slot_id = meta.get("slot_id") or s_id
+            full_slot_title = meta.get("slot_title") or full_slot_id
+            full_uname = meta.get("username") or ""
+            ok, err = await supabase_upsert_slot(session, req_uid, full_uname, full_slot_id, s_type, full_slot_title, "confirmed")
             if ok:
                 await edit_message(session, chat_id, msg_id, f"{html.escape(orig_text)}\n\n✅ <b>Оплата подтверждена — доступ в «Мой кэмп» открыт!</b>")
                 await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "✅ Доступ открыт!"})
@@ -1844,7 +1990,8 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         for topic in topics:
             latest = await sb_get_latest_digest(session, topic)
             if latest:
-                ok, _ = await send_digest_to_user(session, chat_id, topic, latest["content"])
+                pub_dt = _parse_iso_dt(latest.get("created_at"))
+                ok, _ = await send_digest_to_user(session, chat_id, topic, latest["content"], published_at=pub_dt)
                 if ok:
                     sent_any = True
         await tg_request(
@@ -1917,7 +2064,8 @@ async def handle_callback_query(session: ClientSession, callback_query: dict):
         if not row:
             await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Выпуск не найден", "show_alert": True})
             return
-        ok, _ = await send_digest_to_user(session, ADMIN_ID, topic, row["content"])
+        pub_dt = _parse_iso_dt(row.get("created_at"))
+        ok, _ = await send_digest_to_user(session, ADMIN_ID, topic, row["content"], published_at=pub_dt)
         await tg_request(session, "answerCallbackQuery", {"callback_query_id": cb_id, "text": "Тест отправлен!" if ok else "Ошибка отправки"})
         return
     elif user_id == ADMIN_ID and data.startswith("dg_send_now_ask:"):
