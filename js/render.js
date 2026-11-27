@@ -1,3 +1,21 @@
+// ==================== БРОНИРОВАНИЕ СЛОТА ЧЕРЕЗ БОТА (DEEP LINK) ====================
+function bookSlotViaBot(slotId) {
+  const safeId = encodeURIComponent(String(slotId || '').trim());
+  const botUrl = `https://t.me/AbhazBand_bot?start=book_${safeId}`;
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.HapticFeedback) {
+    try { tg.HapticFeedback.impactOccurred('medium'); } catch (e) {}
+  }
+  if (tg && typeof tg.openTelegramLink === 'function') {
+    tg.openTelegramLink(botUrl);
+    if (typeof tg.close === 'function') {
+      setTimeout(() => tg.close(), 150);
+    }
+    return;
+  }
+  window.open(botUrl, '_blank');
+}
+
 // ==================== РЕНДЕР КЭМПОВ ====================
 function renderCamps() {
   const container = document.getElementById('camps-list');
@@ -128,12 +146,11 @@ function openCampModal(campId) {
 
   <!-- Кнопки действий -->
     <div style="display: flex; gap: 8px; position: sticky; bottom: 0; background: #0f172a; padding: 14px 12px 20px 12px; margin-top: 0; border-top: 1px solid rgba(56, 189, 248, 0.15); box-shadow: 0 -8px 16px rgba(15, 23, 42, 0.9); z-index: 10;">
-      <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу задать вопрос/забронировать слот в кэмп: ' + camp.title + ' (' + camp.dates + ')')}" 
-         target="_blank" 
+      <button onclick="bookSlotViaBot('${camp.id}')" 
          class="btn" 
-         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center; text-decoration: none;">
-        💬 Задать вопрос / Забронировать
-      </a>
+         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center;">
+        ⛺ Занять слот в кэмп
+      </button>
       <button onclick="shareCamp('${camp.title.replace(/'/g, "\\'")}', '${camp.dates.replace(/'/g, "\\'")}', '${camp.location.replace(/'/g, "\\'")}', '${camp.price.split('(')[0].trim().replace(/'/g, "\\'")}')" 
               class="btn btn-secondary" 
               style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
@@ -398,12 +415,11 @@ function openRideModal(rideId) {
 
     <!-- Кнопки действий -->
     <div style="display: flex; gap: 8px;">
-      <a href="https://t.me/Piti4?text=${encodeURIComponent('Привет! Хочу забронировать участие в заезде: ' + ride.title + ' (' + ride.dateDisplay + ')')}" 
-         target="_blank" 
+      <button onclick="bookSlotViaBot('${ride.id}')" 
          class="btn" 
-         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center; text-decoration: none;">
-        🚴 Забронировать участие
-      </a>
+         style="flex: 2; padding: 12px 0; font-size: 13px; text-align: center;">
+        🚴 Занять слот на этот выезд
+      </button>
       <button onclick="shareRide('${ride.title.replace(/'/g, "\\'")}', '${ride.dateDisplay.replace(/'/g, "\\'")}')" 
               class="btn btn-secondary" 
               style="flex: 1; padding: 12px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 4px;">
