@@ -5,13 +5,17 @@ import random
 from typing import Any, Callable, Dict, Tuple
 from aiohttp import ClientSession
 
-CAPTCHA_TIMEOUT_SEC = 50  # 50 секунд на прохождение капчи
+CAPTCHA_TIMEOUT_SEC = 50   # 50 секунд на прохождение капчи
+WELCOME_DELETE_SEC = 180   # 3 минуты до автоудаления приветствия
 
 CORRECT_EMOJI = "🚲"
 DECOY_EMOJIS = ["🍕", "🚗", "🎸", "🚀", "🌵", "⚽", "🍔", "🛸", "🕶️", "🎲"]
 
 # Активные капчи: (chat_id, user_id) -> {"msg_id": int, "task": asyncio.Task, "mention": str}
 PENDING_CAPTCHAS: Dict[Tuple[int, int], Dict[str, Any]] = {}
+
+# Последнее приветствие в чате: chat_id -> {"msg_id": int, "task": asyncio.Task}
+LAST_WELCOME_MSG: Dict[int, Dict[str, Any]] = {}
 
 WELCOME_TEXT_TEMPLATE = (
     "Добро пожаловать в чат ❤️Abhaz🤍Band💚, {mention}!\n"
@@ -96,6 +100,45 @@ async def _captcha_timeout_worker(
         pass
     except Exception as exc:
         logging.warning(f"Ошибка таймаута капчи ({chat_id}, {user_id}): {exc}")
+
+
+async def _welcome_cleanup_worker(
+    tg_request: Callable,
+    session: ClientSession,
+    chat_id: int,
+    msg_id: int,
+):
+    try:
+        await asyncio.sleep(WELCOME_DELETE_SEC)
+        cur = LAST_WELCOME_MSG.get(chat_id)
+        if cur and cur.get("msg_id") == msg_id:
+            LAST_WELCOME_MSG.pop(chat_id, None)
+        await tg_request(session, "deleteMessage", {"chat_id": chat_id, "message_id": msg_id})
+    except asyncio.CancelledError:
+        pass
+    except Exception as exc:
+        logging.debug(f"Не удалось удалить приветствие ({chat_id}, {msg_id}): {exc}")
+
+
+async def _schedule_welcome_cleanup(
+    tg_request: Callable,
+    session: ClientSession,
+    chat_id: int,
+    msg_id: int,
+):
+    """Удаляет предыдущее приветствие (если ещё висит) и ставит таймер на 3 мин для текущего."""
+    prev = LAST_WELCOME_MSG.pop(chat_id, None)
+    if prev:
+        if prev.get("task"):
+            prev["task"].cancel()
+        prev_id = prev.get("msg_id")
+        if prev_id and prev_id != msg_id:
+            try:
+                await tg_request(session, "deleteMessage", {"chat_id": chat_id, "message_id": prev_id})
+            except Exception:
+                pass
+    task = asyncio.create_task(_welcome_cleanup_worker(tg_request, session, chat_id, msg_id))
+    LAST_WELCOME_MSG[chat_id] = {"msg_id": msg_id, "task": task}
 
 
 def _build_emoji_captcha_keyboard(uid: int) -> dict:
@@ -257,6 +300,7 @@ async def handle_captcha_callback(
         ]
     }
     await edit_message(session, chat_id, msg_id, welcome_text, reply_markup=welcome_kb)
+    await _schedule_welcome_cleanup(tg_request, session, chat_id, msg_id)
     await tg_request(
         session,
         "answerCallbackQuery",
